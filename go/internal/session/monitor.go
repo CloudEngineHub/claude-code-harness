@@ -688,7 +688,7 @@ func makeEventKey(taskID, triggerHash string) string {
 func (h *MonitorHandler) readAdvisorTTL(projectRoot string) int64 {
 	const defaultTTL = int64(600)
 
-	configPath := filepath.Join(projectRoot, ".claude-code-harness.config.yaml")
+	configPath := filepath.Clean(filepath.Join(projectRoot, ".claude-code-harness.config.yaml"))
 	f, err := os.Open(configPath)
 	if err != nil {
 		return defaultTTL
@@ -748,9 +748,6 @@ func (h *MonitorHandler) checkPlansDrift(plans plansStateJSON, projectRoot strin
 		return ""
 	}
 
-	if staleHit {
-		return fmt.Sprintf("⚠️ plans drift: WIP=%d, stale_for=%dh", plans.WIPTasks, elapsedHours)
-	}
 	return fmt.Sprintf("⚠️ plans drift: WIP=%d, stale_for=%dh", plans.WIPTasks, elapsedHours)
 }
 
@@ -760,7 +757,7 @@ func (h *MonitorHandler) readPlansDriftConfig(projectRoot string) (wipThreshold 
 	wipThreshold = 5
 	staleHours = 24
 
-	configPath := filepath.Join(projectRoot, ".claude-code-harness.config.yaml")
+	configPath := filepath.Clean(filepath.Join(projectRoot, ".claude-code-harness.config.yaml"))
 	f, err := os.Open(configPath)
 	if err != nil {
 		return

@@ -510,6 +510,123 @@ func TestMonitorHandler_AdvisorDrift_ConfigOverride(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// 48.2.1: reviewer drift テスト（Phase 48.2 follow-up）
+// reviewer drift は advisor drift と同一 TTL (orchestration.advisor_ttl_seconds) を共有する。
+// 検出対象スキーマは review-request.v1 / review-result.v1。
+// ---------------------------------------------------------------------------
+
+func TestMonitorHandler_ReviewerDrift_Hit(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// 700秒前の review-request（TTL=600 を超える）
+	oldTime := time.Now().Add(-700 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	line := fmt.Sprintf(`{"schema_version":"review-request.v1","task_id":"rev1","trigger_hash":"rev0001","ts":"%s"}`, oldTime)
+	if err := os.WriteFile(eventsFile, []byte(line+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if !strings.Contains(s, "reviewer drift") {
+		t.Errorf("expected reviewer drift warning, got:\n%s", s)
+	}
+	if !strings.Contains(s, "waiting") {
+		t.Errorf("expected 'waiting' in reviewer drift output, got:\n%s", s)
+	}
+}
+
+func TestMonitorHandler_ReviewerDrift_Miss(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// request は TTL 超過だが review-result.v1 が既に到着している → drift ではない
+	baseTime := time.Now().Add(-700 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	reqLine := fmt.Sprintf(`{"schema_version":"review-request.v1","task_id":"rev2","trigger_hash":"rev0002","ts":"%s"}`, baseTime)
+	resLine := fmt.Sprintf(`{"schema_version":"review-result.v1","task_id":"rev2","trigger_hash":"rev0002","ts":"%s"}`, baseTime)
+	if err := os.WriteFile(eventsFile, []byte(reqLine+"\n"+resLine+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if strings.Contains(s, "reviewer drift") {
+		t.Errorf("expected no reviewer drift warning when response exists, got:\n%s", s)
+	}
+}
+
+func TestMonitorHandler_ReviewerDrift_ConfigOverride(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// config.yaml で advisor_ttl_seconds=10 を設定（reviewer drift も同 TTL を共有）
+	configContent := `orchestration:
+  advisor_ttl_seconds: 10
+`
+	if err := os.WriteFile(filepath.Join(dir, ".claude-code-harness.config.yaml"), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 15秒前の review-request（TTL=10 を超える）
+	oldTime := time.Now().Add(-15 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	line := fmt.Sprintf(`{"schema_version":"review-request.v1","task_id":"rev3","trigger_hash":"rev0003","ts":"%s"}`, oldTime)
+	if err := os.WriteFile(eventsFile, []byte(line+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if !strings.Contains(s, "reviewer drift") {
+		t.Errorf("expected reviewer drift warning with config override TTL=10, got:\n%s", s)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // 48.1.3: Plans.md 閾値判定テスト
 // ---------------------------------------------------------------------------
 
