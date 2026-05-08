@@ -72,6 +72,9 @@ harness-ui/CLAUDE.md
 # Local build artifacts
 /go/bin/
 
+# Go workspace checksum (environment-specific; go.work itself is tracked)
+go.work.sum
+
 # Secrets
 .credentials.json
 
