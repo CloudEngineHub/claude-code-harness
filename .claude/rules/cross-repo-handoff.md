@@ -36,6 +36,29 @@ Phase 65.3 着手前の mem 側との coordination で確定した実装制約:
 
 将来 cross-project N-call のレイテンシが実運用で問題化したら **XR-005** (MCP schema に `projects: [array]` + `strict_project: boolean` 追加) として harness-mem §111 で起票する。
 
+### Phase 65.3 完走報告 (2026-05-09)
+
+Phase C 7 タスクは 1 セッション内で完走、Cross-Contract 変更ゼロで claude-code-harness 内に完結。
+
+| Phase | task | commit | 主要成果物 | テスト |
+|---|---|---|---|---|
+| C-1 | 65.3.1 | `4a014137` | `.claude/rules/cross-project-groups.yaml` SSOT + `scripts/load-cross-project-groups.sh` (yaml → JSON validator) + `docs/cross-project-groups-schema.md` | 21 PASS |
+| C-2 | 65.3.2 | `5152bed2` | `.claude/rules/client-redaction.yaml` (PiiRule 互換 schema) + `scripts/redact-by-dictionary.sh` Layer 2a + 二重置換ガード | 26 PASS |
+| C-3 | 65.3.3 | `20a4478f` | `scripts/redact-by-ner.sh` Layer 2b (fugashi tokenizer + fail-open) | 22 PASS |
+| C-4 | 65.3.4 | `0ae3f40a` | `scripts/render-html.sh --with-redaction` Layer 3 final scan + `scripts/final-scan-redaction.py` | 16 PASS |
+| C-5 | 65.3.5 | `09377eb9` | `harness-plan-brief` / `harness-accept` SKILL.md に `--cross-project-group <name>` flag opt-in (D43 Option α: MCP N-call) | 18 PASS |
+| C-6 | 65.3.6 | `272a8f33` | `cross-project-audit.v1` audit log + `scripts/cross-project-audit-log.sh` + HTML 監査サマリ表示 | 21 PASS |
+| C-7 | 65.3.7 | `c05d6ef8` | e2e validation (3-member group + 全層通し + envelope + sentinel guard) | 21 PASS |
+
+**累計**: 7 feat commit + 7 chore commit = 14 commit、145 assertion 全 PASS、`./tests/validate-plugin.sh` は 51 → 58 (+7)、`bash scripts/ci/check-consistency.sh` 全合格。
+
+D43 4 判断パッケージは全て初期設計どおり機能し、想定外の制約や手戻りは発生しなかった。
+
+**未起票 follow-up trigger 一覧** (発動条件達成時のみ harness-mem §111 で起票):
+- XR-005: MCP schema に `projects: [array]` + `strict_project: boolean` 追加 — N-call レイテンシが実運用で問題化したら
+- §110-S110-006: `applied_filters` meta 実装 — client から server-side filter 適用を可視化する需要が出たら
+- PiiRule 共通化 npm package: Cross-client 一貫性が真に必要になったら
+
 ### Cross-client 一貫性の担保方針
 
 「Codex 等の他 client から呼ばれた時にも redact が効く」要件は **client 側で shared library (npm package or sub-module) を共通化** する方針で対応する。server 側 MCP API 出口で redact しない理由:
