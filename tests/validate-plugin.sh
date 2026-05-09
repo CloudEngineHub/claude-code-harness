@@ -724,6 +724,12 @@ else
     fail_test "Plan→Accept flow e2e の契約テストに失敗 — 'bash tests/test-plan-accept-flow-e2e.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-cross-project-groups-schema.sh" > /dev/null 2>&1; then
+    pass_test "Phase 65.3.1 cross-project-group.v1 schema validator が yaml SSOT を正しくパース・検証します (test-cross-project-groups-schema.sh)"
+else
+    fail_test "cross-project-groups-schema の契約テストに失敗 — 'bash tests/test-cross-project-groups-schema.sh' で詳細確認"
+fi
+
 echo ""
 echo "=========================================="
 echo "テスト結果サマリー"
