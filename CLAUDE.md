@@ -139,5 +139,6 @@ Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md) / [.clau
 
 - Migration policy: [.claude/rules/migration-policy.md](.claude/rules/migration-policy.md) - deleted-concepts.yaml の運用ルール (Phase 40 で導入)
 - Active watching test policy: [.claude/rules/active-watching-test-policy.md](.claude/rules/active-watching-test-policy.md) - 外部 daemon / opt-in ファイル監視機能の 3 状態テスト規約 (Phase 50 で導入、D40 / P29 運用ルール化)
+- Cross-repo handoff: [.claude/rules/cross-repo-handoff.md](.claude/rules/cross-repo-handoff.md) - claude-code-harness ↔ harness-mem 責任境界 + 2 経路 handoff workflow (Phase 65 で codify、D42 の shareable policy 部分)
 
 <!-- harness-integrity: last-audit=2026-04-19 -->
