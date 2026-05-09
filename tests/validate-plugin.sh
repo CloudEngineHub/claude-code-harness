@@ -742,6 +742,12 @@ else
     fail_test "redact-by-ner の契約テストに失敗 — 'bash tests/test-redact-by-ner.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-render-html-redaction.sh" > /dev/null 2>&1; then
+    pass_test "Phase 65.3.4 render-html.sh --with-redaction が dict→NER→Layer3 を順次適用し、残骸検出時は HTML 生成を中止します (test-render-html-redaction.sh)"
+else
+    fail_test "render-html-redaction の契約テストに失敗 — 'bash tests/test-render-html-redaction.sh' で詳細確認"
+fi
+
 echo ""
 echo "=========================================="
 echo "テスト結果サマリー"

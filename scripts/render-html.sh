@@ -43,13 +43,17 @@ USAGE
 TEMPLATE_NAME=""
 DATA_PATH=""
 OUT_PATH=""
+WITH_REDACTION="false"
+CLIENT_DICT_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --template) TEMPLATE_NAME="${2:-}"; shift 2 ;;
-    --data)     DATA_PATH="${2:-}";     shift 2 ;;
-    --out)      OUT_PATH="${2:-}";      shift 2 ;;
-    -h|--help)  usage ;;
+    --template)        TEMPLATE_NAME="${2:-}"; shift 2 ;;
+    --data)            DATA_PATH="${2:-}";     shift 2 ;;
+    --out)             OUT_PATH="${2:-}";      shift 2 ;;
+    --with-redaction)  WITH_REDACTION="true";  shift 1 ;;
+    --client-dict)     CLIENT_DICT_PATH="${2:-}"; shift 2 ;;
+    -h|--help)         usage ;;
     *) echo "ERROR: unknown argument: $1" >&2; usage ;;
   esac
 done
@@ -247,6 +251,39 @@ done
 # backslash がリテラル挿入されるため、リテラル `{` を変数経由で渡す。
 LITERAL_OPEN_BRACE="{"
 TEMPLATE_CONTENT="${TEMPLATE_CONTENT//$SENTINEL_OPEN_BRACE/$LITERAL_OPEN_BRACE}"
+
+# --- Layer 2/3 Redaction (Phase 65.3.4 / D43) ---
+# --with-redaction 有効時、HTML 出力直前に 3 段順次:
+#   Layer 2a: redact-by-dictionary.sh (literal 固有名詞)
+#   Layer 2b: redact-by-ner.sh (Japanese tokenizer)
+#   Layer 3 : final scan (カタカナ 5 文字以上連続を残骸として検出)
+# Layer 3 で検出時は HTML を**書かず exit 1**、stderr に detected token を出力。
+if [[ "$WITH_REDACTION" == "true" ]]; then
+  REDACTION_LOG="$TMP_DIR/redaction.log"
+  : > "$REDACTION_LOG"
+
+  # Layer 2a: dict (--client-dict 指定時はそれを、なければ default SSOT)
+  if [[ -n "$CLIENT_DICT_PATH" ]]; then
+    TEMPLATE_CONTENT="$(printf '%s' "$TEMPLATE_CONTENT" | bash "$SCRIPT_DIR/redact-by-dictionary.sh" --stdin --dict "$CLIENT_DICT_PATH" 2>>"$REDACTION_LOG" || true)"
+  else
+    TEMPLATE_CONTENT="$(printf '%s' "$TEMPLATE_CONTENT" | bash "$SCRIPT_DIR/redact-by-dictionary.sh" --stdin 2>>"$REDACTION_LOG" || true)"
+  fi
+  # Layer 2b: NER
+  TEMPLATE_CONTENT="$(printf '%s' "$TEMPLATE_CONTENT" | bash "$SCRIPT_DIR/redact-by-ner.sh" --stdin 2>>"$REDACTION_LOG" || true)"
+
+  # Layer 3: final scan — sentinel mark を退避してから scan
+  # detection ロジックは scripts/final-scan-redaction.py に分離 (heredoc + pipe で
+  # stdin 衝突するため、ファイル化して `python3 <script>` で呼ぶ)
+  set +e
+  printf '%s' "$TEMPLATE_CONTENT" | python3 "$SCRIPT_DIR/final-scan-redaction.py"
+  FINAL_SCAN_EXIT=$?
+  set -e
+
+  if [[ $FINAL_SCAN_EXIT -ne 0 ]]; then
+    echo "ERROR: Layer 3 final scan detected residue (HTML generation aborted)" >&2
+    exit 1
+  fi
+fi
 
 # --- 出力 ---
 OUT_DIR="$(dirname "$OUT_PATH")"
