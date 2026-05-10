@@ -13,6 +13,12 @@
     --harness-orange: #F58A4A;
     --harness-green:  #4A9B5C;
     --harness-amber:  #C99A2E;
+    --alert-info-bg:  #EAF2FB;
+    --alert-info-fg:  #2B5F9E;
+    --alert-warn-bg:  #FBF4E3;
+    --alert-warn-fg:  #8A6510;
+    --alert-crit-bg:  #FBE9E7;
+    --alert-crit-fg:  #B23B22;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -158,6 +164,28 @@
     font-size: 0.8em;
     color: var(--harness-green);
   }
+  .alert {
+    border-left: 3px solid;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9em;
+  }
+  .alert-info     { background: var(--alert-info-bg); border-color: var(--alert-info-fg); color: var(--alert-info-fg); }
+  .alert-warn     { background: var(--alert-warn-bg); border-color: var(--alert-warn-fg); color: var(--alert-warn-fg); }
+  .alert-critical { background: var(--alert-crit-bg); border-color: var(--alert-crit-fg); color: var(--alert-crit-fg); }
+  .alert-kind {
+    font-weight: 500;
+    margin-right: 8px;
+    text-transform: uppercase;
+    font-size: 0.75em;
+    letter-spacing: 0.05em;
+  }
+  .alert-action {
+    margin-top: 4px;
+    color: var(--harness-muted);
+    font-size: 0.85em;
+  }
   footer {
     margin-top: 48px;
     padding-top: 16px;
@@ -189,6 +217,14 @@
     <div class="current-label">現在のタスク</div>
     <div class="current-task">{{current_task}}</div>
   </div>
+
+  <section>{{#alerts}}
+    <div class="alert alert-{{severity}}">
+      <span class="alert-kind">{{kind}}</span>
+      {{message}}
+      <div class="alert-action">→ {{suggested_action}}</div>
+    </div>{{/alerts}}
+  </section>
 
   <div class="stats">
     <div class="stat-card">

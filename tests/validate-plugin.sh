@@ -778,6 +778,12 @@ else
     fail_test "progress-regen の契約テストに失敗 — 'bash tests/test-progress-regen.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-progress-drift.sh" > /dev/null 2>&1; then
+    pass_test "Phase 65.4.3 drift detection が 5 alert kind (scope-creep/time-overrun/repeated-failure/cost-warning/high-risk-file) を発火します (test-progress-drift.sh)"
+else
+    fail_test "progress-drift の契約テストに失敗 — 'bash tests/test-progress-drift.sh' で詳細確認"
+fi
+
 echo ""
 echo "=========================================="
 echo "テスト結果サマリー"
