@@ -6,6 +6,93 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### テーマ: 認知負荷を下げる 3 surface HTML for non-engineer vibecoder (Phase 65)
+
+**Plans.md (200 行) と git log を読み込まないと判断できなかった AI 開発の進行を、エンジニアじゃない発注者でもブラウザで開ける 3 枚の HTML で 3 秒で把握できるようにしました。**
+
+#### Before / After
+
+| Before | After |
+|--------|-------|
+| Plans.md を 200 行スクロールしないと進捗が見えない | `harness-progress` で進捗 % + WIP/TODO/完了 一覧 + drift alert を 1 枚 HTML で表示 |
+| Claude の理解と選択肢が会話 buffer にしか残らない | `harness-plan-brief` が着工前の Claude 理解・選択肢・受け入れ条件・確信度を HTML 化、ユーザー判断を sha256 hash 付きで記録 |
+| 引き渡し時の判断根拠が散らばる | `harness-accept` が ship/wait/reject 判定 + 受け入れ条件検証 + 過去問題パターン表示を HTML 1 枚で集約 |
+| Plan Brief と Acceptance が連携しない | 同 user_request_hash (sha256 64 chars) で `mcp__harness__harness_mem_search` から graph join 可能 |
+| 横断検索を opt-in しても他プロジェクトの固有名詞が漏れる | 3 層 redaction (Layer 2a 辞書 + 2b NER + 3 final scan) で fail-safe (final scan 検出時は HTML 生成せず exit 1) |
+| 監査経路が不明 | 3 HTML 全てに「🔍 この artifact の根拠」セクション (検索範囲 / 参照 ID / redact 件数 / log link) + JSON Lines 監査ログ |
+
+---
+
+#### 1. Plan Brief: 着工前の説明会 (Phase 65.1)
+
+**今まで**: Claude が「何を作る予定か」を会話で説明するだけで、エンジニアじゃない発注者は決定の根拠を後から追えませんでした。修正したい点があっても、どの選択肢があったか、Claude がどう理解したかが残らないため、議論が空中分解しがちでした。
+
+**今後**: `/harness-plan-brief` で Claude が着工前に 1 枚 HTML を生成します。
+
+```
+ユーザー要求の Claude 側理解 / 選択肢 (option A/B/C) / リスク /
+受け入れ条件 (acceptance_criteria) / 確信度 (0-100、根拠付き)
+```
+
+判断は `personal-preference.v1` schema で sha256 hash 付き記録。同じハッシュで Acceptance Demo と graph join できます。
+
+#### 2. Acceptance Demo: 引き渡し時の検収 (Phase 65.2)
+
+**今まで**: 「もう ship していい?」を判断するための情報が、コミットログ、テスト結果、Plan Brief 時点の合意の 3 箇所に分散していました。
+
+**今後**: `/harness-accept` で 1 枚 HTML を生成。
+
+```
+判定 (ship / wait / reject の 3 択) /
+受け入れ条件の検証 (Plan Brief の各項目に「✓ 確認済み」「未確認」マーク) /
+未検証の留保事項 / 過去の問題パターン履歴
+```
+
+判断ロジックは検証済 ÷ 全条件 で機械的: ≥80% → ship, ≥50% → wait, <50% → reject, 0 件 → reject (安全側)。
+
+#### 3. Progress Tracker: 工事中ボード (Phase 65.4)
+
+**今まで**: 「今どこまで進んでる?」を確認するには Plans.md を grep するしかなかった。長時間セッションでコストがいくら掛かったかも見えませんでした。
+
+**今後**: `/harness-progress` または PostToolUse hook が Edit/Write/Bash 発火時に **60 秒に 1 回** 自動再生成。
+
+```
+progress_pct (cc:完了 / 総タスク × 100) /
+現在の WIP タスク / 直近完了 5 件 / 未着手 5 件 /
+drift alert 5 種 (scope-creep / time-overrun / repeated-failure /
+                   cost-warning / high-risk-file) を severity 色分け
+                   (赤=critical / 黄=warn / 青=info)
+```
+
+過去 alert への user 判断は `progress-past-judgments.sh` で集計し「過去 N 件中 M 件で同様の提案を断っています」を表示。
+
+#### 4. 3 層 Redaction: 横断検索の安全網 (Phase 65.3)
+
+**今まで**: 別プロジェクトの過去判断を引き出したいけれど、クライアント名や人名が混ざる懸念で横断検索を有効化できませんでした。
+
+**今後**: `--cross-project-group <name>` flag を opt-in 指定すると、3 層で固有名詞を redact:
+
+- **Layer 1** (server 側): `<private>` strip + project scope (harness-mem 既存)
+- **Layer 2a** (client 側): `client-redaction.yaml` の辞書ベース redaction (PiiRule 互換 schema)
+- **Layer 2b** (client 側): NER (fugashi tokenizer) で固有名詞 → `[Entity]`
+- **Layer 3** (client 側): HTML 生成直前の最終 scan (カタカナ 5+ 文字連続を検出 → fail-safe exit 1)
+
+監査ログ: `.claude/state/audit/cross-project-search.jsonl` に 1 行 JSON で記録 (privacy: query_hash のみ、生クエリ未記録)。
+
+#### 5. 関連ファイル / schema
+
+- 3 skills: `skills/harness-plan-brief/`, `skills/harness-accept/`, `skills/harness-progress/`
+- 9 schema: `personal-preference.v1` / `acceptance-decision.v1` / `progress-snapshot.v1` / `progress-alert.v1` / `cross-project-audit.v1` / `cross-project-group.v1` / `client-redaction.v1` / `acceptance-context.v1` / `plan-brief-context.v1`
+- 詳細: [docs/cognitive-load-surfaces.md](docs/cognitive-load-surfaces.md), [docs/cross-project-safety.md](docs/cross-project-safety.md), [docs/cross-project-groups-schema.md](docs/cross-project-groups-schema.md)
+
+#### 6. 進化的決定記録 (local SSOT、decisions.md は gitignored)
+
+- D42: Cross-repo Handoff Workflow + 3 層 Redaction の owner 境界 (Phase 65 着手時)
+- D43: Phase 65.3 着手前 mem 側 coordination 結果の 4 判断パッケージ
+  (Option α MCP N-call / 注記方針 / PiiRule 互換 schema / DoD g/h 追加)
+
+mem 側 closure ack: §110 内 S110-006 (commit `8b34ecb` / `ad4ba56`) で受領、Cross-Contract 変更 0 件で完結。
+
 ## [4.8.1] - 2026-05-09
 
 ### Phase 64.1: Plans.md archive 運用の SSOT 化と CI archive-aware 化
