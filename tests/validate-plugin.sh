@@ -712,6 +712,12 @@ else
     fail_test "WorktreeCreate shell hook の cwd 防御テストに失敗 — 'bash tests/test-worktree-create-hook.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-session-inbox-broadcast.sh" > /dev/null 2>&1; then
+    pass_test "session inbox/broadcast は stale 通知の再表示と stale cwd 書き込みを防ぎます (test-session-inbox-broadcast.sh)"
+else
+    fail_test "session inbox/broadcast の stale 通知契約テストに失敗 — 'bash tests/test-session-inbox-broadcast.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-render-html.sh" > /dev/null 2>&1; then
     pass_test "render-html.sh は mustache 展開と Claude Harness palette 検証を満たします (test-render-html.sh)"
 else
