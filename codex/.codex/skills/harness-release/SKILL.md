@@ -116,7 +116,12 @@ fi
 # CHANGELOG
 [ -f CHANGELOG.md ] || { echo "CHANGELOG.md がありません"; exit 1; }
 grep -q "^## \[Unreleased\]" CHANGELOG.md || { echo "[Unreleased] セクションがありません"; exit 1; }
+
+# plugin/mirror projects
+scripts/release-preflight.sh
 ```
+
+`scripts/release-preflight.sh` は tag 作成前に `opencode/`, `skills-codex/`, `codex/.codex/skills/` の mirror drift も検出する。`node scripts/build-opencode.js` が差分を生成した場合は release を止め、その差分を commit してから tag に進む。
 
 ### 2. Version File 自動検出
 
