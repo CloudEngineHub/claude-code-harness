@@ -64,7 +64,7 @@ fi
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/codex-loop.sh start <all|N|N-M> [--max-cycles N] [--pacing worker|ci|plateau|night] [--executor breezing|task] [--max-workers N|max]
+  scripts/codex-loop.sh start <all|N|N-M> [--plan NAME] [--max-cycles N] [--pacing worker|ci|plateau|night] [--executor breezing|task] [--max-workers N|max]
   scripts/codex-loop.sh status [--json]
   scripts/codex-loop.sh stop
   scripts/codex-loop.sh run --run-id <id>
@@ -189,6 +189,14 @@ append_jsonl() {
 }
 
 plans_file_path() {
+  if [ -n "${HARNESS_PLAN_FILE:-}" ]; then
+    case "${HARNESS_PLAN_FILE}" in
+      /*) printf '%s\n' "${HARNESS_PLAN_FILE}" ;;
+      *) printf '%s\n' "${PROJECT_ROOT}/${HARNESS_PLAN_FILE}" ;;
+    esac
+    return 0
+  fi
+
   local plans_file=""
   if [ -f "${CONFIG_UTILS}" ]; then
     plans_file="$(
@@ -341,6 +349,51 @@ acquire_lock() {
 
 release_lock() {
   rm -rf "${LOCK_DIR}" 2>/dev/null || true
+}
+
+runner_log_tail_one_line() {
+  local max_lines="${1:-20}"
+  if [ ! -f "${RUNNER_LOG}" ]; then
+    return 0
+  fi
+  tail -n "${max_lines}" "${RUNNER_LOG}" 2>/dev/null \
+    | tr '\n' ' ' \
+    | sed 's/[[:space:]][[:space:]]*/ /g; s/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+wait_for_runner_startup() {
+  local runner_pid="$1"
+  local checks="${CODEX_LOOP_STARTUP_CHECKS:-10}"
+  local interval="${CODEX_LOOP_STARTUP_INTERVAL_SEC:-0.2}"
+  local i=0
+
+  while [ "${i}" -lt "${checks}" ]; do
+    sleep "${interval}"
+    if ! is_pid_alive "${runner_pid}"; then
+      local status exit_reason
+      status="$(json_get_file "${RUN_JSON}" "status" "")"
+      exit_reason="$(json_get_file "${RUN_JSON}" "exit_reason" "")"
+      if [ -s "${CYCLES_JSONL}" ] || [ -f "${CURRENT_JOB_JSON}" ]; then
+        return 0
+      fi
+      case "${status}" in
+        completed|stopped)
+          return 0
+          ;;
+        failed)
+          case "${exit_reason}" in
+            task_blocked|pivot_required)
+              return 0
+              ;;
+          esac
+          ;;
+      esac
+      return 1
+    fi
+    i=$((i + 1))
+  done
+
+  return 0
 }
 
 delay_for_pacing() {
@@ -2423,8 +2476,17 @@ cmd_start() {
   local pacing="worker"
   local executor="breezing"
   local max_workers="max"
+  local plan_name=""
   while [ $# -gt 0 ]; do
     case "$1" in
+      --plan)
+        if [ $# -lt 2 ] || [[ "${2:-}" == --* ]]; then
+          echo "--plan requires a plan name" >&2
+          exit 2
+        fi
+        plan_name="${2:-}"
+        shift 2
+        ;;
       --max-cycles)
         max_cycles="${2:-}"
         shift 2
@@ -2478,9 +2540,12 @@ cmd_start() {
   fi
 
   local plans_file
+  if [ -n "${plan_name}" ]; then
+    export HARNESS_PLAN_NAME="${plan_name}"
+  fi
   plans_file="$(plans_file_path)"
   [ -f "${plans_file}" ] || {
-    echo "Plans.md not found under ${PROJECT_ROOT}" >&2
+    echo "Plans.md not found under ${PROJECT_ROOT}${plan_name:+ for plan ${plan_name}}" >&2
     exit 1
   }
 
@@ -2527,6 +2592,7 @@ cmd_start() {
   "started_at": "$(timestamp_utc)",
   "updated_at": "$(timestamp_utc)",
   "project_root": "$(printf '%s' "${PROJECT_ROOT}")",
+  "plan_name": "$(printf '%s' "${plan_name:-default}")",
   "plans_file": "$(printf '%s' "${plans_file}")"
 }
 EOF
@@ -2545,6 +2611,29 @@ EOF
 }
 EOF
 )"
+  if ! wait_for_runner_startup "${runner_pid}"; then
+    local log_tail
+    log_tail="$(runner_log_tail_one_line 30)"
+    local error_message="loop runner exited during startup"
+    if [ -n "${log_tail}" ]; then
+      error_message="${error_message}; runner log tail: ${log_tail}"
+    fi
+    run_state_patch "$(cat <<EOF
+{
+  "pid": null,
+  "status": "startup_failed",
+  "exit_reason": "startup_failed",
+  "finished_at": $(json_escape "$(timestamp_utc)"),
+  "updated_at": $(json_escape "$(timestamp_utc)"),
+  "error_message": $(json_escape "${error_message}"),
+  "startup_log_tail": $(json_escape "${log_tail}")
+}
+EOF
+)"
+    release_lock
+    printf 'Failed to start codex-loop %s: %s\n' "${run_id}" "${error_message}" >&2
+    exit 1
+  fi
   printf 'Started codex-loop %s in background (pid=%s)\n' "${run_id}" "${runner_pid}"
 }
 
@@ -2572,12 +2661,12 @@ cmd_status() {
   fi
 
   local payload
-  payload="$(python_json "${RUN_JSON}" "${CURRENT_JOB_JSON}" "${PROJECT_ROOT}" <<'PY'
+  payload="$(python_json "${RUN_JSON}" "${CURRENT_JOB_JSON}" "${PROJECT_ROOT}" "${RUNNER_LOG}" <<'PY'
 import json
 import os
 import sys
 
-run_file, current_job_file, project_root = sys.argv[1:4]
+run_file, current_job_file, project_root, runner_log_file = sys.argv[1:5]
 
 def pid_alive(pid):
     if pid in (None, "", 0):
@@ -2613,7 +2702,17 @@ active_statuses = {"starting", "running", "waiting", "stopping"}
 if run.get("status") in active_statuses and not pid_alive(run.get("pid")):
     run = dict(run)
     run["status"] = "state_stale"
-    run["error_message"] = run.get("error_message") or "loop runner pid is not alive"
+    if not run.get("error_message"):
+        tail = ""
+        try:
+            with open(runner_log_file, "r", encoding="utf-8", errors="replace") as fh:
+                lines = fh.readlines()[-20:]
+            tail = " ".join(line.strip() for line in lines if line.strip())
+        except Exception:
+            tail = ""
+        run["error_message"] = "loop runner pid is not alive" + (f"; runner log tail: {tail}" if tail else "")
+        if tail:
+            run["startup_log_tail"] = tail
     payload["run"] = run
 
 print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -2814,13 +2913,13 @@ EOF
     local cycle_status=0
     if [ "${executor}" = "breezing" ]; then
       if [[ "${batch_ids}" == *,* ]]; then
-        bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${batch_ids}" --cycle "${next_cycle}" --executor breezing --max-workers "${max_workers}" || cycle_status=$?
+        HARNESS_PLAN_FILE="${plans_file}" bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${batch_ids}" --cycle "${next_cycle}" --executor breezing --max-workers "${max_workers}" || cycle_status=$?
       else
         log_line "cycle ${next_cycle} starting executor=breezing batch=${batch_ids} max_workers=${max_workers}"
-        bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${batch_ids}" --cycle "${next_cycle}" --executor task || cycle_status=$?
+        HARNESS_PLAN_FILE="${plans_file}" bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${batch_ids}" --cycle "${next_cycle}" --executor task || cycle_status=$?
       fi
     else
-      bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${task_id}" --cycle "${next_cycle}" --executor task || cycle_status=$?
+      HARNESS_PLAN_FILE="${plans_file}" bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${task_id}" --cycle "${next_cycle}" --executor task || cycle_status=$?
     fi
     if [ "${cycle_status}" -ne 0 ]; then
       case "${cycle_status}" in
