@@ -6,6 +6,8 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.10.0] - 2026-05-12
+
 - (local trial) Phase 68: TDD enforcement L1+L2+L3+L4 introduced (not released).
 - Added the project spec SSOT workflow to `harness-plan`, `harness-work`, Worker, Scaffolder, and Reviewer so Plans.md stays the task ledger while product-level behavior is fixed in a stable spec when needed.
 - Fixed `codex-loop` orphan-job handling (#131): runner loss with an active job now reports `runner_lost_job_running`, `stop` cancels the recorded job, and unexpected runner exits cancel active companion/local jobs before leaving terminal state.
@@ -4032,7 +4034,8 @@ Purpose: 自己修正ループ失敗時に「止まるだけ」から「次の�
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.9.0...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.10.0...HEAD
+[4.10.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.9.0...v4.10.0
 [4.9.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.8.1...v4.9.0
 [4.8.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.7.0...v4.8.0
