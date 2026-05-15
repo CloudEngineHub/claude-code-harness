@@ -134,9 +134,19 @@ sequence。JSON では unicode escape (`\u001b` / `\u0007`) を使う:
 
 ### 標準実装ヘルパ
 
-`scripts/hook-handlers/webhook-notify.sh` と `scripts/hook-handlers/notification-handler.sh` が
-`HARNESS_TERMINAL_NOTIFY` を解釈して `terminalSequence` を出力する。
-新規 hook を追加する際はこの 2 つを reference 実装として参照する。
+**ランタイム (Go バイナリ)**:
+- `go/internal/hookhandler/terminal_notify.go` — `BuildTerminalSequence` / `AugmentWithTerminalSequence`
+- `go/internal/hookhandler/notification_handler.go` (Notification hook) — `HARNESS_TERMINAL_NOTIFY` を読み、既知 4 種 (`permission_prompt` / `elicitation_dialog` / `idle_prompt` / `auth_success`) で emit
+- `go/internal/hookhandler/task_completed.go` (TaskCompleted hook) — 全応答 path に `terminalSequence` を付与
+
+**シェル参照実装**:
+- `scripts/hook-handlers/webhook-notify.sh`
+- `scripts/hook-handlers/notification-handler.sh`
+- `scripts/lib/terminal-notify.sh`
+
+ランタイムは `.claude-plugin/hooks.json` から `bin/harness hook ...` 経由で Go バイナリが起動するため、
+実際の `terminalSequence` 出力は Go 実装が担当する。シェル版は Plans.md SSOT や運用 doc で
+参照される際の reference として保守する。
 
 ## 5. SessionStart / Setup / SubagentStart は command-type 限定 (2.1.142+)
 

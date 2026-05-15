@@ -64,7 +64,13 @@ Change history for claude-code-harness.
 
 **CC のアプデ**: CC 2.1.141 で hook stdout JSON に `terminalSequence` フィールドが追加され、controlling terminal なしで desktop 通知 / window title / bell を発火できるようになった。
 
-**Harness での活用**: 新規 `scripts/lib/terminal-notify.sh` を導入し、`webhook-notify.sh` と `notification-handler.sh` を拡張。`HARNESS_TERMINAL_NOTIFY` env で opt-in:
+**Harness での活用**: ランタイム (Go バイナリ) とシェル両方に実装:
+- `go/internal/hookhandler/terminal_notify.go` (`BuildTerminalSequence` / `AugmentWithTerminalSequence`) を新設
+- `go/internal/hookhandler/notification_handler.go` の Notification hook で既知 4 種 (`permission_prompt` / `elicitation_dialog` / `idle_prompt` / `auth_success`) に terminalSequence を付与
+- `go/internal/hookhandler/task_completed.go` の全応答 path (停止 / 全完了 / プログレス / 通常承認) に terminalSequence を augment
+- シェル参照実装: 新規 `scripts/lib/terminal-notify.sh` + `webhook-notify.sh` / `notification-handler.sh` 拡張
+
+`HARNESS_TERMINAL_NOTIFY` env で opt-in:
 
 - `unset` / `0`: 出力しない (default)
 - `1` / `bell`: BEL (\x07)
