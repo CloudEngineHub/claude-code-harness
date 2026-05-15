@@ -70,22 +70,6 @@ jobs:
         working-directory: go
         run: go build -o ../bin/harness-linux-amd64 ./cmd/harness/
 
-      - name: Bootstrap local-only skill mirror (.agents/skills) for i18n test
-        # `.agents/skills/` is documented as a local-only development mirror
-        # (gitignored; see docs/skill-orchestration-design-contract.md). The
-        # i18n regression test expects it to be present alongside `skills/`
-        # and `codex/.codex/skills/`. CI checkouts lack it by design, so we
-        # bootstrap the harness-* / x-* directories from the SSOT (`skills/`)
-        # before invoking sync-skill-mirrors.sh, which then keeps them in
-        # lockstep with the source.
-        run: |
-          for skill in harness-work harness-review harness-plan x-article x-announce; do
-            if [ -d "skills/$skill" ]; then
-              mkdir -p ".agents/skills/$skill"
-            fi
-          done
-          bash scripts/sync-skill-mirrors.sh
-
       - name: Check i18n regression suite
         run: |
           bash ./scripts/i18n/check-translations.sh
