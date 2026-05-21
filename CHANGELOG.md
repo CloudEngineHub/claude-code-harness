@@ -6,6 +6,45 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### テーマ: Sandbox allowlist の運用レシピを harness-side に SSOT 化
+
+**他プロジェクトで Firecrawl / 外部スクレイプ API が `HTTP/2 403 / x-deny-reason: host_not_allowed` で塞がれる問題に対し、`~/.claude/settings.json` への patch 手順を `docs/sandbox-allowlist-recipe.md` として codify。AI 経由での自動書き換えはできない security boundary なので、ユーザー手動編集の手順を harness が責任を持って提示する設計。**
+
+---
+
+#### 1. `docs/sandbox-allowlist-recipe.md` を新規追加
+
+**今まで**: claude-code-harness を install した他プロジェクトで Firecrawl が動かない時、ユーザーは「sandbox 設定をどう変えればいいか」を毎回手探りで調査する必要がありました。CC sandbox が allowlist default で全 deny という挙動を知らないと、`HTTP/2 403 / x-deny-reason: host_not_allowed` を見ても何をすればいいか分からない状態でした。
+
+**今後**: `docs/sandbox-allowlist-recipe.md` に以下を codify:
+
+- 症状 (`HTTP/2 403 / x-deny-reason: host_not_allowed`) と原因 (CC sandbox が allowlist 空 = 全 deny)
+- `~/.claude/settings.json` に追加する patch JSON 完成形 (29 ドメイン allowlist + 9 ドメイン denylist)
+- 3 階層構成 (開発コア 14 / Firecrawl 本体 2 / スクレイプ対象 13) と各階層の意図
+- 検証コマンド (`jq -e '.sandbox.network.allowedDomains | length' ~/.claude/settings.json` で件数チェック)
+- なぜ AI が自動で編集しないのか (self-audit guard の責任境界)
+- トラブルシューティング (JSON syntax error / CC 完全再起動の必要性 / `FIRECRAWL_API_KEY` 設定)
+
+他プロジェクトで同じ問題に遭遇した時、`@docs/sandbox-allowlist-recipe.md` で一発参照して自己解決できます。
+
+#### 2. Self-audit guard と AI の責任境界を明確化
+
+**今まで**: `~/.claude/settings.json` の編集は AI から見ると「deny される作業」とだけ理解され、なぜ deny されるか・代わりに何をすべきかの SSOT がありませんでした。Bash + jq による迂回も CC auto mode classifier が「User Deny Rules circumvention」として deny する設計ですが、この挙動と意図は docs 化されていませんでした。
+
+**今後**: 「AI 側は patch 提示まで、ユーザー側が手動編集」という責任境界を docs の `## なぜ AI が自動で編集しないのか` セクションで codify。将来 sandbox 周りの問題に他セッションが遭遇した時、「`Edit/Write(.claude/settings*)` deny + Bash 迂回も classifier deny + ユーザー手動編集が正規ルート」と一発で把握できます。
+
+#### 3. 推奨 allowedDomains を 30 個に拡張 (Firecrawl + 日本テックブログ群)
+
+**今まで**: `templates/sandbox-settings.json.template` には開発コア 8 ドメイン (github / npm / anthropic / pypi / rubygems / crates) のみ列挙されており、Firecrawl の API host (`api.firecrawl.dev`) や代表的なテックブログ (`techblog.zozo.com` / `note.com` / `zenn.dev` 等) は含まれていませんでした。
+
+**今後**: docs の patch では 29 ドメインを 3 階層で列挙:
+
+- **開発コア (14)**: github 系 5 + npm + anthropic + pypi 系 2 + go 系 2 + crates 系 2 + rubygems
+- **Firecrawl (2)**: `api.firecrawl.dev` / `firecrawl.dev`
+- **スクレイプ対象 (13)**: `techblog.zozo.com` / `note.com` / `assets.st-note.com` / `zenn.dev` / `qiita.com` / `dev.to` / `medium.com` / `cdn-ak.f.st-hatena.com` / `engineering.dena.com` / `developers.cyberagent.co.jp` / `tech.uzabase.com` / `engineer.crowdworks.jp` / `tech.smarthr.jp`
+
+`deniedDomains` 9 個 (クラウド metadata endpoint + pastebin 系) は SSRF + 流出経路の遮断として維持。`allowedDomains` で許可されていても `deniedDomains` が優先で deny される設計を明示。
+
 ## [4.11.3] - 2026-05-19
 
 ### テーマ: Slash command 出力の「止まったように見える」UX 改善 (2 層対策)
