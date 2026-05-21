@@ -66,6 +66,24 @@ Change history for claude-code-harness.
 - template 流用説明から固定 line range を削除し、「`sandbox` セクション全体をコピー」と書く形に変更 (template 拡張で line がずれても安全)
 - `templates/sandbox-settings.json.template` 丸ごとコピーは Case A 限定と明示 (Case B では既存 `filesystem` を破壊する)
 
+#### 6. jq merge コマンドの file permission 保持 + 検証セクションの Case 別化 (Codex review 2 回目対応)
+
+**今まで**: jq merge コマンドが `jq ... > settings.json.tmp && mv settings.json.tmp settings.json` の典型パターンで、tmp ファイルが user の umask (一般に 644) で作られていました。元の `~/.claude/settings.json` が `600` (token / secret を含むため強い permission で保護) だった場合、merge 後に **read access が 644 に広がる security regression** が起きていました。また「## 検証」セクションが 2 箇所で重複 (`### 検証` 内は「→ 29 以上」だが、独立 `## 検証` 内は固定 `→ 29`) で、Case B (既存 sandbox あり) の user が成功した merge を「件数違う、失敗した」と誤判定する状況がありました。
+
+**今後**: Codex review 2 回目 (P2 + P3 指摘) を反映:
+
+- jq merge コマンドに **file mode 保持** を追加:
+  - `MODE=$(stat -f '%Mp%Lp' "$SETTINGS" 2>/dev/null || stat -c '%a' "$SETTINGS")` で macOS / Linux 両対応
+  - `cp -p` で backup の mode 保持
+  - `chmod "$MODE" "${SETTINGS}.tmp"` で merge 後の tmp に元 mode を復元してから `mv`
+  - 末尾に mode 確認の `stat` 1 行を追加
+- 重複していた「## 検証」セクション (固定 `→ 29` を含む方) を削除し、「外向き通信のスモークテスト」セクションに置換 (Firecrawl scrape の動作確認専用)
+- 残った「### 検証」を **Case A / B 別の期待値** に書き直し:
+  - allowedDomains length: Case A = ちょうど 29 / Case B = 29 以上
+  - deniedDomains length: Case A = ちょうど 9 / Case B = 9 以上
+  - 必須ホスト (`api.firecrawl.dev` / `169.254.169.254` 等) の `contains` チェックを追加 (Case A / B 共通の最低条件)
+  - filesystem セクションの破壊チェックを Case B 限定として明示
+
 `deniedDomains` 9 個 (クラウド metadata endpoint + pastebin 系) は SSRF + 流出経路の遮断として維持。`allowedDomains` で許可されていても `deniedDomains` が優先で deny される設計を明示。
 
 ## [4.11.3] - 2026-05-19
