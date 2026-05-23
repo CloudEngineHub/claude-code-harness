@@ -103,8 +103,8 @@ type tracerCache struct {
 	projMetaTime time.Time
 
 	// VCS キャッシュ
-	vcsInfo  *traceVCS
-	vcsTime  time.Time
+	vcsInfo *traceVCS
+	vcsTime time.Time
 
 	// Attribution キャッシュ
 	attr     *traceAttribution
@@ -622,13 +622,13 @@ func eatBuildOtelSpanJSON(rec *traceRecord, serviceVersion string) map[string]in
 						"scope": map[string]interface{}{"name": "harness.agent"},
 						"spans": []map[string]interface{}{
 							{
-								"traceId":            traceID,
-								"spanId":             spanID,
-								"name":               spanName,
-								"kind":               1,
-								"startTimeUnixNano":  endNano,
-								"endTimeUnixNano":    endNano,
-								"attributes":         attributes,
+								"traceId":           traceID,
+								"spanId":            spanID,
+								"name":              spanName,
+								"kind":              1,
+								"startTimeUnixNano": endNano,
+								"endTimeUnixNano":   endNano,
+								"attributes":        attributes,
 							},
 						},
 					},
@@ -782,7 +782,6 @@ func (e *EmitAgentTrace) getNow() string {
 	}
 	return time.Now().UTC().Format(time.RFC3339)
 }
-
 
 // getString はマップから文字列を取得する。見つからない場合はデフォルト値を返す。
 func getString(m map[string]interface{}, key, defaultVal string) string {

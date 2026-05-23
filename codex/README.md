@@ -68,6 +68,26 @@ Project-local install is still available:
 /path/to/claude-code-harness/scripts/setup-codex.sh --project
 ```
 
+### Option 1.2: Direct Codex Plugin (verified CLI smoke)
+
+Codex CLI `0.132.0` can install the checked-in `.codex-plugin/plugin.json`
+surface when it is packaged under a local Codex marketplace source. The current
+smoke test assembles that marketplace in a temporary directory and installs it
+in an isolated `CODEX_HOME`:
+
+```bash
+git clone https://github.com/Chachamaru127/claude-code-harness.git
+cd claude-code-harness
+bash tests/test-codex-plugin-adapter.sh
+```
+
+This installs the `.codex-plugin/plugin.json` surface and the
+`codex/.codex/skills/` mirror through Codex's plugin cache during the smoke. It
+is a Codex CLI compatibility route, not Codex app proof. Keep
+`scripts/setup-codex.sh --user` as the user-facing fallback path when
+marketplace install is unavailable or when a user needs the existing
+backup/legacy cleanup behavior.
+
 ### Option 1.5: Claude Code (in-session)
 
 If you use Claude Code Harness, run:

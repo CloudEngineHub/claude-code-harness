@@ -102,6 +102,25 @@ backup_dir_if_nonempty() {
     fi
 }
 
+copy_file_with_backup() {
+    local src="$1"
+    local dest="$2"
+    local label="$3"
+
+    if [ ! -f "$src" ]; then
+        error "$label not found in Harness"
+    fi
+
+    mkdir -p "$(dirname "$dest")"
+    if [ -f "$dest" ]; then
+        local backup_file="${dest}.backup.$(date +%Y%m%d%H%M%S)"
+        warn "$label already exists, creating backup"
+        mv "$dest" "$backup_file"
+    fi
+    cp "$src" "$dest"
+    success "$label copied to ${dest#$PROJECT_DIR/}"
+}
+
 # 前提条件チェック
 check_requirements() {
     info "Checking requirements..."
@@ -134,6 +153,12 @@ copy_opencode_files() {
 
     # .opencode/commands/ is compatibility-only for older slash-command flows.
     copy_dir_contents "$TEMP_DIR/harness/opencode/commands" "$PROJECT_DIR/.opencode/commands" "OpenCode compatibility commands" "optional"
+
+    # .opencode/plugins/ provides bootstrap context without replacing user plugins.
+    copy_file_with_backup \
+        "$TEMP_DIR/harness/opencode/plugins/harness-bootstrap.mjs" \
+        "$PROJECT_DIR/.opencode/plugins/harness-bootstrap.mjs" \
+        "OpenCode bootstrap plugin"
 
     # AGENTS.md をコピー（既存の場合はバックアップ）
     if [ -f "$PROJECT_DIR/AGENTS.md" ]; then
@@ -171,6 +196,7 @@ verify_installation() {
     [ -n "$first_skill" ] || error "No OpenCode skills installed under .opencode/skills/"
     [ -f "$PROJECT_DIR/AGENTS.md" ] || error "AGENTS.md was not created"
     [ -f "$PROJECT_DIR/opencode.json" ] || error "opencode.json was not created"
+    [ -f "$PROJECT_DIR/.opencode/plugins/harness-bootstrap.mjs" ] || error "OpenCode bootstrap plugin was not created"
 
     if command -v node >/dev/null 2>&1; then
         node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$PROJECT_DIR/opencode.json" \
@@ -190,6 +216,7 @@ print_success() {
     echo "Created files:"
     echo "  📁 .opencode/skills/    - Harness skills for OpenCode's native skill tool"
     [ -d "$PROJECT_DIR/.opencode/commands" ] && echo "  📁 .opencode/commands/  - Optional compatibility commands"
+    echo "  📄 .opencode/plugins/harness-bootstrap.mjs - Harness bootstrap plugin"
     echo "  📄 AGENTS.md            - Rules file (from CLAUDE.md)"
     echo "  📄 opencode.json        - OpenCode skill/instruction configuration"
     echo ""

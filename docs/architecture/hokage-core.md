@@ -1,6 +1,6 @@
 # Hokage Core Cross-Harness Architecture
 
-Last updated: 2026-05-17
+Last updated: 2026-05-22
 
 ## Purpose
 
@@ -21,8 +21,10 @@ README wording must stay conservative until the spin-off gate passes.
 
 Superpowers shows the useful pattern: the reusable part is not a single CLI.
 It is a common skills library plus thin harness-specific entrypoints. Its
-repository exposes separate Claude, Codex, Cursor, Gemini, OpenCode, and
-Copilot surfaces while pointing the Codex plugin at a common skills directory.
+repository exposes separate Claude, Codex, Cursor, OpenCode, and Copilot
+surfaces while pointing host adapters at common skills. Harness evaluates
+Antigravity CLI separately as future/unsupported public scope until an official
+or verified adapter route is observed.
 
 Claude Code Harness already has part of that shape:
 
@@ -53,6 +55,9 @@ Core must not depend directly on:
 - Claude-only tools such as `Task` or `AskUserQuestion`
 - Codex-only tools such as `spawn_agent`
 - OpenCode-specific config shape
+- Cursor rule shape
+- GitHub Copilot CLI command shape
+- Antigravity CLI command or profile shape
 - plugin marketplace packaging details
 
 If a core workflow needs a capability, it names the capability in generic terms.
@@ -72,15 +77,19 @@ Examples:
 
 Adapters translate the core contract into host-specific mechanics.
 
-| Adapter | Owns | Must not claim |
-|---|---|---|
-| Claude Code | plugin manifest, hooks, settings, output styles, runtime guardrails | That non-Claude hosts have identical pre-use hooks |
-| Codex | Codex skills, AGENTS guidance, companion wrapper, post-exec quality gates | That Codex can always stop unsafe commands before execution |
-| OpenCode | native skill frontmatter, AGENTS guidance, opencode config, setup docs | That mirror sync alone is first-class adapter parity |
-| Cursor/Gemini/Copilot | future capability notes only | Support before Claude/Codex/OpenCode gates pass |
+| Adapter | Phase 73 tier | Owns | Must not claim |
+|---|---|---|---|
+| Claude Code | `supported` | plugin manifest, hooks, settings, output styles, runtime guardrails | That non-Claude hosts have identical pre-use hooks |
+| Codex CLI | `internal-compatible` | Codex skills, AGENTS guidance, companion wrapper, local plugin marketplace investigation, post-exec quality gates | That Codex can always stop unsafe commands before execution |
+| Codex app | `candidate` | app-specific handoff and worktree/runtime proof when observed | That CLI help proves app behavior |
+| OpenCode | `internal-compatible` | native skill frontmatter, AGENTS guidance, opencode config, setup docs, package validation | That mirror sync alone is first-class adapter parity |
+| Cursor | `candidate` | rules/adapter investigation and smoke proof when available | That Cursor PM handoff docs are adapter support |
+| GitHub Copilot CLI | `candidate` | CLI command investigation, tool mapping candidate, bootstrap smoke proof when available | Support based only on Superpowers evidence |
+| Antigravity CLI | `future/unsupported` for public claim | official-doc and local availability investigation, manual profile candidate if no plugin route exists | Adapter support without an official or verified bootstrap route |
 
 Each adapter must declare:
 
+- support tier
 - supported core skills
 - unsupported core skills with reasons
 - capability mapping
@@ -123,7 +132,9 @@ following are true:
 | Claude adapter | `./tests/validate-plugin.sh` passes with Hokage Core contract checks |
 | Codex adapter | `bash tests/test-codex-package.sh` passes and Codex bootstrap route is documented |
 | OpenCode adapter | `node scripts/validate-opencode.js` and mirror sync pass with no stale command/MCP docs |
-| Capability matrix | Claude/Codex/OpenCode differences are documented and tested; Cursor/Gemini/Copilot are future/unsupported only |
+| Candidate adapters | Codex app, Cursor, and GitHub Copilot CLI remain candidate until host-specific smoke proves bootstrap and workflow behavior |
+| Unsupported future adapters | Antigravity CLI remains future/unsupported for public claims until an official or verified adapter route and local bootstrap smoke are observed |
+| Capability matrix | Claude Code / Codex CLI / Codex app / OpenCode / Cursor / GitHub Copilot CLI / Antigravity CLI tiers are documented and tested |
 | Bootstrap routing | Golden prompts route to the expected workflows or produce an explicit unsupported result |
 | Release preflight | `bash scripts/release-preflight.sh` includes adapter drift gates |
 | Positioning | README avoids claiming support for unproven hosts |
@@ -141,8 +152,10 @@ Claude Code Harness is Claude-first, with Hokage Core extraction underway.
 - Do not call `skills/` tool-neutral while it still contains host-specific
   assumptions.
 - Do not promise the same safety model across hosts with different hook models.
-- Do not add Cursor, Gemini, or Copilot adapters, setup docs, or public README
-  support claims before Claude/Codex/OpenCode contract tests are green.
+- Do not describe Codex app, Cursor, or GitHub Copilot CLI as supported while
+  they are still `candidate`.
+- Do not describe Antigravity CLI as supported while it is still
+  `future/unsupported` for public claims.
 - Do not add adapter manifest files unless setup, docs generation, or release
   preflight consumes them in the same phase.
 - Do not make Claude plugin releases hard-block on non-shipping adapter checks

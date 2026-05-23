@@ -33,15 +33,15 @@ type CIStatusCheckerHandler struct {
 
 // ciStatusInput は PostToolUse フックの入力。
 type ciStatusInput struct {
-	ToolName string `json:"tool_name"`
+	ToolName  string `json:"tool_name"`
 	ToolInput struct {
 		Command string `json:"command"`
 	} `json:"tool_input"`
 	ToolResponse struct {
-		ExitCode *int   `json:"exit_code"`
-		ExitCode2 *int  `json:"exitCode"`
-		Output   string `json:"output"`
-		Stdout   string `json:"stdout"`
+		ExitCode  *int   `json:"exit_code"`
+		ExitCode2 *int   `json:"exitCode"`
+		Output    string `json:"output"`
+		Stdout    string `json:"stdout"`
 	} `json:"tool_response"`
 }
 

@@ -384,9 +384,9 @@ func TestRotateLog(t *testing.T) {
 // TestBuildEventData はイベントデータ構築ロジックを確認する。
 func TestBuildEventData(t *testing.T) {
 	tests := []struct {
-		inp      logToolNameInput
-		wantKey  string
-		wantVal  string
+		inp     logToolNameInput
+		wantKey string
+		wantVal string
 	}{
 		{
 			inp:     logToolNameInput{ToolInput: logToolNameToolInput{FilePath: "/foo/bar.go"}},

@@ -154,9 +154,9 @@ func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
 	}
 
 	sess := map[string]interface{}{
-		"session_id":   "sess-002",
-		"state":        "running",
-		"started_at":   "2026-04-05T10:00:00Z",
+		"session_id":    "sess-002",
+		"state":         "running",
+		"started_at":    "2026-04-05T10:00:00Z",
 		"memory_logged": false,
 		"changes_this_session": []interface{}{
 			map[string]interface{}{"file": "test.go", "important": false},
@@ -201,10 +201,10 @@ func TestSummaryHandler_ArchivesSession(t *testing.T) {
 	}
 
 	sess := map[string]interface{}{
-		"session_id":   "sess-archive-001",
-		"state":        "running",
-		"started_at":   "2026-04-05T10:00:00Z",
-		"memory_logged": false,
+		"session_id":           "sess-archive-001",
+		"state":                "running",
+		"started_at":           "2026-04-05T10:00:00Z",
+		"memory_logged":        false,
 		"changes_this_session": []interface{}{},
 	}
 	data, _ := json.MarshalIndent(sess, "", "  ")

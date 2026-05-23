@@ -9,7 +9,11 @@ implementation can drift even when every Plans.md task is completed.
 
 ## Default Location
 
-Prefer an existing project-level specification if one already exists:
+Prefer this repository's root product spec when it exists:
+
+- `spec.md`
+
+Then prefer an existing project-level specification if one already exists:
 
 - `docs/spec/00-project-spec.md`
 - `docs/ARCHITECTURE.md`
@@ -17,11 +21,15 @@ Prefer an existing project-level specification if one already exists:
 - `docs/oem/PROJECT_COMPASS.md`
 - a clearly named product or domain spec under `docs/specs/`
 
-If no stronger local convention exists, create:
+If no stronger local convention exists in a consumer project, create:
 
 ```text
 docs/spec/00-project-spec.md
 ```
+
+For this repository, `spec.md` is the root product contract. Scoped documents
+such as `docs/architecture/hokage-core.md` and `go/SPEC.md` are sub-specs and
+do not replace the root contract.
 
 ## When To Create Or Update It
 

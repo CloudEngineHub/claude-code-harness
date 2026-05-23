@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -25,15 +25,15 @@ import (
 // Input は CC フックから stdin 経由で受け取る JSON ペイロード。
 // tool_name のような必須フィールドなし（guard パッケージとは異なる）。
 type Input struct {
-	SessionID    string `json:"session_id,omitempty"`
-	HookEvent    string `json:"hook_event_name,omitempty"`
-	ToolName     string `json:"tool_name,omitempty"`
-	AgentID      string `json:"agent_id,omitempty"`
-	AgentType    string `json:"agent_type,omitempty"`
-	Error        string `json:"error,omitempty"`
-	Message      string `json:"message,omitempty"`
-	CWD          string `json:"cwd,omitempty"`
-	PluginRoot   string `json:"plugin_root,omitempty"`
+	SessionID  string `json:"session_id,omitempty"`
+	HookEvent  string `json:"hook_event_name,omitempty"`
+	ToolName   string `json:"tool_name,omitempty"`
+	AgentID    string `json:"agent_id,omitempty"`
+	AgentType  string `json:"agent_type,omitempty"`
+	Error      string `json:"error,omitempty"`
+	Message    string `json:"message,omitempty"`
+	CWD        string `json:"cwd,omitempty"`
+	PluginRoot string `json:"plugin_root,omitempty"`
 
 	// PermissionDenied 用
 	Tool         string `json:"tool,omitempty"`

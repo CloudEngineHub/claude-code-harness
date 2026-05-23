@@ -34,27 +34,44 @@ done
 
 required_hosts=(
   "Claude Code"
-  "Codex"
+  "Codex CLI"
+  "Codex app"
   "OpenCode"
+  "Cursor"
+  "GitHub Copilot CLI"
+  "Antigravity CLI"
 )
 
 for host in "${required_hosts[@]}"; do
   assert_contains "$host"
 done
 
-future_hosts=(
-  "| Cursor | future/unsupported |"
-  "| Gemini | future/unsupported |"
-  "| Copilot | future/unsupported |"
+tier_rows=(
+  "| Claude Code | \`supported\` |"
+  "| Codex CLI | \`internal-compatible\` |"
+  "| Codex app | \`candidate\` |"
+  "| OpenCode | \`internal-compatible\` |"
+  "| Cursor | \`candidate\` |"
+  "| GitHub Copilot CLI | \`candidate\` |"
+  "| Antigravity CLI | \`future/unsupported\` |"
 )
 
-for host_row in "${future_hosts[@]}"; do
+for host_row in "${tier_rows[@]}"; do
   assert_contains "$host_row"
 done
 
 assert_contains "False parity is forbidden."
 assert_contains "contract injection + post quality gate + merge gate"
 assert_contains "not a marketing support matrix"
-assert_contains "OpenCode is currently a packaging and instruction surface"
+assert_contains "OpenCode is currently a"
+assert_contains "packaging and instruction surface"
+assert_contains "CI-gated direct plugin marketplace/install smoke"
+assert_contains "isolated \`CODEX_HOME\`"
+assert_contains "real OpenCode binary runtime bootstrap parity is not proven"
+assert_contains "not_observed != absent"
+assert_contains "Candidate"
+assert_contains "do not inherit the safety or"
+assert_contains "bootstrap claims of supported hosts."
+assert_contains "Antigravity CLI is \`future/unsupported\` for public claim."
 
 echo "test-tool-capability-matrix: ok"

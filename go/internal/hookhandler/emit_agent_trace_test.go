@@ -616,4 +616,3 @@ func TestEmitAgentTrace_MultiEditTool_ModifyAction(t *testing.T) {
 		t.Errorf("expected action=modify for MultiEdit tool, got: %s", rec.Files[0].Action)
 	}
 }
-

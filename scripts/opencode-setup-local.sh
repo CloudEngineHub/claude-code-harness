@@ -115,11 +115,32 @@ backup_dir_if_nonempty() {
   fi
 }
 
+copy_file_with_backup() {
+  local src="$1"
+  local dest="$2"
+  local label="$3"
+
+  [ -f "$src" ] || fail "$label not found in Harness plugin source"
+  mkdir -p "$(dirname "$dest")"
+  if [ -f "$dest" ]; then
+    backup_file="$dest.backup.$(date +%Y%m%d%H%M%S)"
+    mv "$dest" "$backup_file"
+    echo "Backed up existing $label to: $backup_file"
+  fi
+  cp "$src" "$dest"
+  echo "Copied $label to: $dest"
+}
+
 mkdir -p "$PROJECT_DIR/.opencode/skills"
 backup_dir_if_nonempty "$PROJECT_DIR/.opencode/skills" ".opencode/skills"
 copy_dir_contents "$PLUGIN_DIR/opencode/skills" "$PROJECT_DIR/.opencode/skills" "OpenCode skills"
 
 copy_dir_contents "$PLUGIN_DIR/opencode/commands" "$PROJECT_DIR/.opencode/commands" "OpenCode compatibility commands" "optional"
+
+copy_file_with_backup \
+  "$PLUGIN_DIR/opencode/plugins/harness-bootstrap.mjs" \
+  "$PROJECT_DIR/.opencode/plugins/harness-bootstrap.mjs" \
+  "OpenCode bootstrap plugin"
 
 if [ -f "$PROJECT_DIR/AGENTS.md" ]; then
   backup_agents="$PROJECT_DIR/AGENTS.md.backup.$(date +%Y%m%d%H%M%S)"
@@ -145,10 +166,11 @@ first_skill="$(find "$PROJECT_DIR/.opencode/skills" -mindepth 2 -maxdepth 2 -nam
 [ -n "$first_skill" ] || fail "No OpenCode skills installed under .opencode/skills/"
 [ -f "$PROJECT_DIR/AGENTS.md" ] || fail "AGENTS.md was not created"
 [ -f "$PROJECT_DIR/opencode.json" ] || fail "opencode.json was not created"
+[ -f "$PROJECT_DIR/.opencode/plugins/harness-bootstrap.mjs" ] || fail "OpenCode bootstrap plugin was not created"
 
 if command -v node >/dev/null 2>&1; then
   node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$PROJECT_DIR/opencode.json" \
     || fail "opencode.json is not valid JSON"
 fi
 
-echo "Copied OpenCode-native skills, AGENTS.md, opencode.json, and optional compatibility commands."
+echo "Copied OpenCode-native skills, bootstrap plugin, AGENTS.md, opencode.json, and optional compatibility commands."

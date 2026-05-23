@@ -855,7 +855,8 @@ func TestCollectDrift_TailWindowBoundary(t *testing.T) {
 // 並べて実行すると、ring buffer 化により **後段 retention** (`lines` slice 展開) が
 // N に比例せず driftTailWindow (=200) に bounded であることを手動で確認できる。
 // (scanner.Text() 由来の短命 string alloc は両実装共通で N に比例するが、
-//  ピーク in-use はリングで固定される)。
+//
+//	ピーク in-use はリングで固定される)。
 func benchCollectDrift(b *testing.B, numLines int) {
 	dir := b.TempDir()
 	stateDir := filepath.Join(dir, ".claude", "state")

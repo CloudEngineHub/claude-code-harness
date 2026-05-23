@@ -33,14 +33,14 @@ type summaryInput struct {
 
 // summarySessionData は session.json から読み取るデータ。
 type summarySessionData struct {
-	SessionID     string  `json:"session_id"`
-	State         string  `json:"state"`
-	StartedAt     string  `json:"started_at"`
-	ProjectName   string  `json:"project_name"`
-	GitBranch     string  `json:"-"` // nested
-	MemoryLogged  bool    `json:"memory_logged"`
-	EventSeq      int     `json:"event_seq"`
-	ChangesCount  int     `json:"-"` // 計算値
+	SessionID    string `json:"session_id"`
+	State        string `json:"state"`
+	StartedAt    string `json:"started_at"`
+	ProjectName  string `json:"project_name"`
+	GitBranch    string `json:"-"` // nested
+	MemoryLogged bool   `json:"memory_logged"`
+	EventSeq     int    `json:"event_seq"`
+	ChangesCount int    `json:"-"` // 計算値
 
 	// 生 JSON（フィールド追加用）
 	raw map[string]interface{}
@@ -111,15 +111,15 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 	// session-log.md に追記
 	if sessData.StartedAt != "" && sessData.StartedAt != "null" {
 		_ = h.appendSessionLog(sessionLogFile, sessionLogEntry{
-			SessionID:      sessData.SessionID,
-			ProjectName:    sessData.ProjectName,
-			GitBranch:      h.readGitBranchFromSession(sessData.raw),
-			StartedAt:      sessData.StartedAt,
-			EndedAt:        nowStr,
+			SessionID:       sessData.SessionID,
+			ProjectName:     sessData.ProjectName,
+			GitBranch:       h.readGitBranchFromSession(sessData.raw),
+			StartedAt:       sessData.StartedAt,
+			EndedAt:         nowStr,
 			DurationMinutes: durationMinutes,
-			ChangedFiles:   changedFiles,
-			ImportantFiles: importantFiles,
-			WIPTasks:       wipTasks,
+			ChangedFiles:    changedFiles,
+			ImportantFiles:  importantFiles,
+			WIPTasks:        wipTasks,
 		})
 	}
 

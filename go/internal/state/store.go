@@ -62,23 +62,23 @@ type TaskFailure struct {
 
 // WorkState は work/codex モードの状態を表す。
 type WorkState struct {
-	SessionID      string `json:"session_id"`
-	CodexMode      bool   `json:"codex_mode"`
-	BypassRmRf     bool   `json:"bypass_rm_rf"`
-	BypassGitPush  bool   `json:"bypass_git_push"`
-	WorkMode       bool   `json:"work_mode"`
-	ExpiresAt      int64  `json:"expires_at"`
+	SessionID     string `json:"session_id"`
+	CodexMode     bool   `json:"codex_mode"`
+	BypassRmRf    bool   `json:"bypass_rm_rf"`
+	BypassGitPush bool   `json:"bypass_git_push"`
+	WorkMode      bool   `json:"work_mode"`
+	ExpiresAt     int64  `json:"expires_at"`
 }
 
 // Assumption はエージェントが記録した前提・仮定を表す。
 type Assumption struct {
-	ID          int64    `json:"id,omitempty"`
-	SessionID   string   `json:"session_id"`
-	TaskID      *string  `json:"task_id,omitempty"`
-	Assumption  string   `json:"assumption"`
-	Confidence  float64  `json:"confidence"`
-	CreatedAt   string   `json:"created_at"`   // ISO 8601
-	ValidatedAt *string  `json:"validated_at,omitempty"`
+	ID          int64   `json:"id,omitempty"`
+	SessionID   string  `json:"session_id"`
+	TaskID      *string `json:"task_id,omitempty"`
+	Assumption  string  `json:"assumption"`
+	Confidence  float64 `json:"confidence"`
+	CreatedAt   string  `json:"created_at"` // ISO 8601
+	ValidatedAt *string `json:"validated_at,omitempty"`
 }
 
 // WorkStateOptions は SetWorkState のオプション引数。
@@ -266,12 +266,12 @@ func (s *HarnessStore) EndSession(sessionID string) error {
 // TypeScript の getSession に対応。
 func (s *HarnessStore) GetSession(sessionID string) (*SessionState, error) {
 	var (
-		sessionIDOut   string
-		mode           string
-		projectRoot    string
-		startedAt      int64
-		endedAt        sql.NullInt64
-		contextJSON    string
+		sessionIDOut string
+		mode         string
+		projectRoot  string
+		startedAt    int64
+		endedAt      sql.NullInt64
+		contextJSON  string
 	)
 
 	err := s.db.QueryRow(
@@ -365,12 +365,12 @@ func (s *HarnessStore) ReceiveSignals(sessionID string) ([]Signal, error) {
 
 	for rows.Next() {
 		var (
-			id            int64
-			signalType    string
-			fromSession   string
-			toSession     sql.NullString
-			payloadJSON   string
-			sentAt        int64
+			id          int64
+			signalType  string
+			fromSession string
+			toSession   sql.NullString
+			payloadJSON string
+			sentAt      int64
 		)
 		if scanErr := rows.Scan(&id, &signalType, &fromSession, &toSession, &payloadJSON, &sentAt); scanErr != nil {
 			return nil, fmt.Errorf("scan signal row: %w", scanErr)
@@ -716,7 +716,7 @@ type AgentStateRecord struct {
 	AgentType        string  `json:"agent_type"`
 	SessionID        string  `json:"session_id"`
 	State            string  `json:"state"`
-	StartedAt        string  `json:"started_at"`         // ISO 8601
+	StartedAt        string  `json:"started_at"`           // ISO 8601
 	StoppedAt        *string `json:"stopped_at,omitempty"` // ISO 8601
 	RecoveryAttempts int     `json:"recovery_attempts"`
 }

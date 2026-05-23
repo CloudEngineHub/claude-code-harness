@@ -18,20 +18,20 @@ import (
 
 // taskCompletedInput は TaskCompleted フックの stdin JSON。
 type taskCompletedInput struct {
-	TeammateName    string      `json:"teammate_name"`
-	AgentName       string      `json:"agent_name"`
-	TaskID          string      `json:"task_id"`
-	TaskSubject     string      `json:"task_subject"`
-	Subject         string      `json:"subject"`
-	TaskDescription string      `json:"task_description"`
-	Description     string      `json:"description"`
-	AgentID         string      `json:"agent_id"`
-	AgentType       string      `json:"agent_type"`
-	Continue        *bool       `json:"continue"`
-	StopReason      string      `json:"stopReason"`
-	StopReasonSnake string      `json:"stop_reason"`
-	CWD             string      `json:"cwd"`
-	ProjectRoot     string      `json:"project_root"`
+	TeammateName    string `json:"teammate_name"`
+	AgentName       string `json:"agent_name"`
+	TaskID          string `json:"task_id"`
+	TaskSubject     string `json:"task_subject"`
+	Subject         string `json:"subject"`
+	TaskDescription string `json:"task_description"`
+	Description     string `json:"description"`
+	AgentID         string `json:"agent_id"`
+	AgentType       string `json:"agent_type"`
+	Continue        *bool  `json:"continue"`
+	StopReason      string `json:"stopReason"`
+	StopReasonSnake string `json:"stop_reason"`
+	CWD             string `json:"cwd"`
+	ProjectRoot     string `json:"project_root"`
 }
 
 // taskCompletedHandler は task-completed の全状態を保持する。

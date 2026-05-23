@@ -13,8 +13,8 @@ import (
 
 // trackChangesInput は track-changes.sh に渡される stdin JSON。
 type trackChangesInput struct {
-	ToolName string `json:"tool_name"`
-	CWD      string `json:"cwd"`
+	ToolName  string `json:"tool_name"`
+	CWD       string `json:"cwd"`
 	ToolInput struct {
 		FilePath string `json:"file_path"`
 	} `json:"tool_input"`

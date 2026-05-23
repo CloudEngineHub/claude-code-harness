@@ -144,8 +144,8 @@ func TestHandleInstructionsLoaded_HooksInPluginDir(t *testing.T) {
 	}
 
 	input := map[string]string{
-		"session_id":     "sess-003",
-		"cwd":            tmpDir,
+		"session_id":      "sess-003",
+		"cwd":             tmpDir,
 		"hook_event_name": "InstructionsLoaded",
 	}
 	inputData, _ := json.Marshal(input)

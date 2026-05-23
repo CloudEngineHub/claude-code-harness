@@ -120,7 +120,9 @@ CREATE TABLE IF NOT EXISTS assumptions (
 // agent_type: worker | reviewer | scaffolder 等
 // session_id: 親セッション識別子
 // state: SPAWNING | RUNNING | REVIEWING | APPROVED | COMMITTED | FAILED |
-//         CANCELLED | STALE | RECOVERING | ABORTED
+//
+//	CANCELLED | STALE | RECOVERING | ABORTED
+//
 // started_at: 開始時刻（Unix タイムスタンプ秒）
 // stopped_at: 停止時刻（NULL = 実行中）
 // recovery_attempts: リカバリ試行回数

@@ -38,10 +38,10 @@ type autoTestResult struct {
 
 // autoTestRecommendation は .claude/state/test-recommendation.json に書き出す構造体。
 type autoTestRecommendation struct {
-	Timestamp    string `json:"timestamp"`
-	ChangedFile  string `json:"changed_file"`
-	TestCommand  string `json:"test_command"`
-	RelatedTest  string `json:"related_test"`
+	Timestamp      string `json:"timestamp"`
+	ChangedFile    string `json:"changed_file"`
+	TestCommand    string `json:"test_command"`
+	RelatedTest    string `json:"related_test"`
 	Recommendation string `json:"recommendation"`
 }
 

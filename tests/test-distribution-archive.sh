@@ -56,6 +56,7 @@ forbidden_entries=(
 
 forbidden_prefixes=(
   ".claude/"
+  ".codex-plugin/"
   ".cursor/"
   ".private/"
   "adapters/"

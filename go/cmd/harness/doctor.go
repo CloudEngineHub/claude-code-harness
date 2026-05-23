@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// runDoctor implements the "harness doctor [--migration] [--residue]" subcommand.
+// runDoctor implements the "harness doctor [--migration] [--migration-report] [--residue]" subcommand.
 //
 // Without flags: performs basic health checks on the project:
 //   - Go binary version
@@ -24,17 +24,21 @@ import (
 //   - bin/harness PATH resolution
 //
 // With --migration: additionally shows hook migration status (Go vs shell).
+// With --migration-report: prints a non-destructive existing-user migration report.
 // With --residue: calls scripts/check-residue.sh to detect v3 migration remnants.
 //
 // Both flags are independent and can be combined.
 func runDoctor(args []string) {
 	migration := false
+	migrationReport := false
 	residue := false
 	var rootOverride string
 	for _, arg := range args {
 		switch arg {
 		case "--migration":
 			migration = true
+		case "--migration-report":
+			migrationReport = true
 		case "--residue":
 			residue = true
 		default:
@@ -57,6 +61,14 @@ func runDoctor(args []string) {
 		fmt.Println()
 		migrationOK := runMigrationCheck(projectRoot)
 		if !migrationOK {
+			allOK = false
+		}
+	}
+
+	if migrationReport {
+		fmt.Println()
+		reportOK := runMigrationReportCheck(projectRoot)
+		if !reportOK {
 			allOK = false
 		}
 	}

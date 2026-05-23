@@ -288,7 +288,7 @@ func TestIsJSTSFile(t *testing.T) {
 		{"src/foo.go", false},
 		{"src/foo.py", false},
 		{"src/foo.md", false},
-		{"src/FOO.TS", true},  // 大文字小文字
+		{"src/FOO.TS", true}, // 大文字小文字
 	}
 
 	for _, tc := range cases {

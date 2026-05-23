@@ -40,9 +40,9 @@ type precompactSnapshot struct {
 
 // handoffPreviousState は previous_state フィールドのスキーマ。
 type handoffPreviousState struct {
-	Summary      string                  `json:"summary"`
-	SessionState *handoffSessionState    `json:"session_state,omitempty"`
-	PlanCounts   *handoffPlanCounts      `json:"plan_counts,omitempty"`
+	Summary      string               `json:"summary"`
+	SessionState *handoffSessionState `json:"session_state,omitempty"`
+	PlanCounts   *handoffPlanCounts   `json:"plan_counts,omitempty"`
 }
 
 // handoffSessionState はセッション状態。

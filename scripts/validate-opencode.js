@@ -33,6 +33,7 @@ const REQUIRED_FILES = [
   'opencode/opencode.json',
   'opencode/README.md',
   'opencode/skills',  // Skills are now the primary mechanism
+  'opencode/plugins/harness-bootstrap.mjs',
 ];
 
 let errors = [];
@@ -258,6 +259,7 @@ function validateOpenCodeSetupSurface() {
   const localSetupPath = path.join(ROOT_DIR, 'scripts', 'opencode-setup-local.sh');
   const remoteSetupPath = path.join(ROOT_DIR, 'scripts', 'setup-opencode.sh');
   const buildPath = path.join(ROOT_DIR, 'scripts', 'build-opencode.js');
+  const bootstrapPluginPath = path.join(OPENCODE_DIR, 'plugins', 'harness-bootstrap.mjs');
 
   const readText = (filePath) => {
     if (!fs.existsSync(filePath)) {
@@ -270,6 +272,9 @@ function validateOpenCodeSetupSurface() {
   const readme = readText(readmePath);
   if (!readme.includes('.opencode/skills')) {
     errors.push('opencode/README.md: Must document .opencode/skills as the primary setup path');
+  }
+  if (!readme.includes('.opencode/plugins/harness-bootstrap.mjs')) {
+    errors.push('opencode/README.md: Must document the Harness bootstrap plugin');
   }
   if (!readme.includes('AGENTS.md') || !readme.includes('opencode.json')) {
     errors.push('opencode/README.md: Must document AGENTS.md and opencode.json setup');
@@ -300,6 +305,9 @@ function validateOpenCodeSetupSurface() {
     if (!content.includes('.opencode/skills')) {
       errors.push(`${label}: Must install skills into .opencode/skills`);
     }
+    if (!content.includes('.opencode/plugins/harness-bootstrap.mjs')) {
+      errors.push(`${label}: Must install the OpenCode bootstrap plugin`);
+    }
     if (!content.includes('AGENTS.md')) {
       errors.push(`${label}: Must verify or install AGENTS.md`);
     }
@@ -327,6 +335,20 @@ function validateOpenCodeSetupSurface() {
     if (fallbackReadme.includes(pattern)) {
       errors.push(`scripts/build-opencode.js: Stale generated README fallback found: ${pattern}`);
     }
+  }
+
+  const bootstrapPlugin = readText(bootstrapPluginPath);
+  if (!bootstrapPlugin.includes('export const HarnessBootstrapPlugin')) {
+    errors.push('opencode/plugins/harness-bootstrap.mjs: Missing HarnessBootstrapPlugin export');
+  }
+  if (!bootstrapPlugin.includes('experimental.chat.messages.transform')) {
+    errors.push('opencode/plugins/harness-bootstrap.mjs: Missing bootstrap transform hook');
+  }
+  if (!bootstrapPlugin.includes('HARNESS_BOOTSTRAP')) {
+    errors.push('opencode/plugins/harness-bootstrap.mjs: Missing bootstrap marker');
+  }
+  if (!bootstrapPlugin.includes('not_observed != absent')) {
+    errors.push('opencode/plugins/harness-bootstrap.mjs: Missing unknown-data boundary');
   }
 }
 

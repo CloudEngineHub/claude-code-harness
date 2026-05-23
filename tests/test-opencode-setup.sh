@@ -39,12 +39,14 @@ assert_absent() {
 }
 
 assert_contains "${ROOT_DIR}/opencode/README.md" '.opencode/skills/<name>/SKILL.md'
+assert_contains "${ROOT_DIR}/opencode/README.md" '.opencode/plugins/harness-bootstrap.mjs'
 assert_contains "${ROOT_DIR}/opencode/README.md" 'Skills-Primary'
 assert_contains "${ROOT_DIR}/opencode/README.md" 'development-only and distribution-excluded'
 assert_not_contains "${ROOT_DIR}/opencode/README.md" 'cp -r claude-code-harness/opencode/commands/ your-project/.opencode/commands/'
 assert_not_contains "${ROOT_DIR}/opencode/README.md" 'cd claude-code-harness/mcp-server'
 
 assert_contains "${ROOT_DIR}/scripts/setup-opencode.sh" '.opencode/skills'
+assert_contains "${ROOT_DIR}/scripts/setup-opencode.sh" '.opencode/plugins/harness-bootstrap.mjs'
 assert_contains "${ROOT_DIR}/scripts/setup-opencode.sh" 'verify_installation'
 assert_contains "${ROOT_DIR}/scripts/setup-opencode.sh" 'mcp-server/ is development-only'
 assert_not_contains "${ROOT_DIR}/scripts/setup-opencode.sh" 'mkdir -p "$PROJECT_DIR/.claude/skills"'
@@ -52,6 +54,7 @@ assert_not_contains "${ROOT_DIR}/scripts/setup-opencode.sh" 'Skills copied to .c
 assert_not_contains "${ROOT_DIR}/scripts/setup-opencode.sh" 'Do you want to setup MCP server?'
 
 assert_contains "${ROOT_DIR}/scripts/opencode-setup-local.sh" '.opencode/skills'
+assert_contains "${ROOT_DIR}/scripts/opencode-setup-local.sh" '.opencode/plugins/harness-bootstrap.mjs'
 assert_contains "${ROOT_DIR}/scripts/opencode-setup-local.sh" 'OpenCode-native skills'
 assert_not_contains "${ROOT_DIR}/scripts/opencode-setup-local.sh" 'mkdir -p "$PROJECT_DIR/.claude/skills"'
 assert_not_contains "${ROOT_DIR}/scripts/opencode-setup-local.sh" 'cp -r "$PLUGIN_DIR/opencode/skills/"* "$PROJECT_DIR/.claude/skills/"'
@@ -75,6 +78,7 @@ mkdir -p "${PROJECT_DIR}"
 
 assert_file "${PROJECT_DIR}/.opencode/skills/breezing/SKILL.md"
 assert_file "${PROJECT_DIR}/.opencode/skills/harness-plan/SKILL.md"
+assert_file "${PROJECT_DIR}/.opencode/plugins/harness-bootstrap.mjs"
 assert_file "${PROJECT_DIR}/AGENTS.md"
 assert_file "${PROJECT_DIR}/opencode.json"
 assert_absent "${PROJECT_DIR}/.claude/skills"

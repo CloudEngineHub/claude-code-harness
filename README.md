@@ -26,6 +26,63 @@
 
 ---
 
+## Quickstart
+
+New users: choose your current tool, then install only through the route whose
+tier is proven. Existing users: run the migration report before cleanup.
+
+| Path | Start |
+|---|---|
+| New user | [Tool-first onboarding](docs/onboarding/index.md) |
+| Existing user | [Migration check](docs/onboarding/migration.md) |
+| Claude Code in 30 seconds | [Install in 30 Seconds](#install-in-30-seconds) |
+| Trigger acceptance | [Skill trigger gate](docs/onboarding/skill-trigger-acceptance.md) |
+
+## How It Works
+
+Harness adds a repeatable loop around agent work:
+
+1. `spec.md` and `Plans.md` hold the source of truth.
+2. `/harness-plan` turns intent into acceptance criteria.
+3. `/harness-work` implements with TDD and verification.
+4. `/harness-review` separates review from implementation.
+5. `/harness-release` packages only verified evidence.
+
+## Install By Tool
+
+| Tool | Tier | Route |
+|---|---|---|
+| Claude Code | `supported` | Claude plugin marketplace, then `/harness-setup`. |
+| Codex CLI | `internal-compatible` | `scripts/setup-codex.sh --user`; direct plugin smoke is tracked separately. |
+| Codex app | `candidate` | Candidate smoke only; do not reuse Codex CLI proof. |
+| OpenCode | `internal-compatible` | `scripts/setup-opencode.sh`; runtime parity is not claimed. |
+| Cursor | `candidate` | PM handoff or adapter research only. |
+| GitHub Copilot CLI | `candidate` | Manual profile research only. |
+| Antigravity CLI | `future/unsupported` | No end-user install route in this phase. |
+
+## First 15 Minutes
+
+1. Install through your tool route.
+2. Run `/harness-setup` or the equivalent setup script.
+3. Ask for a small plan and check `Plans.md`.
+4. Run the smallest `harness-work` slice.
+5. Run review and keep the verification output.
+
+## Existing User Migration
+
+Run `bin/harness doctor --migration-report` before changing an existing setup.
+The report inventories stale Claude plugin caches, duplicate Codex skills, old
+symlinks, OpenCode backup paths, and harness-mem state without deleting
+anything.
+
+## Advanced
+
+Use Breezing, Codex companion review, OpenCode bootstrap, and harness-mem after
+the basic trigger path is visible. Candidate hosts stay in research docs until
+their own smoke gates pass.
+
+---
+
 ## v4.2 Update — Claude Code 2.1.99-110 + Opus 4.7
 
 > **Hokage line carries forward. Full Claude Code 2.1.99-2.1.110 + Opus 4.7 integration. Plugin manifest now matches the official `plugins-reference` schema.**
@@ -142,6 +199,15 @@ Supported baseline and latest verified snapshot: see [Claude Code Compatibility]
 | **Indie Hacker** | Move fast without breaking things |
 | **VibeCoder** | Build apps with natural language |
 | **Team Lead** | Enforce standards across projects |
+
+---
+
+## Start By Tool
+
+New users should start with [tool-first onboarding](docs/onboarding/index.md).
+Existing users should run the report-first [migration check](docs/onboarding/migration.md).
+It keeps the Claude-first plugin install and the Codex CLI setup route separate
+from candidate host research.
 
 ---
 
@@ -412,6 +478,8 @@ Delegate implementation tasks to OpenAI Codex in parallel. Codex implements, sel
 <summary><strong>2-Agent Mode (with Cursor)</strong></summary>
 
 Use Cursor as PM, Claude Code as implementer. Plans.md syncs between both.
+This is handoff integration only; Cursor adapter support remains a candidate
+until Cursor-specific bootstrap and workflow smoke pass.
 
 ```bash
 /harness-release handoff  # Report to Cursor PM

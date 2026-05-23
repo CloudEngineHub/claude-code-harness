@@ -150,8 +150,8 @@ func TestUserPromptInjectPolicy_SemanticIntent(t *testing.T) {
 	// tooling-policy.json を作成（LSP 有効）
 	policy := map[string]interface{}{
 		"lsp": map[string]interface{}{
-			"available":               true,
-			"used_since_last_prompt":  false,
+			"available":              true,
+			"used_since_last_prompt": false,
 		},
 		"skills": map[string]interface{}{
 			"decision_required": false,
@@ -350,7 +350,7 @@ func TestResumeMaxBytesEnv(t *testing.T) {
 		want int
 	}{
 		{"", resumeMaxBytesDefault},
-		{"1000", 4096},   // min clamp
+		{"1000", 4096},    // min clamp
 		{"100000", 65536}, // max clamp
 		{"8192", 8192},
 		{"abc", resumeMaxBytesDefault}, // invalid

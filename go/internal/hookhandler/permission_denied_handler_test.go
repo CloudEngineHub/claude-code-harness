@@ -260,8 +260,8 @@ func TestIsWorkerAgentType(t *testing.T) {
 		{"lead", false},
 		{"reviewer", false},
 		{"", false},
-		{"worker-extra", false},  // サフィックスではなくプレフィックス
-		{"myworker", false},       // 完全一致しない
+		{"worker-extra", false}, // サフィックスではなくプレフィックス
+		{"myworker", false},     // 完全一致しない
 	}
 
 	for _, tc := range cases {

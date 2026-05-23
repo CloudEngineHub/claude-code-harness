@@ -20,6 +20,11 @@ Skills-Primary setup means OpenCode loads Harness workflows from
 `.opencode/skills/<name>/SKILL.md`. The `.opencode/commands/` directory is
 compatibility-only for older slash-command flows.
 
+The setup also installs `.opencode/plugins/harness-bootstrap.mjs`. This plugin
+adds first-message Harness bootstrap context, registers the local skills path
+without duplicate entries, and keeps the OpenCode route at
+`internal-compatible` until runtime smoke is available.
+
 ### Option 1: One-Command Setup (Recommended)
 
 You can set up OpenCode support even if Claude Code is not installed:
@@ -58,6 +63,10 @@ cp -r claude-code-harness/opencode/skills/* your-project/.opencode/skills/
 # Copy project rules and config
 cp claude-code-harness/opencode/AGENTS.md your-project/AGENTS.md
 cp claude-code-harness/opencode/opencode.json your-project/opencode.json
+
+# Copy the bootstrap plugin
+mkdir -p your-project/.opencode/plugins
+cp claude-code-harness/opencode/plugins/harness-bootstrap.mjs your-project/.opencode/plugins/
 
 # Optional compatibility commands, if you still use slash-command workflows
 mkdir -p your-project/.opencode/commands
@@ -166,8 +175,10 @@ Use the harness-review skill to review code
 ## Limitations
 
 - OpenCode does not use the Claude Code plugin system under `.claude-plugin/`.
-- Memory hooks live in `opencode/plugins/harness-memory/index.ts`
-  (`chat.message`, `session.idle`, `session.compacted`).
+- The bootstrap plugin lives in `opencode/plugins/harness-bootstrap.mjs` and is
+  copied to `.opencode/plugins/harness-bootstrap.mjs`.
+- Runtime native-skill smoke is not claimed when the `opencode` binary is not
+  available; the tier stays `internal-compatible`.
 - Skill frontmatter is generated for OpenCode's native skill contract:
   `name` and `description` are required, while bilingual
   `description-en` / `description-ja` metadata stays in the Claude Code and

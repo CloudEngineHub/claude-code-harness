@@ -2,6 +2,8 @@
 
 Last updated: 2026-03-06
 
+Scope: handoff integration, not Cursor adapter support.
+
 ## Goal
 
 Use Cursor as the PM side and Claude Code Harness as the implementation side without losing task ownership or verification discipline.

@@ -250,10 +250,10 @@ func (dg *DependencyGraph) allDepsCompleted(node *depNode) bool {
 // FileLock はファイルベースのロックを管理する。
 // Worker が特定のファイルに対する排他的な変更権を主張するために使用する。
 type FileLock struct {
-	mu       sync.Mutex
-	lockDir  string
-	locks    map[string]string // filePath → ownerID
-	now      func() time.Time
+	mu      sync.Mutex
+	lockDir string
+	locks   map[string]string // filePath → ownerID
+	now     func() time.Time
 }
 
 // NewFileLock は新しい FileLock を生成する。

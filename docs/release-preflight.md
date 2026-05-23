@@ -35,3 +35,11 @@ scripts/release-preflight.sh --root /path/to/other/repo
 `/release --dry-run` でも preflight は必ず通す。
 dry-run は「公開操作をしない」という意味で、preflight は「公開してよい状態かを確認する」という意味。
 両者は別物なので、dry-run でも preflight は省略しない。
+
+## GitHub Release workflow
+
+`.github/workflows/release.yml` でも、GitHub Release の作成や既存 release への asset upload より前に `bash ./scripts/release-preflight.sh --check-adapters` を実行する。
+
+tag-triggered workflow は detached HEAD で動くため、CI status が取得できない場合は warning boundary として扱う。release-ready の判断は、clean tree、mirror drift、adapter smoke、distribution archive gate などの preflight failure が 0 であることを前提にする。
+
+`tests/test-distribution-archive.sh` は `git archive HEAD` から配布物の形を検証する。これは committed artifact の検証であり、dirty / untracked local files は含まれない。したがって、release claim の前には clean-tree preflight と組み合わせて使う。

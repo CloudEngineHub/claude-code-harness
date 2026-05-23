@@ -197,7 +197,14 @@ docs/presentation/11.png
 /output/
 
 # 調査・研究用ドキュメント（非公開）
-docs/research/
+docs/research/*
+!docs/research/superpowers-cherrypick.md
+!docs/research/codex-app-smoke.md
+!docs/research/cursor-adapter-candidate.md
+!docs/research/github-copilot-cli-adapter.md
+!docs/research/antigravity-cli-adapter.md
+!docs/research/phase-73-review-closeout.md
+!docs/research/phase-73-pr-closeout.md
 docs/private/
 
 # 一時的な画像ファイル

@@ -84,8 +84,8 @@ type decisionLogEntry struct {
 
 // contextResetPolicy はコンテキストリセットポリシー。
 type contextResetPolicy struct {
-	Mode   string                    `json:"mode"`
-	DryRun bool                      `json:"dryRun"`
+	Mode       string                 `json:"mode"`
+	DryRun     bool                   `json:"dryRun"`
 	Thresholds contextResetThresholds `json:"thresholds"`
 }
 
@@ -901,7 +901,7 @@ func (h *PreCompactSave) buildContextResetRecommendation(
 	}
 
 	type candidate struct {
-		key, label string
+		key, label        string
 		actual, threshold int
 	}
 	candidates := []candidate{

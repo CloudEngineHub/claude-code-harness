@@ -20,13 +20,13 @@ import (
 
 // permissionDeniedInput は PermissionDenied フックの stdin JSON。
 type permissionDeniedInput struct {
-	Tool        string `json:"tool"`
-	ToolName    string `json:"tool_name"`
+	Tool         string `json:"tool"`
+	ToolName     string `json:"tool_name"`
 	DeniedReason string `json:"denied_reason"`
-	Reason      string `json:"reason"`
-	SessionID   string `json:"session_id"`
-	AgentID     string `json:"agent_id"`
-	AgentType   string `json:"agent_type"`
+	Reason       string `json:"reason"`
+	SessionID    string `json:"session_id"`
+	AgentID      string `json:"agent_id"`
+	AgentType    string `json:"agent_type"`
 }
 
 // permissionDeniedLogEntry は permission-denied-events.jsonl の1エントリ。

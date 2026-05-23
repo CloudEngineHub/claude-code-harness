@@ -48,11 +48,11 @@ type initInput struct {
 
 // sessionJSON は session.json のスキーマ（最低限）。
 type sessionJSON struct {
-	SessionID  string `json:"session_id"`
-	State      string `json:"state"`
-	StartedAt  string `json:"started_at"`
-	UpdatedAt  string `json:"updated_at"`
-	EventSeq   int    `json:"event_seq"`
+	SessionID   string `json:"session_id"`
+	State       string `json:"state"`
+	StartedAt   string `json:"started_at"`
+	UpdatedAt   string `json:"updated_at"`
+	EventSeq    int    `json:"event_seq"`
 	LastEventID string `json:"last_event_id"`
 }
 
@@ -158,11 +158,11 @@ func (h *InitHandler) initSessionFile(stateDir string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	sessionID := fmt.Sprintf("session-%d", time.Now().Unix())
 	s := sessionJSON{
-		SessionID:  sessionID,
-		State:      "initialized",
-		StartedAt:  now,
-		UpdatedAt:  now,
-		EventSeq:   0,
+		SessionID:   sessionID,
+		State:       "initialized",
+		StartedAt:   now,
+		UpdatedAt:   now,
+		EventSeq:    0,
 		LastEventID: "",
 	}
 

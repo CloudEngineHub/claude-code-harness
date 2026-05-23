@@ -127,7 +127,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  init [root]             Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
-	fmt.Fprintln(os.Stderr, "  doctor [--migration] [root]          Health check; --migration shows hook migration status")
+	fmt.Fprintln(os.Stderr, "  doctor [--migration] [--migration-report] [root]  Health check plus migration status/report")
 	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
 	fmt.Fprintln(os.Stderr, "  mem status|setup|update|doctor|off|purge|health  Manage harness-mem companion")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")

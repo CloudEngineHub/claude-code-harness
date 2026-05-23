@@ -334,8 +334,8 @@ func TestBuildFixTaskID(t *testing.T) {
 
 func TestClassifyFailure(t *testing.T) {
 	cases := []struct {
-		output   string
-		wantCat  string
+		output  string
+		wantCat string
 	}{
 		{"SyntaxError: unexpected token", "syntax_error"},
 		{"cannot find module 'foo'", "import_error"},

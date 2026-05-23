@@ -30,6 +30,9 @@ jobs:
           fetch-depth: 0
           filter: blob:none
 
+      - name: Install command-line dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq ripgrep
+
       - name: Check if release already exists
         id: check
         env:
@@ -70,6 +73,9 @@ jobs:
 
       - name: Setup Go (harness composite)
         uses: ./.github/actions/setup-go-harness
+
+      - name: Run release preflight
+        run: bash ./scripts/release-preflight.sh --check-adapters
 
       - name: Build Go binaries
         run: |

@@ -610,10 +610,10 @@ func (h *MonitorHandler) collectDrift(stateDir, projectRoot string) []string {
 		hasTs bool
 		seq   int // ts がない場合の出現順
 	}
-	advisorRequests := make(map[string]requestInfo)  // key: task_id+trigger_hash
-	advisorResponses := make(map[string]bool)         // key: task_id+trigger_hash
-	reviewRequests := make(map[string]requestInfo)    // key: task_id+trigger_hash
-	reviewResponses := make(map[string]bool)          // key: task_id+trigger_hash
+	advisorRequests := make(map[string]requestInfo) // key: task_id+trigger_hash
+	advisorResponses := make(map[string]bool)       // key: task_id+trigger_hash
+	reviewRequests := make(map[string]requestInfo)  // key: task_id+trigger_hash
+	reviewResponses := make(map[string]bool)        // key: task_id+trigger_hash
 
 	for seq, line := range lines {
 		line = strings.TrimSpace(line)

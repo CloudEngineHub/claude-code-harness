@@ -2,16 +2,16 @@
 //
 // This file covers three new scenarios required by Phase 44.3.1:
 //
-//   (a) PermissionRequest that returns updatedInput and/or setMode still
-//       causes deny rules to be re-evaluated on the updated input.
+//	(a) PermissionRequest that returns updatedInput and/or setMode still
+//	    causes deny rules to be re-evaluated on the updated input.
 //
-//   (b) PreToolUse additionalContext is preserved (not dropped) even when the
-//       hook result is serialised and deserialised — simulating what CC does
-//       before and after a tool invocation failure.
+//	(b) PreToolUse additionalContext is preserved (not dropped) even when the
+//	    hook result is serialised and deserialised — simulating what CC does
+//	    before and after a tool invocation failure.
 //
-//   (c) Bash bypass vectors not covered by earlier test tasks:
-//       compound command separators (;, &&, ||), here-document markers,
-//       and shell variable expansion prefixes that carry forbidden commands.
+//	(c) Bash bypass vectors not covered by earlier test tasks:
+//	    compound command separators (;, &&, ||), here-document markers,
+//	    and shell variable expansion prefixes that carry forbidden commands.
 package guardrail
 
 import (

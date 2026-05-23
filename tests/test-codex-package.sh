@@ -25,6 +25,7 @@ required_files=(
   "codex/AGENTS.md"
   "codex/README.md"
   "codex/.codex/rules/harness.rules"
+  ".codex-plugin/plugin.json"
 )
 all_exist=true
 for file in "${required_files[@]}"; do

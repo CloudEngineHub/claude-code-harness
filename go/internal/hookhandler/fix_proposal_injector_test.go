@@ -32,14 +32,14 @@ func makeFixProposalFile(t *testing.T, dir string, proposals []fixProposal) stri
 // sampleProposal はテスト用の fixProposal を返す。
 func sampleProposal() fixProposal {
 	return fixProposal{
-		SourceTaskID:    "26",
-		FixTaskID:       "26.fix",
-		ProposalSubject: "fix: テスト修正タスク",
-		DoD:             "テストが通ること",
-		Depends:         "26",
-		FailureCategory: "assertion_error",
+		SourceTaskID:      "26",
+		FixTaskID:         "26.fix",
+		ProposalSubject:   "fix: テスト修正タスク",
+		DoD:               "テストが通ること",
+		Depends:           "26",
+		FailureCategory:   "assertion_error",
 		RecommendedAction: "アサーションを修正する",
-		Status:          "pending",
+		Status:            "pending",
 	}
 }
 

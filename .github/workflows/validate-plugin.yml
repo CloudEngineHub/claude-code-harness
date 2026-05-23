@@ -61,10 +61,21 @@ jobs:
           bash ./scripts/ci/check-version-bump.sh
 
       - name: Install command-line dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq ripgrep
+        run: sudo apt-get update && sudo apt-get install -y jq ripgrep shellcheck
+
+      - name: Setup Node.js for CLI smoke
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+
+      - name: Install Codex CLI for adapter smoke
+        run: npm install -g @openai/codex@0.133.0
 
       - name: Setup Go (harness composite)
         uses: ./.github/actions/setup-go-harness
+
+      - name: Run ShellCheck high-risk subset
+        run: bash ./tests/test-shell-lint.sh
 
       - name: Build harness binary for validation scripts
         working-directory: go
@@ -90,6 +101,12 @@ jobs:
         run: |
           bash ./tests/test-codex-package.sh
 
+      - name: Run Codex plugin adapter smoke
+        env:
+          HARNESS_CODEX_PLUGIN_SMOKE_REQUIRED: "1"
+        run: |
+          bash ./tests/test-codex-plugin-adapter.sh
+
   test-go:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -104,6 +121,9 @@ jobs:
 
       - name: Setup Go (harness composite)
         uses: ./.github/actions/setup-go-harness
+
+      - name: Run Go format check
+        run: bash ./tests/test-format-lint.sh
 
       - name: Build harness binary
         working-directory: go

@@ -94,6 +94,7 @@ setup_repo() {
   local contract_mode="${2:-valid}"
   local mirror_mode="${3:-synced}"
   mkdir -p "$repo/scripts"
+  mkdir -p "$repo/tests"
   mkdir -p "$repo/.claude/state/contracts"
   mkdir -p "$repo/opencode/skills/example"
   mkdir -p "$repo/skills/example"
@@ -189,6 +190,27 @@ exit 0
 EOF
   chmod +x "$repo/scripts/sync-skill-mirrors.sh"
 
+  cat > "$repo/tests/test-codex-plugin-adapter.sh" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+echo "codex plugin adapter fixture ok"
+EOF
+  chmod +x "$repo/tests/test-codex-plugin-adapter.sh"
+
+  cat > "$repo/tests/test-opencode-bootstrap-plugin.sh" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+echo "opencode bootstrap fixture ok"
+EOF
+  chmod +x "$repo/tests/test-opencode-bootstrap-plugin.sh"
+
+  cat > "$repo/tests/test-bootstrap-skill-trigger-acceptance.sh" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+echo "bootstrap skill trigger fixture ok"
+EOF
+  chmod +x "$repo/tests/test-bootstrap-skill-trigger-acceptance.sh"
+
   if [ "$contract_mode" = "invalid" ]; then
     write_contract \
       "$repo/.claude/state/contracts/41.4.3-invalid.sprint-contract.json" \
@@ -257,6 +279,33 @@ test_doc_mentions_overrides() {
   assert_contains "$PROJECT_ROOT/docs/release-preflight.md" "HARNESS_RELEASE_CI_STATUS_CMD"
   assert_contains "$PROJECT_ROOT/docs/release-preflight.md" "actions/checkout@v6"
   assert_contains "$PROJECT_ROOT/docs/release-preflight.md" "actions/setup-go@v6"
+  assert_contains "$PROJECT_ROOT/docs/release-preflight.md" ".github/workflows/release.yml"
+  assert_contains "$PROJECT_ROOT/docs/release-preflight.md" "git archive HEAD"
+}
+
+test_release_workflow_runs_preflight_before_assets() {
+  local workflow="$PROJECT_ROOT/.github/workflows/release.yml"
+
+  assert_contains "$workflow" "Run release preflight"
+  assert_contains "$workflow" "bash ./scripts/release-preflight.sh --check-adapters"
+  assert_contains "$workflow" "Create GitHub Release"
+  assert_contains "$workflow" "Upload Go binaries to existing release"
+
+  python3 - "$workflow" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+preflight = text.index("Run release preflight")
+create = text.index("Create GitHub Release")
+upload = text.index("Upload Go binaries to existing release")
+
+if not preflight < create:
+    raise SystemExit("release preflight must run before GitHub Release creation")
+
+if not preflight < upload:
+    raise SystemExit("release preflight must run before release asset upload")
+PY
 }
 
 test_preflight_pass_and_fail() {
@@ -280,6 +329,9 @@ test_preflight_pass_and_fail() {
   assert_contains "$success_output" "\\[PASS\\] opencode mirror validation"
   assert_contains "$success_output" "\\[PASS\\] skill mirror sync check"
   assert_contains "$success_output" "\\[PASS\\] release mirror drift"
+  assert_contains "$success_output" "\\[PASS\\] codex plugin adapter smoke"
+  assert_contains "$success_output" "\\[PASS\\] opencode bootstrap smoke"
+  assert_contains "$success_output" "\\[PASS\\] bootstrap skill trigger acceptance gate"
   assert_contains "$success_output" "Summary: "
 
   printf 'BROKEN\n' >> "$repo/scripts/app.sh"
@@ -417,6 +469,7 @@ test_preflight_warns_when_env_is_managed_elsewhere() {
 
 test_skill_mentions_preflight
 test_doc_mentions_overrides
+test_release_workflow_runs_preflight_before_assets
 test_preflight_pass_and_fail
 test_preflight_fails_on_opencode_mirror_drift
 test_preflight_checks_plugin_version_sync

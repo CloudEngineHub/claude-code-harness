@@ -170,8 +170,8 @@ func TestTodoSyncHandler_AppendsEventLog(t *testing.T) {
 	var event struct {
 		Type string `json:"type"`
 		Data struct {
-			Pending    int `json:"pending"`
-			Completed  int `json:"completed"`
+			Pending   int `json:"pending"`
+			Completed int `json:"completed"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(bytes.TrimRight(data, "\n"), &event); err != nil {

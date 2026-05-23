@@ -1,12 +1,12 @@
 package hookhandler
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"bytes"
 )
 
 func TestPreCompactSave_BasicOutput(t *testing.T) {

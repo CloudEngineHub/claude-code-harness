@@ -406,6 +406,7 @@ NODE
 
 adapter_gate_paths=(
   "adapters/"
+  ".codex-plugin/"
   "codex/"
   "skills-codex/"
   "opencode/"
@@ -420,6 +421,9 @@ adapter_gate_paths=(
   "scripts/sync-skill-mirrors.sh"
   "scripts/validate-opencode.js"
   "tests/test-codex-package.sh"
+  "tests/test-codex-plugin-adapter.sh"
+  "tests/test-opencode-bootstrap-plugin.sh"
+  "tests/test-bootstrap-skill-trigger-acceptance.sh"
   "tests/test-distribution-archive.sh"
   "tests/test-hokage-spin-off-readiness.sh"
   "tests/test-skill-design-contract.sh"
@@ -591,6 +595,30 @@ check_release_mirror_drift() {
     warn "codex package gate skipped"
   fi
 
+  if [ -f tests/test-codex-plugin-adapter.sh ]; then
+    if bash tests/test-codex-plugin-adapter.sh >"$output_file" 2>&1; then
+      pass "codex plugin adapter smoke"
+    else
+      fail "codex plugin adapter smoke"
+      sed 's/^/  /' "$output_file"
+    fi
+  else
+    fail "codex plugin adapter smoke"
+    printf '  missing: tests/test-codex-plugin-adapter.sh\n'
+  fi
+
+  if [ -f tests/test-opencode-bootstrap-plugin.sh ]; then
+    if bash tests/test-opencode-bootstrap-plugin.sh >"$output_file" 2>&1; then
+      pass "opencode bootstrap smoke"
+    else
+      fail "opencode bootstrap smoke"
+      sed 's/^/  /' "$output_file"
+    fi
+  else
+    fail "opencode bootstrap smoke"
+    printf '  missing: tests/test-opencode-bootstrap-plugin.sh\n'
+  fi
+
   if [ -f tests/test-distribution-archive.sh ]; then
     if bash tests/test-distribution-archive.sh >"$output_file" 2>&1; then
       pass "distribution archive gate"
@@ -622,6 +650,17 @@ check_release_mirror_drift() {
     fi
   else
     warn "bootstrap routing gate skipped"
+  fi
+
+  if [ -f tests/test-bootstrap-skill-trigger-acceptance.sh ]; then
+    if bash tests/test-bootstrap-skill-trigger-acceptance.sh >"$output_file" 2>&1; then
+      pass "bootstrap skill trigger acceptance gate"
+    else
+      fail "bootstrap skill trigger acceptance gate"
+      sed 's/^/  /' "$output_file"
+    fi
+  else
+    warn "bootstrap skill trigger acceptance gate skipped"
   fi
 
   if [ -f tests/test-hokage-spin-off-readiness.sh ]; then
