@@ -6,6 +6,8 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.12.1] - 2026-05-24
+
 ### Changed
 
 - README / README_ja now lead with the current Harness operating path: tool-first onboarding, generated `spec.md` / `Plans.md`, command internals, support tiers, migration safety, and deeper docs.
@@ -4488,7 +4490,8 @@ Purpose: 自己修正ループ失敗時に「止まるだけ」から「次の�
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.12.0...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.12.1...HEAD
+[4.12.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.12.0...v4.12.1
 [4.12.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.11.4...v4.12.0
 [4.11.4]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.11.3...v4.11.4
 [4.11.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.11.2...v4.11.3
