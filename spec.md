@@ -1,7 +1,7 @@
 # Claude Code Harness V2 Spec
 
-Status: draft SSOT for Phase 72 through Phase 74
-Last updated: 2026-05-22
+Status: draft SSOT for Phase 72 through Phase 76
+Last updated: 2026-05-24
 
 This file is the root product contract for Claude Code Harness V2.
 Plans.md is the task ledger. `spec.md` is the product contract.
@@ -55,6 +55,38 @@ The source-of-truth order is:
 
 `Plans.md` must not replace `spec.md`. A task can be complete only if its DoD
 passes and the result does not contradict the applicable spec.
+
+## Planning Surface Contract
+
+`/harness-plan` owns co-required planning output between the spec.md product contract and Plans.md task contract.
+It must not behave as a Plans.md-only generator, and it must not flatten the
+precedence order. The order remains `spec.md > sub-spec > Plans.md`:
+`spec.md` is the product contract, sub-specs refine scoped domains, and
+Plans.md is the task ledger.
+
+`/harness-plan create` and product-impacting `/harness-plan add` must produce
+both:
+
+- `Spec delta` when the product contract changes, with the root `spec.md` or
+  fallback spec path and the rules being added or changed.
+- `Spec skip reason` when the task does not change the product contract, with
+  the reason preserved in task context or the sprint contract.
+- `Plans.md` task contract rows with DoD, dependencies, status, and evidence
+  expectations.
+
+For `create` and product-impacting `add`, agents must read the root `spec.md`
+and produce the spec result before producing task rows. Only when a consumer
+repository has no root `spec.md` may the agent fall back to an existing project
+spec or `docs/spec/00-project-spec.md`.
+
+The agent drafts the spec delta from the request, current repo evidence, memory,
+and tests. The user is not expected to write a product spec from scratch before
+Harness can plan. If the correct delta is ambiguous, the agent should offer the
+smallest decision branch and keep unverified facts as `unknown` or
+`not observed`.
+
+Harness generates the spec result. Consumers approve or edit `Spec delta` /
+`Spec skip reason`; they are not expected to write the spec from scratch.
 
 ## Hokage Core And Host Adapter Boundary
 
@@ -350,7 +382,9 @@ V2 does not:
 
 ## Links
 
-- Task ledger: `Plans.md` Phase 72 through Phase 74.
+- Task ledger: `Plans.md` Phase 72 through Phase 76.
+- Phase 76 closes the `harness-plan` planning-surface portion of Phase 72.1.2.
+  `harness-work`, review, and PR closeout follow-up remains in Phase 72.
 - Spec workflow policy: `docs/plans/spec-ssot.md`.
 - Review operating model: `docs/harness-review-operating-model.md`.
 - Architecture sub-spec: `docs/architecture/hokage-core.md`.

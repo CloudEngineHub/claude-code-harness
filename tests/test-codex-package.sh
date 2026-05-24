@@ -192,6 +192,29 @@ else
 fi
 rm -f /tmp/codex-skill-mirrors.$$ || true
 
+log_test "Codex harness-plan ships co-required spec output contract"
+codex_harness_plan_contract_ok=true
+for required_contract_term in \
+  'co-required planning output' \
+  'spec.md product contract and Plans.md task contract' \
+  'spec.md > sub-spec > Plans.md' \
+  'Spec delta' \
+  'Spec skip reason' \
+  'Harness が生成し、consumer は承認・修正だけ'; do
+  if ! rg -q --fixed-strings "$required_contract_term" \
+    "codex/.codex/skills/harness-plan/SKILL.md" \
+    "codex/.codex/skills/harness-plan/references/create.md" \
+    "codex/.codex/skills/harness-plan/references/planning-quality.md"; then
+    echo "  missing harness-plan contract term: $required_contract_term"
+    codex_harness_plan_contract_ok=false
+  fi
+done
+if $codex_harness_plan_contract_ok; then
+  log_pass "Codex harness-plan includes co-required spec output contract"
+else
+  log_fail "Codex harness-plan spec output contract is incomplete"
+fi
+
 log_test "Non-breezing Codex skills are CLI-only"
 cli_only_targets=(
   "codex/.codex/skills/harness-work/SKILL.md"
