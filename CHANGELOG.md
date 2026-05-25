@@ -6,6 +6,8 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.12.3] - 2026-05-25
+
 ### Changed
 
 - Standardized new and updated Plans status markers on the English family (`pm:requested`, `cc:todo`, `cc:wip`, `cc:done`, `pm:approved`) while keeping existing Japanese markers readable.
@@ -18,6 +20,7 @@ Change history for claude-code-harness.
 
 ### Fixed
 
+- Added the Codex plugin manifest to release version sync so direct Codex installs stay aligned with `VERSION` during releases.
 - Verified guardrail/runtime reason strings stay English by default with Japanese output preserved through `CLAUDE_CODE_HARNESS_LANG=ja`.
 - Rechecked protected-path `.env` break-glass behavior and codex-loop orphan active-job recovery against current tests, with public issue closeout evidence recorded.
 
@@ -4511,7 +4514,8 @@ Purpose: 自己修正ループ失敗時に「止まるだけ」から「次の�
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.12.2...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.12.3...HEAD
+[4.12.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.12.2...v4.12.3
 [4.12.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.12.1...v4.12.2
 [4.12.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.12.0...v4.12.1
 [4.12.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.11.4...v4.12.0

@@ -27,8 +27,9 @@ write_release_surfaces() {
   local plugin_version="${4:-$version}"
   local marketplace_metadata_version="${5:-$version}"
   local marketplace_plugin_version="${6:-$version}"
+  local codex_plugin_version="${7:-$version}"
 
-  mkdir -p "$repo/.claude-plugin"
+  mkdir -p "$repo/.claude-plugin" "$repo/.codex-plugin"
   printf '%s\n' "$version" > "$repo/VERSION"
   cat > "$repo/package.json" <<EOF
 {
@@ -40,6 +41,12 @@ EOF
 {
   "name": "fixture",
   "version": "$plugin_version"
+}
+EOF
+  cat > "$repo/.codex-plugin/plugin.json" <<EOF
+{
+  "name": "fixture",
+  "version": "$codex_plugin_version"
 }
 EOF
   cat > "$repo/.claude-plugin/marketplace.json" <<EOF
@@ -72,6 +79,7 @@ test_all_surfaces_match() {
 
   assert_contains "$output" "[PASS] release version sync: canonical 1.2.3 from VERSION"
   assert_contains "$output" "OK package.json: 1.2.3"
+  assert_contains "$output" "OK .codex-plugin/plugin.json: 1.2.3"
   assert_contains "$output" "OK .claude-plugin/marketplace.json metadata.version: 1.2.3"
   assert_contains "$output" "OK .claude-plugin/marketplace.json plugins[1](fixture-extra).version: 1.2.3"
 }
@@ -79,14 +87,15 @@ test_all_surfaces_match() {
 test_mismatch_blocks_release() {
   local repo="$TMP_DIR/mismatch"
   mkdir -p "$repo"
-  write_release_surfaces "$repo" "1.2.3" "1.2.3" "1.2.3" "1.2.2" "1.2.1"
+  write_release_surfaces "$repo" "1.2.3" "1.2.3" "1.2.3" "1.2.2" "1.2.1" "1.2.0"
 
   local output="$TMP_DIR/mismatch.txt"
   if python3 "$PROJECT_ROOT/scripts/check-release-version-sync.py" --root "$repo" > "$output" 2>&1; then
     fail "version sync check should fail on marketplace mismatch"
   fi
 
-  assert_contains "$output" "[FAIL] release version sync: canonical 1.2.3 from VERSION (priority: VERSION > package.json > .claude-plugin/plugin.json)"
+  assert_contains "$output" "[FAIL] release version sync: canonical 1.2.3 from VERSION (priority: VERSION > package.json > .claude-plugin/plugin.json > .codex-plugin/plugin.json)"
+  assert_contains "$output" "MISMATCH .codex-plugin/plugin.json: 1.2.0 (expected 1.2.3)"
   assert_contains "$output" "MISMATCH .claude-plugin/marketplace.json metadata.version: 1.2.2 (expected 1.2.3)"
   assert_contains "$output" "MISMATCH .claude-plugin/marketplace.json plugins[0](fixture).version: 1.2.1 (expected 1.2.3)"
   assert_contains "$output" "Tag/release is blocked until version surfaces are aligned."
@@ -150,6 +159,7 @@ EOF
   (cd "$repo" && bash "$PROJECT_ROOT/scripts/sync-version.sh" bump patch > "$bump_output")
 
   assert_contains "$bump_output" "VERSION を更新 (patch): 1.2.3 → 1.2.4"
+  assert_contains "$bump_output" "codex plugin.json を更新: 1.2.3 → 1.2.4"
   assert_contains "$bump_output" "marketplace.json を更新: metadata.version: 1.2.3 → 1.2.4"
   assert_contains "$bump_output" "marketplace.json を更新: plugins[1](fixture-extra).version: 1.2.3 → 1.2.4"
 
@@ -176,7 +186,8 @@ report = json.load(open(sys.argv[1], encoding="utf-8"))
 assert report["ok"] is True
 assert report["canonical"]["name"] == "VERSION"
 assert report["canonical"]["version"] == "3.4.5"
-assert report["canonical_priority"] == ["VERSION", "package.json", ".claude-plugin/plugin.json"]
+assert report["canonical_priority"] == ["VERSION", "package.json", ".claude-plugin/plugin.json", ".codex-plugin/plugin.json"]
+assert any(surface["name"] == ".codex-plugin/plugin.json" for surface in report["surfaces"])
 assert any(surface["name"] == ".claude-plugin/marketplace.json metadata.version" for surface in report["surfaces"])
 PY
 }
@@ -193,8 +204,9 @@ test_skill_docs_reference_structured_version_sync() {
       continue
     fi
     assert_contains "$skill" "scripts/check-release-version-sync.py"
-    assert_contains "$skill" "VERSION > package.json > .claude-plugin/plugin.json"
+    assert_contains "$skill" "VERSION > package.json > .claude-plugin/plugin.json > .codex-plugin/plugin.json"
     assert_contains "$skill" ".claude-plugin/marketplace.json"
+    assert_contains "$skill" ".codex-plugin/plugin.json"
   done
 }
 

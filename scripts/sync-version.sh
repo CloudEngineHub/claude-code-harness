@@ -13,6 +13,7 @@ set -euo pipefail
 VERSION_FILE="VERSION"
 PACKAGE_JSON="package.json"
 PLUGIN_JSON=".claude-plugin/plugin.json"
+CODEX_PLUGIN_JSON=".codex-plugin/plugin.json"
 MARKETPLACE_JSON=".claude-plugin/marketplace.json"
 HARNESS_TOML="harness.toml"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -152,12 +153,13 @@ if changes:
 PY
 }
 
-# package.json / plugin.json / marketplace.json + harness.toml を VERSION に同期
+# package.json / plugin.json / Codex plugin / marketplace.json + harness.toml を VERSION に同期
 sync_version() {
     local version=$(get_version)
 
     sync_top_level_json_version "$PACKAGE_JSON" "package.json" "$version"
     sync_top_level_json_version "$PLUGIN_JSON" "plugin.json" "$version"
+    sync_top_level_json_version "$CODEX_PLUGIN_JSON" "codex plugin.json" "$version"
     sync_marketplace_version "$MARKETPLACE_JSON" "$version"
 
     # harness.toml の同期

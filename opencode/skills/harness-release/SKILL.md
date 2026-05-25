@@ -256,12 +256,13 @@ python3 "${HARNESS_PLUGIN_ROOT}/scripts/check-release-version-sync.py" --root .
 claude plugin tag .claude-plugin --dry-run
 ```
 
-`${HARNESS_PLUGIN_ROOT}/scripts/check-release-version-sync.py` は、存在する release surface をすべて読み取り、canonical を `VERSION > package.json > .claude-plugin/plugin.json` の順で決める。
+`${HARNESS_PLUGIN_ROOT}/scripts/check-release-version-sync.py` は、存在する release surface をすべて読み取り、canonical を `VERSION > package.json > .claude-plugin/plugin.json > .codex-plugin/plugin.json` の順で決める。
 そのうえで、以下の不一致・欠落が 1 つでもあれば tag / release に進まない:
 
 - `VERSION`
 - `package.json` の `.version`
 - `.claude-plugin/plugin.json` の `.version`
+- `.codex-plugin/plugin.json` の `.version`
 - `.claude-plugin/marketplace.json` の `.metadata.version`
 - `.claude-plugin/marketplace.json` の `.plugins[].version`（配列内の各 plugin entry）
 
@@ -391,7 +392,7 @@ claude plugin tag .claude-plugin --push --remote origin
 
 Pre-Gate 全てを実行し、Confirmation Gate までの内容を表示するが、**gate で止まり Post-Gate に進まない**。
 
-Claude plugin project の場合、dry-run でも `python3 "${HARNESS_PLUGIN_ROOT}/scripts/check-release-version-sync.py" --root .` と `claude plugin tag .claude-plugin --dry-run` を実行し、実際に作られる plugin tag 名と push 対象を表示する。ここで `VERSION` / `package.json` / `.claude-plugin/plugin.json` / `.claude-plugin/marketplace.json` の version surface が不一致または欠落していれば、dry-run の時点で止める。
+Claude plugin project の場合、dry-run でも `python3 "${HARNESS_PLUGIN_ROOT}/scripts/check-release-version-sync.py" --root .` と `claude plugin tag .claude-plugin --dry-run` を実行し、実際に作られる plugin tag 名と push 対象を表示する。ここで `VERSION` / `package.json` / `.claude-plugin/plugin.json` / `.codex-plugin/plugin.json` / `.claude-plugin/marketplace.json` の version surface が不一致または欠落していれば、dry-run の時点で止める。
 
 ## 環境変数
 
