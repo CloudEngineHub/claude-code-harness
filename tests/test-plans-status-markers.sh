@@ -157,4 +157,60 @@ if grep -q '完了時は cc:完了' "${PROJECT_ROOT}/scripts/stop-plans-reminder
   exit 1
 fi
 
+HOOK_TMP="${TMP_DIR}/hook-project"
+mkdir -p "${HOOK_TMP}/plans" "${HOOK_TMP}/.claude/state"
+cat > "${HOOK_TMP}/.claude-code-harness.config.yaml" <<'EOF'
+plansDirectory: plans
+EOF
+cat > "${HOOK_TMP}/plans/Plans.md" <<'EOF'
+# Plans
+
+| Marker | Meaning |
+|--------|---------|
+| `pm:requested` / `pm:依頼中` | legend only |
+| `cc:wip` / `cc:WIP` | legend only |
+| `cc:done` / `cc:完了` | legend only |
+
+| Task | Content | DoD | Depends | Status |
+|------|---------|-----|---------|--------|
+| 1 | canonical done | done marker | - | cc:done |
+| 2 | legacy done | legacy marker | - | cc:完了 |
+| 3 | active work | wip marker | - | cc:wip |
+| 4 | queued work | todo marker | - | cc:todo |
+EOF
+
+collect_output="$(cd "${HOOK_TMP}" && bash "${PROJECT_ROOT}/scripts/collect-cleanup-context.sh")"
+printf '%s' "$collect_output" | jq -e '
+  .plans.completed_tasks == 2 and
+  .plans.cc_done_tasks == 2 and
+  .plans.wip_tasks == 1 and
+  .plans.todo_tasks == 1 and
+  .plans.pm_pending_tasks == 0
+' >/dev/null
+
+(cd "${HOOK_TMP}" && git init -q && touch changed-file)
+stop_output="$(cd "${HOOK_TMP}" && bash "${PROJECT_ROOT}/scripts/stop-plans-reminder.sh")"
+printf '%s' "$stop_output" | jq -e '
+  .reason == "cc_done_tasks > 0" and
+  (.systemMessage | contains("2 cc:done task(s) await PM review"))
+' >/dev/null
+
+resume_output="$(cd "${HOOK_TMP}" && printf '%s\n' '{"session_id":"cc-test"}' | bash "${PROJECT_ROOT}/scripts/session-resume.sh" 2>/dev/null)"
+printf '%s' "$resume_output" | jq -e '
+  .hookSpecificOutput.additionalContext | contains("進行中 1 / 未着手 1")
+' >/dev/null
+
+cat > "${HOOK_TMP}/.claude/state/session.json" <<EOF
+{
+  "session_id": "summary-test",
+  "started_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "project_name": "hook-project",
+  "git": {"branch": "main"},
+  "changes_this_session": [{"file": "changed-file", "important": false}],
+  "memory_logged": false
+}
+EOF
+summary_output="$(cd "${HOOK_TMP}" && bash "${PROJECT_ROOT}/scripts/session-summary.sh" 2>/dev/null)"
+printf '%s' "$summary_output" | grep -q '完了タスク: 2件'
+
 echo "test-plans-status-markers: ok"
