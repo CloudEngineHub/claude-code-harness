@@ -212,7 +212,7 @@ cat > "${HOOK_TMP}/.claude/state/session.json" <<EOF
 EOF
 cat >> "${HOOK_TMP}/plans/Plans.md" <<'EOF'
 
-#### H-3: Heading WIP `cc:wip`
+  #### H-3: Heading WIP `cc:wip`
 EOF
 summary_output="$(cd "${HOOK_TMP}" && CLAUDE_CODE_HARNESS_LANG=ja bash "${PROJECT_ROOT}/scripts/session-summary.sh" 2>/dev/null)"
 printf '%s' "$summary_output" | grep -q '現在のタスク: active work'

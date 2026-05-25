@@ -100,6 +100,7 @@ extract_plan_task_title() {
   local task_line="$1"
 
   task_line="${task_line#*:}"
+  task_line="${task_line#"${task_line%%[![:space:]]*}"}"
   case "$task_line" in
     \|*)
       printf '%s\n' "$task_line" | awk -F'|' '{
