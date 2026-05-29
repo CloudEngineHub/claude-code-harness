@@ -122,12 +122,12 @@ sandbox に **2 つ**の許可が要る (実測で確定):
 
 1. **network**: `network.allowedDomains` に `*.cursor.sh` (`api2.cursor.sh` /
    `agentn.global.api5.cursor.sh` を含む)。未許可だと通信がブロックされハングする。
-2. **filesystem write**: `~/.cursor` への書込許可。cursor-agent は実行時に
-   `~/.cursor/projects/<...>` へ状態を書くため、未許可だと `EPERM: mkdir ~/.cursor/...`
-   で失敗する (`--list-models` は状態書込不要なので通るが、`task` は通らない)。
-   ⚠️ **絶対パス必須**: `~` は sandbox で展開されないため、`["~/.cursor"]` は実質無効になる
-   (実測で `EPERM: open '/Users/<user>/.cursor/cli-config.json.tmp'` で失敗確認)。
-   必ず `["/Users/<user>/.cursor"]` のように絶対パスを書く。
+2. **filesystem write**: 公式キー **`sandbox.filesystem.allowWrite`** に `~/.cursor` を追加する。
+   cursor-agent は実行時に `~/.cursor/projects/<...>` や `~/.cursor/cli-config.json.tmp` へ
+   状態を書くため、未許可だと `EPERM` で失敗する (`--list-models` は状態書込不要なので通るが、
+   `task` は通らない)。`~/` は sandbox 側で展開される (公式例 `["~/.kube"]`)。
+   ⚠️ **キー名は `allowWrite`**: `write` という名前にすると未知キーとして無視され、設定が効かない。
+   ディレクトリ指定で配下も再帰的に許可される。
 
 どちらかが欠けると sandbox 有効下では失敗する。allowlist を設定できない場合の代替は
 per-run の sandbox 無効化 (Risk Gate) だが、`*.cursor.sh` + `~/.cursor` の 2 点を
