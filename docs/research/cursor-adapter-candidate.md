@@ -128,6 +128,29 @@ This fact-check inspects the local CLI only. It does **not** promote Cursor
 beyond the `candidate` tier and adds no support claim; the candidate boundary in
 the Conclusion and Evidence Boundary sections is unchanged.
 
+## cursor-agent CLI network smoke (verified 2026-05-29)
+
+Contained Route A go/no-go run, executed in a throwaway `mktemp -d` directory
+with `--mode ask` (read-only), no `--force`/`--yolo`, and cursor-agent's own
+`--sandbox enabled`. The Claude Code Bash sandbox was disabled for this run
+because cursor-agent reaches Cursor cloud hosts outside the sandbox allowlist
+(under the sandbox the call hangs on blocked egress — confirming the network
+dependency). This run did not change the support tier; Cursor stays `candidate`.
+
+| Observation | Result |
+| --- | --- |
+| Model slugs available (`--list-models`) | `composer-2.5` (current) and `composer-2.5-fast` (default) both present ✅ |
+| Route A go/no-go (`-p --output-format json --model composer-2.5 --mode ask "Reply with PONG"`) | `is_error:false`, `result:"PONG"` ✅ |
+| Success JSON top-level keys | `type, subtype, is_error, duration_ms, duration_api_ms, result, session_id, request_id, usage` (superset of the originally documented `{type,is_error,result,session_id,usage}`) |
+| Latency | API `duration_ms` ≈ 9.85s; wall `real` ≈ 17.4s (includes CLI startup); `inputTokens` ≈ 69k per call |
+| **Error shape (bad model name)** | exit `1`, **no JSON on stdout** — error text goes to stderr (`Cannot use this model: ...`). A Route A wrapper must check the exit code, not only parse `.result` (a bare `jq -r .result` prints nothing/`null` on error). |
+| Egress destinations | `52.6.48.235:443`, `54.82.32.244:443` (AWS us-east-1 range, no PTR records). Process owner is `node` (cursor-agent is a Node app). The TLS SNI hostname was not captured locally; resolving the allowlist hostname is a Phase 83 (distribution) follow-up. |
+
+Verdict: **Route A verified (go)**. Route B remains out of scope (double-agent
+problem above). Distribution to consumers is out of scope for this phase and is
+gated by the Phase 83 prerequisites (manual sandbox allowlist recipe,
+cursor-agent governance rule, support-tier promotion).
+
 ## Promotion Conditions
 
 Cursor can move beyond `candidate` only after all of the following in the same
