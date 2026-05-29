@@ -301,6 +301,30 @@ fi
 ) || fail "(iii-c) mask_args --auth-token unit test failed"
 
 # ---------------------------------------------------------------------------
+# (iii-d) standalone "Authorization: Bearer ..." 単独要素もマスクされる
+#         （-H や --header と組まれず、1 要素として cmd に含まれた場合）
+# ---------------------------------------------------------------------------
+(
+  set -euo pipefail
+  CURSOR_COMPANION_SOURCED_FOR_TEST=1
+  # shellcheck disable=SC1090
+  source "${WRAPPER}"
+  masked="$(mask_args "Authorization: Bearer STANDALONE_TOKEN" "prompt-after")"
+  if echo "${masked}" | grep -q "STANDALONE_TOKEN"; then
+    echo "FAIL: (iii-d) standalone Authorization token must be masked, masked='${masked}'" >&2
+    exit 1
+  fi
+  if ! echo "${masked}" | grep -q "\[REDACTED\]"; then
+    echo "FAIL: (iii-d) [REDACTED] missing from masked, masked='${masked}'" >&2
+    exit 1
+  fi
+  if ! echo "${masked}" | grep -q "prompt-after"; then
+    echo "FAIL: (iii-d) trailing prompt must remain unmasked, masked='${masked}'" >&2
+    exit 1
+  fi
+) || fail "(iii-d) mask_args standalone Authorization unit test failed"
+
+# ---------------------------------------------------------------------------
 # (iv) Default-off: --debug もなく env も無い → wrapper stderr に DEBUG marker なし
 # ---------------------------------------------------------------------------
 make_mock '{"is_error":false,"result":"DONE"}' 0

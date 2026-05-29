@@ -70,6 +70,9 @@ debug_log() {
 #   Authorization:<rest>        → Authorization: + Bearer 部分等を [REDACTED] へ
 # PROMPT 本文は secret 扱いしない（マスクしない）。
 mask_args() {
+  # IFS を空白に固定して "${out[*]}" の joiner を defensive に決め打ちする。
+  # 呼び出し側の IFS 設定に依存しないため。
+  local IFS=' '
   local out=()
   local i=0
   local n=$#
