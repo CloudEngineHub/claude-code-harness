@@ -199,9 +199,9 @@ func TestHandleWorktreeCreate_HonorsToolInputPath(t *testing.T) {
 func TestSanitizeWorktreeSlug(t *testing.T) {
 	cases := map[string]string{
 		"worker/abc.def": "worker-abc-def",
-		"  spaced  ":      "spaced",
-		"a:b\\c":          "a-b-c",
-		"":                "",
+		"  spaced  ":     "spaced",
+		"a:b\\c":         "a-b-c",
+		"":               "",
 	}
 	for in, want := range cases {
 		if got := sanitizeWorktreeSlug(in); got != want {
