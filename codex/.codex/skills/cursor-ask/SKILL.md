@@ -77,11 +77,13 @@ banner 1 行 + 計画 1-2 行。1 秒以内に出し、即 Step 2 へ。
 
 ### Step 1: banner 確認
 
-最初の text として **1 行だけ** 出す:
+Step 0 で banner + 計画 (3 行以内) は出し切っているので、ここでは banner 行が出ていることを確認する。banner は:
 
 ```
 🚀 cursor / composer-2.5-fast / ask
 ```
+
+以降は委譲開始の 1 行ステータス等で進捗を見せてよい。冗長な繰り返しのみ避ける。
 
 `composer-2.5-fast` は `scripts/model-routing.sh --host cursor --role worker --field model` で解決される値の代表表記。実際の resolved model は cursor-companion 側のログに出る。
 

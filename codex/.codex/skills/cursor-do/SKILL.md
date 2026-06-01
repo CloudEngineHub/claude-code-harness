@@ -56,7 +56,7 @@ banner 1 行 (`🚀 cursor / composer-2.5-fast / <branch> / <task>`) + 計画 2-
 これから: worktree 作成 → composer に実装委譲 → diff レビュー → cherry-pick
 ```
 
-## Step 1 — first text echo (1 行、1 秒以内)
+## Step 1 — banner + plan を出し切る (1 秒以内)
 
 引数 `$ARGUMENTS` をタスク説明として受ける。引数が空なら以下のマーカーを出力してユーザーに 1 行タスクを要求し、入力後に Step 2 へ進む:
 
