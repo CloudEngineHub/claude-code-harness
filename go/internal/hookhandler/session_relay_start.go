@@ -19,6 +19,7 @@ const relayEnvVar = "HARNESS_SESSION_RELAY"
 
 type relayHookInput struct {
 	SessionID string `json:"session_id"`
+	AgentType string `json:"agent_type"`
 }
 
 // relayContextOutput injects additionalContext WITHOUT a permissionDecision, so
@@ -47,6 +48,12 @@ func HandleSessionRelayStart(in io.Reader, out io.Writer) error {
 	data, _ := io.ReadAll(in)
 	var inp relayHookInput
 	_ = json.Unmarshal(data, &inp)
+	// Relay targets independent top-level sessions, not subagents. A Worker/
+	// Reviewer must not start a persistent watcher (subagent context pollution +
+	// Monitor tool contention). See codex review 6周目 P2.
+	if inp.AgentType == "subagent" {
+		return nil
+	}
 
 	sessionID := inp.SessionID
 	if sessionID == "" {
