@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "command": "bin/harness hook pre-tool",
+        "matcher": "*",
+        "timeout": 30
+      }
+    ]
+  },
+  "version": 1
+}

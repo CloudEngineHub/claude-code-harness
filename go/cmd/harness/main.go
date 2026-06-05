@@ -65,6 +65,8 @@ func main() {
 		runHook(os.Args[2])
 	case "policy":
 		runPolicy(os.Args[2:])
+	case "gen":
+		runGen(os.Args[2:])
 	case "work":
 		runWork(os.Args[2:])
 	case "plan":
@@ -142,6 +144,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
 	fmt.Fprintln(os.Stderr, "  mem status|setup|update|doctor|off|purge|health  Manage harness-mem companion")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")
+	fmt.Fprintln(os.Stderr, "  gen [hooks] [--check] [root]  Generate per-host hooks.json from hosts.toml (--check vs golden)")
 	fmt.Fprintln(os.Stderr, "  work <taskID>           Emit the work prompt + task context (host executes; no LLM call)")
 	fmt.Fprintln(os.Stderr, "  plan                    Emit the plan prompt for the host to execute")
 	fmt.Fprintln(os.Stderr, "  review <taskID>         Emit the review prompt + task context for the host to execute")

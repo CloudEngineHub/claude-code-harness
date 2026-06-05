@@ -1,0 +1,26 @@
+# Host capability descriptors. `harness gen` reads this to generate each host's
+# native pre-action hook so all three converge on `bin/harness hook pre-tool`.
+
+[claude]
+hook_event = "PreToolUse"
+hook_path  = ".claude-plugin/hooks.json"
+matcher    = "Write|Edit|MultiEdit|Bash|Read"
+deny       = "exit2"
+transport  = "stdin-json"
+model      = "opus"
+
+[codex]
+hook_event = "PreToolUse"
+hook_path  = ".codex/hooks.json"
+matcher    = "*"
+deny       = "permissionDecision"
+transport  = "stdin-json"
+model      = "gpt-5"
+
+[cursor]
+hook_event = "preToolUse"
+hook_path  = ".cursor/hooks.json"
+matcher    = "*"
+deny       = "permission"
+transport  = "stdin-json"
+model      = "default"

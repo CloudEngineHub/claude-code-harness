@@ -57,11 +57,14 @@ harness-ui/CLAUDE.md
 /.orphaned_at
 
 # Cursor user-specific configuration
+# .cursor/hooks.json is a generated host-hook artifact (harness gen); keep it ignored.
 /.cursor/hooks.json
 /.cursor/hooks/
 /.cursor/mcp.json
-!/.cursor/hooks.json
 !/.cursor/mcp.json
+
+# Generated host-hook artifact (harness gen, Phase 91.3); converges on bin/harness hook pre-tool.
+/.codex/hooks.json
 /.cursor/commands/
 /.cursor/plans/
 /.cursor/skills/
