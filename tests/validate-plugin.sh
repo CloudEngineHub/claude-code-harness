@@ -571,7 +571,7 @@ else
     fail_test "README.md に hardening parity 文書へのリンクがありません"
 fi
 
-RULES_FILE="$PLUGIN_ROOT/go/internal/guardrail/rules.go"
+RULES_FILE="$PLUGIN_ROOT/go/internal/policy/rules.go"
 RULE_IDS=(
     "R10:no-git-bypass-flags"
     "R11:no-reset-hard-protected-branch"

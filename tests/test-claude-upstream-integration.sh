@@ -134,8 +134,8 @@ grep -q 'updatedInput' "${ASK_NORMALIZER_GO}" || {
 }
 
 # v2.1.113: Bash hardening parity checks for find deletion and macOS dangerous removal paths
-GUARDRAIL_HELPERS_GO="${ROOT_DIR}/go/internal/guardrail/helpers.go"
-GUARDRAIL_RULES_TEST_GO="${ROOT_DIR}/go/internal/guardrail/rules_test.go"
+GUARDRAIL_HELPERS_GO="${ROOT_DIR}/go/internal/policy/helpers.go"
+GUARDRAIL_RULES_TEST_GO="${ROOT_DIR}/go/internal/policy/rules_test.go"
 grep -q 'hasDangerousFindDelete' "${GUARDRAIL_HELPERS_GO}" || {
   echo "guardrail helpers are missing find -delete / -exec rm detection"
   exit 1
@@ -1286,7 +1286,7 @@ jq -e '.sandbox.network.deniedDomains | (index("pastebin.com") != null) and (ind
 }
 
 # Phase 62.1.5: wrapper bypass coverage for R06/R11/R12 (CC 2.1.113)
-GUARDRAIL_RULES_TEST_PHASE62="${ROOT_DIR}/go/internal/guardrail/rules_test.go"
+GUARDRAIL_RULES_TEST_PHASE62="${ROOT_DIR}/go/internal/policy/rules_test.go"
 for wrapped in TestR06_WrappedByEnv TestR06_WrappedBySudo TestR06_WrappedByWatch \
                TestR11_WrappedByEnv TestR11_WrappedBySudo TestR11_WrappedByWatch \
                TestR12_WrappedByEnv TestR12_WrappedBySudo TestR12_WrappedByWatch; do
