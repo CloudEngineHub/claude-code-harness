@@ -11,9 +11,11 @@ import (
 )
 
 // relayEnvVar gates the cross-session relay delivery layer.
-//   monitor → persistent push (SessionStart emits a Monitor-launch directive)
-//   turn    → per-tool poll (PreToolUse pulls via watch.sh --once)
-//   both    → monitor + turn fallback (degrade-safe; monitor is LLM-dependent)
+//
+//	monitor → persistent push (SessionStart emits a Monitor-launch directive)
+//	turn    → per-tool poll (PreToolUse pulls via watch.sh --once)
+//	both    → monitor + turn fallback (degrade-safe; monitor is LLM-dependent)
+//
 // Any other value (incl. unset/off) disables relay — opt-in, default OFF.
 const relayEnvVar = "HARNESS_SESSION_RELAY"
 
@@ -175,7 +177,7 @@ func relayWatcherPath() string {
 
 // shellSingleQuote wraps s in single quotes for safe interpolation into a shell
 // command string. Go's %q is double-quote style and does NOT stop $()/backtick
-// expansion; single quotes do. Embedded single quotes are escaped as '\''.
+// expansion; single quotes do. Embedded single quotes are backslash-escaped and re-quoted.
 func shellSingleQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
