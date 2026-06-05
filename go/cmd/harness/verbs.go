@@ -19,7 +19,15 @@ import (
 
 // runWork handles `harness work <taskID>`: assemble the work prompt + the task
 // from Plans.md and emit to stdout for the host to execute. No LLM is called.
+//
+// `harness work --team [--backend X] t1 t2 ...` delegates to runWorkTeam, which
+// fans out N backend sub-runs through breezing.Orchestrator. Without --team the
+// single-task emit behavior below is unchanged.
 func runWork(args []string) {
+	if len(args) > 0 && args[0] == "--team" {
+		runWorkTeam(args)
+		return
+	}
 	if isHelpFlag(args) {
 		fmt.Println("Usage: harness work <taskID>  — emit the work prompt + task context for the host to execute")
 		os.Exit(0)
