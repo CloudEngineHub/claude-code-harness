@@ -63,6 +63,8 @@ func main() {
 			os.Exit(1)
 		}
 		runHook(os.Args[2])
+	case "policy":
+		runPolicy(os.Args[2:])
 	case "evidence":
 		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, "Usage: harness evidence <collect>")
