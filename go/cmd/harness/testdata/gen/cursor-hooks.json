@@ -3,7 +3,7 @@
     "preToolUse": [
       {
         "type": "command",
-        "command": "bin/harness hook pre-tool",
+        "command": "bin/harness hook pre-tool --host cursor",
         "matcher": "*",
         "timeout": 30
       }

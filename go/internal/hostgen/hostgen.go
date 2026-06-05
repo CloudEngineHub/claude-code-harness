@@ -80,8 +80,8 @@ func Load(path string) (map[string]Host, error) {
 // schema:
 //
 //   - claude: {"hooks":{"<event>":[{"matcher":..,"hooks":[{"type":"command","command":<valid_root wrapper>,"timeout":10}]}]}}
-//   - codex:  {"hooks":{"<event>":[{"matcher":..,"hooks":[{"type":"command","command":"bin/harness hook pre-tool","timeout":30}]}]}}
-//   - cursor: {"version":1,"hooks":{"<event>":[{"command":"bin/harness hook pre-tool","timeout":30}]}}
+//   - codex:  {"hooks":{"<event>":[{"matcher":..,"hooks":[{"type":"command","command":"bin/harness hook pre-tool --host codex","timeout":30}]}]}}
+//   - cursor: {"version":1,"hooks":{"<event>":[{"command":"bin/harness hook pre-tool --host cursor","timeout":30}]}}
 //
 // A deny is expressed by the policy engine at runtime (exit 2 + hookSpecific
 // output), not by this static config, so the generated file only declares the
@@ -148,7 +148,7 @@ func codexDoc(h Host) map[string]interface{} {
 				{
 					Matcher: h.Matcher,
 					Hooks: []commandEntry{
-						{Type: "command", Command: binCommand(), Timeout: 30},
+						{Type: "command", Command: binCommand(h.Name), Timeout: 30},
 					},
 				},
 			},
@@ -161,16 +161,25 @@ func cursorDoc(h Host) map[string]interface{} {
 		"version": 1,
 		"hooks": map[string]interface{}{
 			h.HookEvent: []cursorEntry{
-				{Type: "command", Command: binCommand(), Matcher: h.Matcher, Timeout: 30},
+				{Type: "command", Command: binCommand(h.Name), Matcher: h.Matcher, Timeout: 30},
 			},
 		},
 	}
 }
 
-// binCommand returns the harness binary invocation Codex/Cursor write into
-// their command field: `bin/harness hook pre-tool`.
-func binCommand() string {
-	return claudeBinary + " " + preToolCommand
+// binCommand returns the harness binary invocation Codex/Cursor write into their
+// command field. Codex and Cursor pass an explicit `--host <name>` so the codec
+// (go/internal/hookcodec) renders that host's native deny shape; e.g.
+// `bin/harness hook pre-tool --host codex`. Claude is invoked via its valid_root
+// wrapper (ClaudePreToolCommand) with no flag — the codec treats the empty host
+// as the Claude default. The host string is taken verbatim from the [host] table
+// key, so a hosts.toml typo surfaces as a wrong flag in the golden diff.
+func binCommand(host string) string {
+	cmd := claudeBinary + " " + preToolCommand
+	if host == "codex" || host == "cursor" {
+		cmd += " --host " + host
+	}
+	return cmd
 }
 
 // marshalStable JSON-encodes v with sorted keys, 2-space indentation, no HTML

@@ -32,13 +32,16 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/ci"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/event"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/guardrail"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/hookcodec"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hookhandler"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/lifecycle"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/policy"
@@ -62,7 +65,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Usage: harness hook <pre-tool|post-tool|permission>")
 			os.Exit(1)
 		}
-		runHook(os.Args[2])
+		runHook(os.Args[2], os.Args[3:])
 	case "policy":
 		runPolicy(os.Args[2:])
 	case "gen":
@@ -213,7 +216,16 @@ func runEvidenceCollect(args []string) {
 	}
 }
 
-func runHook(hookType string) {
+func runHook(hookType string, args []string) {
+	// pre-tool is the only hook type that accepts a per-host flag
+	// (`harness hook pre-tool --host codex`). It runs the 3-host stdin codec so a
+	// single policy engine adjudicates Claude, Codex, and Cursor. With no --host
+	// (Claude default) the behavior is byte-for-byte identical to the legacy path.
+	if hookType == "pre-tool" {
+		runPreToolHosted(parseHostFlag(args))
+		return
+	}
+
 	switch hookType {
 	// --- event handlers (no tool_name validation) ---
 	case "session-start":
@@ -475,8 +487,8 @@ func runHook(hookType string) {
 
 func runGuardHook(hookType string, input hookproto.HookInput) {
 	switch hookType {
-	case "pre-tool":
-		runPreTool(input)
+	// pre-tool is intercepted earlier in runHook (runPreToolHosted) so it can run
+	// the per-host stdin codec; it never reaches here.
 	case "post-tool":
 		runPostTool(input)
 	case "permission":
@@ -488,14 +500,74 @@ func runGuardHook(hookType string, input hookproto.HookInput) {
 	}
 }
 
-func runPreTool(input hookproto.HookInput) {
+// parseHostFlag extracts the optional `--host <name>` argument that may follow
+// the hook type (`harness hook pre-tool --host codex`). An empty string means
+// no host was supplied (Claude default). Both `--host codex` and `--host=codex`
+// are accepted; unrecognized args are ignored so the hook stays fail-open.
+func parseHostFlag(args []string) string {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if a == "--host" {
+			if i+1 < len(args) {
+				return args[i+1]
+			}
+			return ""
+		}
+		if strings.HasPrefix(a, "--host=") {
+			return strings.TrimPrefix(a, "--host=")
+		}
+	}
+	return ""
+}
+
+// runPreToolHosted runs the PreToolUse guardrail through the 3-host stdin codec.
+//
+// Flow: read raw stdin → hookcodec.Normalize (tolerate Claude/Codex/Cursor field
+// differences, infer host from `host` hint or payload) → guardrail.EvaluatePreTool
+// → policy.FormatPreToolResult (UNCHANGED engine). On a deny decision it writes
+// the host-appropriate deny JSON (hookcodec.DenyOutput) and exits 2 — the
+// universal hard-block code across all three hosts. Allow/ask preserve the
+// legacy Claude output (the canonical PreToolUse hookSpecificOutput) so the
+// no-flag path stays byte-for-byte compatible with the pre-91.4 behavior.
+func runPreToolHosted(hostFlag string) {
+	raw, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		// Cannot read stdin → safe approve (fail-open), exit 0.
+		hook.WriteResult(os.Stdout, hook.SafeResult(err))
+		return
+	}
+
+	input, host, normErr := hookcodec.Normalize(raw, hostFlag)
+	if normErr != nil {
+		// Empty input or unparseable / no tool action → safe approve, exit 0.
+		hook.WriteResult(os.Stdout, hook.SafeResult(normErr))
+		return
+	}
+
 	result := guardrail.EvaluatePreTool(input)
 	output, exitCode := policy.FormatPreToolResult(result)
 
+	if result.Decision == hookproto.DecisionDeny {
+		// Host-appropriate deny envelope (Claude default == legacy bytes).
+		denyJSON, denyErr := hookcodec.DenyOutput(host, result.Reason)
+		if denyErr != nil {
+			// Unknown host: fall back to the policy engine's canonical output so
+			// the deny is still expressed, then exit 2.
+			if output != nil {
+				hook.WriteJSON(os.Stdout, output)
+			}
+			os.Exit(exitCode)
+		}
+		os.Stdout.Write(denyJSON)
+		os.Stdout.Write([]byte("\n"))
+		os.Exit(exitCode)
+	}
+
+	// allow / ask: keep the canonical PreToolUse output (unchanged for Claude
+	// and harmless for the other hosts, which only act on exit codes / deny).
 	if output != nil {
 		hook.WriteJSON(os.Stdout, output)
 	}
-
 	os.Exit(exitCode)
 }
 

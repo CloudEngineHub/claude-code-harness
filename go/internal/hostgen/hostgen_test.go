@@ -225,3 +225,38 @@ func TestGenerateHooksJSON_UnknownHost(t *testing.T) {
 		t.Fatal("expected error for unknown host, got nil")
 	}
 }
+
+// TestGenerateHooksJSON_HostFlag verifies Phase 91.4 wiring: codex and cursor
+// pass an explicit `--host <name>` so the codec renders that host's native deny
+// shape, while claude (invoked via its valid_root wrapper) carries no --host
+// flag (the codec treats the empty host as the Claude default).
+func TestGenerateHooksJSON_HostFlag(t *testing.T) {
+	hosts, err := Load(writeSampleHosts(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	codex, err := GenerateHooksJSON(hosts["codex"])
+	if err != nil {
+		t.Fatalf("GenerateHooksJSON(codex): %v", err)
+	}
+	if !strings.Contains(string(codex), "hook pre-tool --host codex") {
+		t.Errorf("codex command should pass --host codex:\n%s", codex)
+	}
+
+	cursor, err := GenerateHooksJSON(hosts["cursor"])
+	if err != nil {
+		t.Fatalf("GenerateHooksJSON(cursor): %v", err)
+	}
+	if !strings.Contains(string(cursor), "hook pre-tool --host cursor") {
+		t.Errorf("cursor command should pass --host cursor:\n%s", cursor)
+	}
+
+	claude, err := GenerateHooksJSON(hosts["claude"])
+	if err != nil {
+		t.Fatalf("GenerateHooksJSON(claude): %v", err)
+	}
+	if strings.Contains(string(claude), "--host") {
+		t.Errorf("claude command must NOT carry a --host flag (codec default):\n%s", claude)
+	}
+}

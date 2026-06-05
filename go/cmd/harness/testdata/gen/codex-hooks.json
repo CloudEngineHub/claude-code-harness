@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bin/harness hook pre-tool",
+            "command": "bin/harness hook pre-tool --host codex",
             "timeout": 30
           }
         ]
