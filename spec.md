@@ -127,37 +127,51 @@ metadata, tests, or CI/GitHub state.
 
 ## Hokage Core And Host Adapter Boundary
 
-Hokage Core defines workflow contracts. Host adapters translate those contracts
-into a specific agent runtime.
+Harness is a single `harness` CLI binary, not a host plugin. The value-bearing
+Go core is the reusable kernel; host adapters are generated shims, not
+hand-written source.
 
-Core may define:
+The kernel is the irreducible IP and is host-agnostic. It is the set of stdlib-only
+Go packages plus the embedded prompt pack:
 
-- workflow intent,
-- user-facing triggers,
-- inputs and outputs,
-- required evidence,
-- acceptance criteria,
-- review and completion rules,
-- generic capability requirements.
+- `go/internal/policy`: the R01-R13 guardrail rule engine (first-match-wins,
+  stdlib + regexp only) plus the deny-surface self-audit baseline.
+- `go/internal/gitport`: the single git-exec seam every package routes through.
+- `go/internal/plans`: the `Plans.md` parser and marker tally.
+- `go/internal/state`: the trimmed session/task state store.
+- `go/internal/harnessmem`: the membridge to harness-mem.
+- `go/internal/promptpack`: the embedded `work`/`plan`/`review`/`release`
+  workflow contracts — the single source of truth for skills and agents.
 
-Core must not depend directly on Claude hook names, Claude-only tools,
-Codex-only tools, OpenCode config shape, Cursor rule shape, GitHub Copilot CLI
-command shape, Antigravity CLI command shape, or marketplace packaging details.
+The kernel must not depend on any host's hook event names, host-only tools,
+host config shape, or marketplace packaging details. It defines workflow intent,
+user-facing triggers, inputs/outputs, required evidence, acceptance criteria,
+review/completion rules, and the R01-R13 adjudication surface. Host-specific
+mechanics are derived from it, never hand-maintained alongside it.
 
-Adapters own the host-specific mechanics:
+A single descriptor, `hosts.toml`, holds every host difference: per host, the
+native pre-action hook event name, the hook config path, the matcher, the deny
+mechanism, the transport, and the model/effort. `harness gen` reads that one
+descriptor and `go/internal/hostgen` emits each host's hook config. Host
+adapters are therefore build artifacts (`harness gen` output), not tracked
+source that drifts.
 
-| Adapter | Owns | Must Not Claim |
-|---------|------|----------------|
-| Claude Code | Claude plugin manifest, hooks, settings, output styles, runtime guardrails | That non-Claude hosts have identical hook enforcement |
-| Codex CLI / Codex app | Codex skills, `AGENTS.md` guidance, companion wrapper, local plugin marketplace path, post-exec quality gates | That Codex can always stop unsafe actions before execution |
-| OpenCode | native skill packaging, OpenCode config, `AGENTS.md` guidance, setup docs, package validation, bootstrap injection when verified | That mirror sync alone proves runtime parity |
-| Cursor | `.cursor-plugin/plugin.json`, `.cursor/AGENTS.md`, project rules/skills/agents, optional hooks/MCP config shape, `scripts/model-routing.sh --host cursor`, `scripts/setup-cursor.sh`, host-specific dist + static adapter smoke | Internal compatibility via setup route + observed Desktop skill loading; not public supported claim; PM handoff docs are not adapter support; runtime guard / hook / Cloud Agent parity unproven |
-| GitHub Copilot CLI | CLI command investigation, tool mapping candidate, smoke proof when available | Support based only on Superpowers evidence |
-| Antigravity CLI | CLI/rules investigation, manual profile candidate if no plugin contract exists | Adapter support without an official or verified bootstrap route |
+The boundary is one rule: **the kernel adjudicates; every generated host hook
+routes each pre-action to `bin/harness hook pre-tool`.** A host adapter owns only
+the thin shim that wires its native hook to that entrypoint and surfaces the
+generated skills/agents; it never re-implements a rule engine and never owns a
+parallel guardrail.
 
-An adapter manifest or support document may be added only when setup, docs
-generation, release preflight, or an adapter smoke test consumes it in the same
-phase.
+| Host | Generated shim owns | Must Not Claim |
+|------|---------------------|----------------|
+| Claude Code | `.claude-plugin/hooks.json` `PreToolUse` entry routing to `bin/harness hook pre-tool`, generated skill/agent surface, manifest version | A separate guardrail engine; that its hook config is hand-authored source |
+| Codex | generated `.codex/hooks.json` `PreToolUse` entry routing to `bin/harness hook pre-tool --host codex`, generated skill/agent surface | A divergent rule set; that the companion path is the enforcement boundary |
+| Cursor | generated `.cursor/hooks.json` `preToolUse` entry routing to `bin/harness hook pre-tool --host cursor`, generated skill/agent surface | A public `supported` claim; that file writes are confined by Cursor |
+
+A generated host shim or support document is valid only when `harness gen`
+produces it from `hosts.toml` and the prompt pack, and `harness gen --check`,
+setup, docs generation, release preflight, or an adapter smoke test consumes it
+in the same phase. No host artifact is written by hand as source of truth.
 
 ## Support Tiers And Host Claims
 
@@ -198,13 +212,43 @@ checked.
 
 ## Execution Backend Contract
 
-The harness has three implementation execution backends:
+Harness adopts the **Kernel + Prompt Pack** model. `harness work` assembles the
+embedded prompt pack plus the resolved task and emits it for the host to
+execute; the binary does not call an LLM and is not a self-built agent loop or a
+direct-API driver. A self-driving agent loop was evaluated and rejected: native
+hooks already give per-action gating, so the kernel adjudicates while the host
+runs the model. ACP is not adopted — the three hosts' native pre-action hooks
+provide per-action enforcement, so no cross-host protocol is required.
 
-- `claude` (default): the Claude Task subagent.
-- `codex` (existing): whole-task delegation via `scripts/codex-companion.sh`.
-- `cursor` (internal-compatible): whole-task delegation to
-  `cursor-agent --model composer-2.5-fast` via `scripts/cursor-companion.sh`.
-  This is the same delegation pattern as `codex`, not a model-provider bridge.
+The three execution backends are Claude (the native host), Codex, and Cursor.
+All three converge on the **same** `harness hook pre-tool` entrypoint through
+their native pre-action hook:
+
+| Backend | Native pre-action event | Deny mechanism |
+|---------|-------------------------|----------------|
+| Claude | `PreToolUse` | exit code 2 |
+| Codex | `PreToolUse` | exit code 2 |
+| Cursor | `preToolUse` | exit code 2 |
+
+Deny is exit code 2 across all three hosts; that is the universal enforcement
+contract. The kernel does not duplicate a rule engine per host — every host's
+generated hook routes to one `bin/harness hook pre-tool`, which runs the R01-R13
+`go/internal/policy` engine. `go/internal/hookcodec` normalizes each host's
+stdin shape (`session_id` vs `conversation_id`, `tool_input` vs
+`command`/`file_path`, event-name casing) into one rule-engine input, and emits
+each host's deny shape (`permissionDecision` for Claude/Codex, `permission` for
+Cursor) so the rule table itself never changes per host.
+
+Non-Claude backends are driven through companions. When `harness` drives Codex
+or Cursor as an execution engine (the harness-drives-the-tool direction), the
+companion returns a normalized `companion-result.v1` envelope
+(`go/internal/companionresult`). Those companion-produced changes are untrusted
+until they pass the **FLOOR** (`go/internal/floor`): a universal pre-merge gate
+that re-evaluates the candidate diff with `harness policy check` (the same
+R01-R13 surface the hook calls) plus the contract greps, before any take-in.
+The FLOOR is the backstop for paths a native hook cannot see (nested subagents,
+in-process shells), so it runs for every backend regardless of which native
+hook already fired.
 
 Backend selection precedence (highest first): a per-command flag (e.g.
 `--backend cursor`) > the `HARNESS_IMPL_BACKEND` env var > the project
@@ -252,8 +296,8 @@ The concrete model for any host+role is resolved by
 `scripts/model-routing.sh --host <backend> --role <role>`. This contract does
 not reimplement model selection.
 
-Cursor remains `internal-compatible`, not a public `supported` claim. Shipped
-Claude Code and Codex plugin surfaces keep Cursor opt-in by default; individual
+Cursor remains `internal-compatible`, not a public `supported` claim. The
+shipped `harness` CLI keeps Cursor opt-in by default; individual
 local environments may set `HARNESS_IMPL_BACKEND=cursor` in env, project
 `env.local`, or user-scope config to make Cursor the resolved default. If Cursor
 is selected but not configured, the workflow must fail with setup guidance
@@ -354,36 +398,53 @@ tier evidence.
 
 ## Host Distribution Contract
 
-Host-specific distribution packages must not cross-contaminate adapter surfaces.
+Distribution is a single `harness` CLI binary. Per-host shims — the hooks.json
+configs, the skill/agent mirrors, the manifest version, and the catalog docs —
+are `harness gen` build artifacts, generated at install time and gitignored, not
+hand-maintained source trees. There is one version: a single git tag. Manifests
+and mirrors do not carry independently bumped versions, and there is no separate
+per-host package to release.
 
 Rules:
 
-- A Claude Code distribution payload must not include `.codex-plugin/`,
-  `.cursor-plugin/`, `codex/`, `.cursor/`, or other non-Claude adapter
-  manifests.
-- A Codex distribution package must expose only Codex skills and a Codex plugin
-  manifest whose component paths stay inside the package root. It may carry
-  non-manifest setup source assets used by `cursor:setup`, but must not include
-  `.cursor-plugin/` or `.cursor/` at the Codex package root.
-- A Cursor distribution package must expose only Cursor skills, agents, and a
-  Cursor plugin manifest whose component paths stay inside the package root.
-- Distribution manifests must not use `..` relative paths. Source-repo adapter
-  metadata may use sibling paths for development, but generated install
-  packages must normalize paths to `./skills/`, `./agents/`, or equivalent
-  in-package locations.
-- A host distribution package must normalize component metadata so the target
-  host actually surfaces it. Skills authored for the Claude Code slash-only
-  convention (`user-invocable: true`) are dropped by Cursor; the Cursor package
-  must rewrite them to `user-invocable: false` so they register as
-  Agent-Decides skills invokable via `/skill-name`. The Claude package must keep
-  the original `user-invocable: true` slash contract.
+- The release unit is the `harness` binary plus `hosts.toml` and the embedded
+  prompt pack. Host shims are regenerated from those by `harness gen`; they are
+  never the source of truth.
+- `harness gen` writes each host's native hook config to its `hook_path` from
+  `hosts.toml` (`.claude-plugin/hooks.json`, `.codex/hooks.json`,
+  `.cursor/hooks.json`), each routing to `bin/harness hook pre-tool`. `harness
+  gen --check` diffs the generated output against golden fixtures in CI so the
+  generator cannot drift. (Today the generator writes only the Codex and Cursor
+  hook configs; the tracked Claude `.claude-plugin/hooks.json` is not yet
+  overwritten — see Cutover status below.)
+- A host's generated shim must not cross-contaminate another host: the Codex
+  artifact contains only Codex hook config and the Codex skill/agent mirror, the
+  Cursor artifact only Cursor's, and so on. Cross-host manifests never appear in
+  a single host's generated tree.
+- Generated component paths must stay inside the install package and must not use
+  `..` relative paths. The generator normalizes to in-package locations
+  (`./skills/`, `./agents/`, or equivalent).
+- The generator normalizes component metadata so each target host actually
+  surfaces it. Skills authored for the Claude slash-only convention
+  (`user-invocable: true`) are dropped by Cursor, so the Cursor artifact is
+  generated with `user-invocable: false` to register them as Agent-Decides
+  skills invokable via `/skill-name`; the Claude artifact keeps the original
+  `user-invocable: true` slash contract.
 - A Cursor local install must be a real directory under
   `~/.cursor/plugins/local/<name>`. Cursor rejects symlinks whose target is
-  outside that directory, so distribution tooling must copy the package in
+  outside that directory, so install tooling copies the generated package in
   rather than linking to an external build path.
-- Cursor, Codex CLI, and OpenCode remain below Claude Code in support tier
-  until their own workflow smoke and release gates pass. Distribution cleanup
-  does not by itself promote a host to `supported`.
+- Codex and Cursor remain below Claude in support tier until their own workflow
+  smoke and release gates pass. Generating their shims does not by itself promote
+  a host to `supported`.
+
+Cutover status: the manifest and mirror untracking is the pending final step
+(Phase 91.8(b)). `harness gen` already produces the generated `.codex/hooks.json`
+and `.cursor/hooks.json`, but the currently-tracked manifests and mirror trees —
+including `.claude-plugin/hooks.json` — are still committed source and are not yet
+deleted-and-generated. This section describes the target contract; the cutover
+that removes the tracked manifests/mirrors and makes them generated-on-install is
+the remaining work.
 
 ## Clean Mode And Compatibility Mode
 
