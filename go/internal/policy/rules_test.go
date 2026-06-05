@@ -1,4 +1,4 @@
-package guardrail
+package policy
 
 import (
 	"strings"

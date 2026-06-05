@@ -1,4 +1,4 @@
-// Package guardrail — CC 2.1.110 regression test suite.
+// Package policy — CC 2.1.110 regression test suite.
 //
 // This file covers three new scenarios required by Phase 44.3.1:
 //
@@ -12,7 +12,7 @@
 //	(c) Bash bypass vectors not covered by earlier test tasks:
 //	    compound command separators (;, &&, ||), here-document markers,
 //	    and shell variable expansion prefixes that carry forbidden commands.
-package guardrail
+package policy
 
 import (
 	"encoding/json"

@@ -41,6 +41,7 @@ import (
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hookhandler"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/lifecycle"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/policy"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/session"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
@@ -472,7 +473,7 @@ func runGuardHook(hookType string, input hookproto.HookInput) {
 
 func runPreTool(input hookproto.HookInput) {
 	result := guardrail.EvaluatePreTool(input)
-	output, exitCode := guardrail.FormatPreToolResult(result)
+	output, exitCode := policy.FormatPreToolResult(result)
 
 	if output != nil {
 		hook.WriteJSON(os.Stdout, output)
@@ -482,7 +483,7 @@ func runPreTool(input hookproto.HookInput) {
 }
 
 func runPostTool(input hookproto.HookInput) {
-	result := guardrail.EvaluatePostTool(input)
+	result := policy.EvaluatePostTool(input)
 
 	// PostToolUse: if there's a systemMessage, wrap in hookSpecificOutput
 	if result.SystemMessage != "" {
@@ -500,7 +501,7 @@ func runPostTool(input hookproto.HookInput) {
 }
 
 func runPermission(input hookproto.HookInput) {
-	_, permOutput := guardrail.EvaluatePermission(input)
+	_, permOutput := policy.EvaluatePermission(input)
 
 	if permOutput != nil {
 		hook.WriteJSON(os.Stdout, permOutput)

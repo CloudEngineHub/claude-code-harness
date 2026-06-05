@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/policy"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
 )
 
@@ -20,8 +21,8 @@ func TestNormalizeProtectedBranchPushPolicy(t *testing.T) {
 		"unexpected": "ask",
 	}
 	for input, want := range cases {
-		if got := normalizeProtectedBranchPushPolicy(input); got != want {
-			t.Errorf("normalizeProtectedBranchPushPolicy(%q) = %q, want %q", input, got, want)
+		if got := policy.NormalizeProtectedBranchPushPolicy(input); got != want {
+			t.Errorf("NormalizeProtectedBranchPushPolicy(%q) = %q, want %q", input, got, want)
 		}
 	}
 }
