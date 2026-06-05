@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/docsgen"
@@ -237,12 +239,99 @@ func runGenCheck(root string) int {
 			fmt.Printf("gen --check: %s OK\n", name)
 		}
 	}
+	// Claude's full hooks.json is hand-maintained (27 events); only its
+	// security-critical PreToolUse wiring is generator-owned. Verify the committed
+	// entry still matches what hostgen produces from hosts.toml so the R01-R13
+	// pre-action route cannot silently drift from the single host descriptor.
+	if err := checkClaudePreToolDrift(root); err != nil {
+		ok = false
+		fmt.Printf("gen --check: MISMATCH for claude PreToolUse — %v\n", err)
+	} else {
+		fmt.Println("gen --check: claude PreToolUse OK")
+	}
 	if !ok {
-		fmt.Fprintln(os.Stderr, "gen --check: generated output drifted from golden fixtures (run `harness gen` and regenerate fixtures)")
+		fmt.Fprintln(os.Stderr, "gen --check: generated output drifted from source (run `harness gen` / fix hosts.toml or the committed config)")
 		return 1
 	}
-	fmt.Println("gen --check: all hosts match golden fixtures")
+	fmt.Println("gen --check: all hosts match (codex+cursor fixtures, claude PreToolUse)")
 	return 0
+}
+
+// checkClaudePreToolDrift verifies the committed .claude-plugin/hooks.json
+// PreToolUse entry matches what hostgen generates for the [claude] host in
+// hosts.toml. The remaining hand-maintained events in that file are out of scope
+// (validate-plugin.sh validates their structure); this gate covers only the
+// generator-owned pre-action route so the one R01-R13 entrypoint shared by all
+// three hosts cannot drift from the single descriptor. The full file stays
+// committed because the Claude marketplace clones the repo and reads it directly
+// — there is no install-time generation step (see spec.md Host Distribution).
+func checkClaudePreToolDrift(root string) error {
+	hosts, err := hostgen.Load(filepath.Join(root, hostsDescriptorName))
+	if err != nil {
+		return err
+	}
+	claude, ok := hosts["claude"]
+	if !ok {
+		return fmt.Errorf("hosts.toml has no [claude] table")
+	}
+	genBytes, err := hostgen.GenerateHooksJSON(claude)
+	if err != nil {
+		return err
+	}
+	wantGroups, err := extractEventGroups(genBytes, claude.HookEvent)
+	if err != nil {
+		return fmt.Errorf("generated: %w", err)
+	}
+	committedPath := filepath.Join(root, ".claude-plugin", "hooks.json")
+	committedBytes, err := os.ReadFile(committedPath)
+	if err != nil {
+		return fmt.Errorf("cannot read %s: %w", committedPath, err)
+	}
+	gotGroups, err := extractEventGroups(committedBytes, claude.HookEvent)
+	if err != nil {
+		return fmt.Errorf(".claude-plugin/hooks.json: %w", err)
+	}
+	// The committed file legitimately carries several PreToolUse hook groups: the
+	// R01-R13 guardrail group is one, alongside hand-maintained pre-action hooks
+	// (TDD checks, file leases, etc.). The generator owns only the guardrail
+	// group, so the contract is containment — every generated group must appear
+	// verbatim among the committed groups; anything else in the committed file is
+	// allowed. This drift-proofs the guardrail route (matcher + valid_root command
+	// + timeout) against hosts.toml without claiming to own the whole file.
+	for _, want := range wantGroups {
+		found := false
+		for _, got := range gotGroups {
+			if reflect.DeepEqual(want, got) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("the generated %s guardrail group is absent from committed .claude-plugin/hooks.json (pre-action wiring drifted from hosts.toml)", claude.HookEvent)
+		}
+	}
+	return nil
+}
+
+// extractEventGroups parses a hooks.json document and returns the array of hook
+// groups at hooks.<event>, each decoded generically so groups can be compared
+// semantically (independent of key order or whitespace).
+func extractEventGroups(doc []byte, event string) ([]interface{}, error) {
+	var parsed struct {
+		Hooks map[string]json.RawMessage `json:"hooks"`
+	}
+	if err := json.Unmarshal(doc, &parsed); err != nil {
+		return nil, fmt.Errorf("parse hooks json: %w", err)
+	}
+	raw, ok := parsed.Hooks[event]
+	if !ok {
+		return nil, fmt.Errorf("missing hooks.%s entry", event)
+	}
+	var groups []interface{}
+	if err := json.Unmarshal(raw, &groups); err != nil {
+		return nil, fmt.Errorf("parse hooks.%s: %w", event, err)
+	}
+	return groups, nil
 }
 
 // unifiedDiff renders a minimal line-by-line diff between want and got. It is
