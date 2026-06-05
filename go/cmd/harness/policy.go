@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/guardrail"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/policy"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/policy"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
 )
 
@@ -22,6 +22,16 @@ func runPolicy(args []string) {
 	if len(args) < 1 || args[0] != "check" {
 		fmt.Fprintln(os.Stderr, "Usage: harness policy check  (reads PreToolUse JSON on stdin; exit 2 = deny)")
 		os.Exit(1)
+	}
+
+	// Chain-integrity precondition (Phase 91.6 FLOOR). Before this gate
+	// adjudicates anything, confirm the deny surface itself has not been
+	// weakened relative to the build-time baseline. A weakened chain must not
+	// silently approve an untrusted change, so this fails CLOSED (exit 3) rather
+	// than continuing. The happy path (surface intact) is untouched below.
+	if err := policy.VerifyDenySurface(); err != nil {
+		fmt.Fprintf(os.Stderr, "policy check: refusing to adjudicate — %v\n", err)
+		os.Exit(3)
 	}
 
 	input, err := hook.ReadInput(os.Stdin)

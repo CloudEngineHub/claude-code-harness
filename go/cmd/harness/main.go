@@ -530,6 +530,18 @@ func parseHostFlag(args []string) string {
 // legacy Claude output (the canonical PreToolUse hookSpecificOutput) so the
 // no-flag path stays byte-for-byte compatible with the pre-91.4 behavior.
 func runPreToolHosted(hostFlag string) {
+	// Chain-integrity precondition (Phase 91.6 FLOOR). The PreToolUse guard is
+	// itself a gate; if its deny surface has been weakened relative to the
+	// build-time baseline, refuse to adjudicate rather than fail open. This is
+	// the one case where the hook does NOT fall back to a safe approve: a
+	// compromised chain quietly approving writes is the exact failure mode the
+	// self-audit exists to stop, so it exits non-zero (3) before touching stdin.
+	// The intact-surface path below is byte-for-byte unchanged.
+	if auditErr := policy.VerifyDenySurface(); auditErr != nil {
+		fmt.Fprintf(os.Stderr, "pre-tool guard: refusing to adjudicate — %v\n", auditErr)
+		os.Exit(3)
+	}
+
 	raw, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		// Cannot read stdin → safe approve (fail-open), exit 0.

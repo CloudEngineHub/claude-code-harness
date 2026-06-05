@@ -4,12 +4,27 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/breezing"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/companionresult"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/floor"
 )
+
+// passingFloorGate installs a floorGate stub that always passes, so tests that
+// exercise the orchestration fan-out are not coupled to the FLOOR contract
+// scripts (which would otherwise shell out via the default gate). It restores
+// the production gate on cleanup.
+func passingFloorGate(t *testing.T) {
+	t.Helper()
+	orig := floorGate
+	floorGate = func(_ string, _ []string, _ floor.ScriptRunner) floor.Report {
+		return floor.Report{Passed: true}
+	}
+	t.Cleanup(func() { floorGate = orig })
+}
 
 // recordingFactory returns a teamWorkerFactory replacement whose WorkerFunc:
 //   - records every task ID it was invoked with (mutex-guarded) so we can prove
@@ -43,6 +58,7 @@ func recordingFactory(indexOf map[string]int, calls *[]string, mu *sync.Mutex) f
 }
 
 func TestWorkTeamFansOutNIndependentSubRunsWithSeparation(t *testing.T) {
+	passingFloorGate(t) // isolate fan-out separation from the FLOOR backstop
 	tasks := []string{"a1", "b2", "c3", "d4", "e5"}
 	indexOf := map[string]int{}
 	for i, id := range tasks {
@@ -116,6 +132,7 @@ func TestWorkTeamFansOutNIndependentSubRunsWithSeparation(t *testing.T) {
 }
 
 func TestRunTeamSingleTask(t *testing.T) {
+	passingFloorGate(t)
 	var (
 		mu    sync.Mutex
 		calls []string
@@ -208,5 +225,133 @@ func TestProductionCompanionWorkerMissingScript(t *testing.T) {
 	}
 	if r.TaskID != "z9" {
 		t.Errorf("TaskID = %q, want z9", r.TaskID)
+	}
+}
+
+// succeedingFactory injects a worker that reports a SUCCESSFUL companion-result
+// for every task, carrying the given changed files. It is used to prove the
+// FLOOR take-in downgrades a companion-level success when the gate rejects it.
+func succeedingFactory(changed []string) func(string) breezing.WorkerFunc {
+	return func(backend string) breezing.WorkerFunc {
+		return func(_ context.Context, task *breezing.Task) breezing.TaskResult {
+			r := companionresult.New(backend, task.ID)
+			r.Success = true
+			r.ExitCode = 0
+			r.Summary = "companion ok"
+			r.FilesChanged = append([]string(nil), changed...)
+			return carryResult(r)
+		}
+	}
+}
+
+// TestRunTeamDowngradesCompanionSuccessWhenFloorGateFails is the STEP 4
+// invariant: a sub-run that succeeds at the companion level is reported as
+// FAILED when the injected FLOOR gate rejects its changes. This closes the
+// take-in bypass — untrusted changes that don't clear the FLOOR must not be
+// reported as success.
+func TestRunTeamDowngradesCompanionSuccessWhenFloorGateFails(t *testing.T) {
+	orig := teamWorkerFactory
+	teamWorkerFactory = succeedingFactory([]string{"go/internal/x.go"})
+	defer func() { teamWorkerFactory = orig }()
+
+	var gotFiles []string
+	origGate := floorGate
+	floorGate = func(_ string, files []string, _ floor.ScriptRunner) floor.Report {
+		gotFiles = append([]string(nil), files...)
+		return floor.Report{
+			Passed: false,
+			Steps: []floor.StepResult{
+				{Name: floor.StepValidatePlug, Passed: false, Detail: "validate-plugin.sh exit 1"},
+			},
+		}
+	}
+	defer func() { floorGate = origGate }()
+
+	results, err := runTeam([]string{"t1"}, "codex", 1)
+	if err != nil {
+		t.Fatalf("runTeam: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("got %d results, want 1", len(results))
+	}
+	r := results[0]
+
+	if r.Success {
+		t.Fatalf("companion success must be downgraded to failed when the FLOOR gate fails; result=%+v", r)
+	}
+	if r.ExitCode == 0 {
+		t.Errorf("downgraded result should have a non-zero ExitCode, got 0")
+	}
+	if !strings.Contains(r.Summary, "FLOOR gate failed") {
+		t.Errorf("Summary should explain the FLOOR downgrade, got %q", r.Summary)
+	}
+	if !strings.Contains(r.Summary, floor.StepValidatePlug) {
+		t.Errorf("Summary should name the failing FLOOR step, got %q", r.Summary)
+	}
+	// The gate was invoked over exactly the files the sub-run reported.
+	if len(gotFiles) != 1 || gotFiles[0] != "go/internal/x.go" {
+		t.Errorf("gate received files %v, want [go/internal/x.go]", gotFiles)
+	}
+}
+
+// TestRunTeamKeepsCompanionSuccessWhenFloorGatePasses is the positive control:
+// a companion success that clears the FLOOR stays a success.
+func TestRunTeamKeepsCompanionSuccessWhenFloorGatePasses(t *testing.T) {
+	orig := teamWorkerFactory
+	teamWorkerFactory = succeedingFactory([]string{"docs/readme.md"})
+	defer func() { teamWorkerFactory = orig }()
+
+	passingFloorGate(t)
+
+	results, err := runTeam([]string{"t1"}, "codex", 1)
+	if err != nil {
+		t.Fatalf("runTeam: %v", err)
+	}
+	if !results[0].Success {
+		t.Errorf("companion success that clears the FLOOR must stay success, got %+v", results[0])
+	}
+	if results[0].Summary != "companion ok" {
+		t.Errorf("passing gate must not rewrite Summary, got %q", results[0].Summary)
+	}
+}
+
+// TestRunTeamFloorGateNotRunForFailedSubRun proves the FLOOR only ever turns a
+// success into a failure: a sub-run that already failed at the companion level
+// is left untouched and the gate is never consulted for it (it cannot rescue a
+// failed run). This also keeps the `--team` "companion script absent" path sane
+// (that path yields a failed result, so the gate is skipped).
+func TestRunTeamFloorGateNotRunForFailedSubRun(t *testing.T) {
+	orig := teamWorkerFactory
+	teamWorkerFactory = func(backend string) breezing.WorkerFunc {
+		return func(_ context.Context, task *breezing.Task) breezing.TaskResult {
+			r := companionresult.New(backend, task.ID)
+			r.Success = false
+			r.ExitCode = 127
+			r.Summary = "companion script not found"
+			return carryResult(r)
+		}
+	}
+	defer func() { teamWorkerFactory = orig }()
+
+	gateCalled := false
+	origGate := floorGate
+	floorGate = func(_ string, _ []string, _ floor.ScriptRunner) floor.Report {
+		gateCalled = true
+		return floor.Report{Passed: true}
+	}
+	defer func() { floorGate = origGate }()
+
+	results, err := runTeam([]string{"t1"}, "codex", 1)
+	if err != nil {
+		t.Fatalf("runTeam: %v", err)
+	}
+	if gateCalled {
+		t.Error("FLOOR gate must not run for an already-failed sub-run")
+	}
+	if results[0].Success {
+		t.Error("failed sub-run must stay failed")
+	}
+	if results[0].ExitCode != 127 {
+		t.Errorf("failed sub-run ExitCode = %d, want 127 (unchanged)", results[0].ExitCode)
 	}
 }

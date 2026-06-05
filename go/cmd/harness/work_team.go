@@ -12,7 +12,15 @@ import (
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/breezing"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/companionresult"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/floor"
 )
+
+// floorGate is the FLOOR pre-merge backstop applied to a successful non-CC
+// sub-run's reported changes before the team take-in is allowed to report
+// success. It defaults to floor.Gate and is a package var only so tests can
+// inject a gate outcome without shelling out to the contract scripts. Production
+// never reassigns it.
+var floorGate = floor.Gate
 
 // runWorkTeam handles `harness work --team <taskID...>`: fan out N independent
 // backend sub-runs through breezing.Orchestrator (the harness owns the fan-out;
@@ -152,9 +160,48 @@ func runTeam(tasks []string, backend string, maxParallel int) ([]companionresult
 			out = append(out, r)
 			continue
 		}
-		out = append(out, resultFromTaskResult(backend, id, tr))
+		out = append(out, applyFloorGate(resultFromTaskResult(backend, id, tr)))
 	}
 	return out, nil
+}
+
+// applyFloorGate runs the FLOOR pre-merge backstop over a successful sub-run's
+// reported changes and downgrades the result to FAILED if the gate does not
+// pass. A sub-run that already failed at the companion level is returned
+// untouched: the FLOOR only ever turns a success into a failure (it cannot
+// rescue a failed run), so an honest take-in never reports success for changes
+// that did not clear the gate. The gate detail is folded into Summary so the
+// emitted companion-result.v1 explains the downgrade.
+func applyFloorGate(r companionresult.Result) companionresult.Result {
+	if !r.Success {
+		return r
+	}
+	report := floorGate(resolveRepoRoot(), r.FilesChanged, nil)
+	if report.Passed {
+		return r
+	}
+
+	r.Success = false
+	if r.ExitCode == 0 {
+		// Distinguish a FLOOR rejection from a companion exit code.
+		r.ExitCode = 1
+	}
+	r.Summary = strings.TrimSpace(r.Summary + " | FLOOR gate failed: " + floorFailureDetail(report))
+	return r
+}
+
+// floorFailureDetail summarizes the failing FLOOR steps for the result Summary.
+func floorFailureDetail(report floor.Report) string {
+	var failed []string
+	for _, s := range report.Steps {
+		if !s.Passed {
+			failed = append(failed, s.Name+" ("+s.Detail+")")
+		}
+	}
+	if len(failed) == 0 {
+		return "unknown step"
+	}
+	return strings.Join(failed, "; ")
 }
 
 // resultFromTaskResult reconstructs the companion-result.v1 carried in a
