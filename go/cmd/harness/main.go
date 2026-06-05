@@ -65,6 +65,14 @@ func main() {
 		runHook(os.Args[2])
 	case "policy":
 		runPolicy(os.Args[2:])
+	case "work":
+		runWork(os.Args[2:])
+	case "plan":
+		runPlan(os.Args[2:])
+	case "review":
+		runReview(os.Args[2:])
+	case "release":
+		runRelease(os.Args[2:])
 	case "evidence":
 		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, "Usage: harness evidence <collect>")
@@ -134,6 +142,10 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
 	fmt.Fprintln(os.Stderr, "  mem status|setup|update|doctor|off|purge|health  Manage harness-mem companion")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")
+	fmt.Fprintln(os.Stderr, "  work <taskID>           Emit the work prompt + task context (host executes; no LLM call)")
+	fmt.Fprintln(os.Stderr, "  plan                    Emit the plan prompt for the host to execute")
+	fmt.Fprintln(os.Stderr, "  review <taskID>         Emit the review prompt + task context for the host to execute")
+	fmt.Fprintln(os.Stderr, "  release                 Emit the release prompt for the host to execute")
 	fmt.Fprintln(os.Stderr, "  version                 Print version")
 }
 
