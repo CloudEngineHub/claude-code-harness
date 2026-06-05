@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/docsgen"
 )
 
 // repoRootForTest walks up from the test's working directory (go/cmd/harness)
@@ -66,6 +68,21 @@ func TestGeneratedHooks_MatchesGoldenFixtures(t *testing.T) {
 			t.Errorf("%s drifted from golden fixture.\n--- golden ---\n%s\n--- generated ---\n%s",
 				name, want, gen[name])
 		}
+	}
+}
+
+// TestGenDocs_CatalogMatchesSkills is the in-process equivalent of
+// `harness gen docs --check`: it guarantees the committed
+// docs/CLAUDE-skill-catalog.md managed region stays in sync with the actual
+// skills/*/SKILL.md frontmatter. If this fails, run `harness gen docs`.
+func TestGenDocs_CatalogMatchesSkills(t *testing.T) {
+	root := repoRootForTest(t)
+	inSync, diff, err := docsgen.Check(root)
+	if err != nil {
+		t.Fatalf("docsgen.Check: %v", err)
+	}
+	if !inSync {
+		t.Errorf("docs/CLAUDE-skill-catalog.md drifted from skills/*/SKILL.md (run `harness gen docs`):\n%s", diff)
 	}
 }
 

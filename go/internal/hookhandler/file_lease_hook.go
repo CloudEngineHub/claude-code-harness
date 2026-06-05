@@ -27,10 +27,10 @@ type fileLeaseInput struct {
 // fileLeaseDenyOutput is the JSON shape PostToolUse emits when a peer
 // session holds the lease on the file the caller just wrote. The
 // hookSpecificOutput envelope matches the CC 2.1.x permission contract;
-// continueOnBlock:true sits at the top level per hooks-2.1.139-plus.md §3
-// and turns the deny into diagnostic feedback rather than a guard rail
-// (R01-R13). The model receives the reason string and can choose to wait
-// or move to a different file.
+// continueOnBlock:true sits at the top level (CC 2.1.139+ PostToolUse
+// contract) and turns the deny into diagnostic feedback rather than a
+// guard rail (R01-R13). The model receives the reason string and can
+// choose to wait or move to a different file.
 type fileLeaseDenyOutput struct {
 	HookSpecificOutput struct {
 		HookEventName            string `json:"hookEventName"`

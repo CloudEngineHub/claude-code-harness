@@ -282,29 +282,10 @@ fi
 echo ""
 echo "5. Rule / docs presence チェック"
 
-rule_file="${REPO_ROOT}/.claude/rules/hooks-2.1.139-plus.md"
-if [ -f "${rule_file}" ]; then
-  required_anchors=(
-    'HARNESS_TERMINAL_NOTIFY'
-    'CLAUDE_EFFORT'
-    'continueOnBlock'
-    'args: string'
-    'SessionStart'
-    'terminalSequence'
-  )
-  missing=0
-  for anchor in "${required_anchors[@]}"; do
-    if ! grep -qF -- "${anchor}" "${rule_file}"; then
-      fail "5.x ${rule_file} に '${anchor}' が無い"
-      missing=$((missing + 1))
-    fi
-  done
-  if [ "${missing}" -eq 0 ]; then
-    pass "5.1 hooks-2.1.139-plus.md に必須 6 anchor が全て存在"
-  fi
-else
-  fail "5.1 ${rule_file} が存在しない"
-fi
+# NOTE: The version-pinned rule .claude/rules/hooks-2.1.139-plus.md was removed in
+# Phase 91.7 (version-pinned rules superseded by capability detection). The terminal
+# notify runtime behavior is still validated above (sections 1-4); only the rule-file
+# presence assertion is dropped.
 
 policy_file="${REPO_ROOT}/docs/agent-view-policy.md"
 if [ -f "${policy_file}" ]; then

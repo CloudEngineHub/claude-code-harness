@@ -143,7 +143,6 @@ func (h *taskCompletedHandler) handle(input taskCompletedInput, rawData []byte, 
 	h.fireWebhook(rawData)
 
 	// terminalSequence (CC 2.1.141+, opt-in via HARNESS_TERMINAL_NOTIFY) 用の title / body。
-	// 詳細: .claude/rules/hooks-2.1.139-plus.md
 	tsTitle, tsBody := taskCompletedTerminalTitleBody(taskSubject, completedCount, totalTasks)
 	tsSeq := BuildTerminalSequence(tsTitle, tsBody)
 

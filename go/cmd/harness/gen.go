@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/docsgen"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hostgen"
 )
 
@@ -14,7 +15,7 @@ import (
 // `harness gen`.
 const hostsDescriptorName = "hosts.toml"
 
-// runGen handles `harness gen [hooks] [--check] [root]`.
+// runGen handles `harness gen [hooks|docs] [--check] [root]`.
 //
 // Phase 91.3 convergence core: a single hosts.toml describes each host's
 // pre-action hook differences, and `harness gen` materializes each host's native
@@ -25,12 +26,23 @@ const hostsDescriptorName = "hosts.toml"
 //	harness gen hooks      — alias for the above
 //	harness gen --check    — compare generated codex+cursor output against golden
 //	                         fixtures byte-for-byte; exit 1 on any mismatch
+//	harness gen docs       — regenerate the SKILL CATALOG section of
+//	                         docs/CLAUDE-skill-catalog.md from skills/*/SKILL.md
+//	harness gen docs --check — diff the generated catalog vs the committed file;
+//	                         exit 1 on mismatch
 //
-// The tracked .claude-plugin/hooks.json (claude) is NEVER overwritten by this
-// phase; it is regenerated at the Phase 91.8 cutover. `harness gen` prints a skip
-// line for claude and writes only .codex/hooks.json and .cursor/hooks.json (both
-// gitignored generated artifacts).
+// The tracked .claude-plugin/hooks.json (claude) is NEVER overwritten by the
+// hooks path; it is regenerated at the Phase 91.8 cutover. `harness gen` prints a
+// skip line for claude and writes only .codex/hooks.json and .cursor/hooks.json
+// (both gitignored generated artifacts).
 func runGen(args []string) {
+	// Subcommand dispatch: `docs` routes to the catalog generator. `hooks`
+	// (or no subcommand) stays on the host-hooks path below.
+	if len(args) > 0 && args[0] == "docs" {
+		runGenDocs(args[1:])
+		return
+	}
+
 	check := false
 	var positional []string
 	for _, a := range args {
@@ -56,6 +68,57 @@ func runGen(args []string) {
 	if err := runGenWrite(root); err != nil {
 		fmt.Fprintf(os.Stderr, "gen: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// runGenDocs handles `harness gen docs [--check] [root]`: it regenerates the
+// machine-managed SKILL CATALOG region of docs/CLAUDE-skill-catalog.md from the
+// frontmatter of every skills/*/SKILL.md. With --check it does not write; it
+// exits 1 when the committed catalog has drifted from what the generator would
+// produce (so CI can pin the catalog as the source of truth).
+func runGenDocs(args []string) {
+	check := false
+	var positional []string
+	for _, a := range args {
+		switch a {
+		case "--check":
+			check = true
+		default:
+			positional = append(positional, a)
+		}
+	}
+
+	root, err := resolveGenRoot(positional)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gen docs: %v\n", err)
+		os.Exit(1)
+	}
+
+	if check {
+		inSync, diff, checkErr := docsgen.Check(root)
+		if checkErr != nil {
+			fmt.Fprintf(os.Stderr, "gen docs --check: %v\n", checkErr)
+			os.Exit(1)
+		}
+		if !inSync {
+			fmt.Printf("gen docs --check: MISMATCH for %s (committed vs generated)\n", docsgen.CatalogRelPath)
+			fmt.Print(diff)
+			fmt.Fprintln(os.Stderr, "gen docs --check: catalog drifted from skills/*/SKILL.md (run `harness gen docs`)")
+			os.Exit(1)
+		}
+		fmt.Printf("gen docs --check: %s matches skills/*/SKILL.md\n", docsgen.CatalogRelPath)
+		os.Exit(0)
+	}
+
+	changed, writeErr := docsgen.Write(root)
+	if writeErr != nil {
+		fmt.Fprintf(os.Stderr, "gen docs: %v\n", writeErr)
+		os.Exit(1)
+	}
+	if changed {
+		fmt.Printf("gen docs: %s regenerated from skills/*/SKILL.md\n", docsgen.CatalogRelPath)
+	} else {
+		fmt.Printf("gen docs: %s already up to date\n", docsgen.CatalogRelPath)
 	}
 }
 

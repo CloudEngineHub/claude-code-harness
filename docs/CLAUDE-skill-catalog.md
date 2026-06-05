@@ -23,52 +23,53 @@ NO  → 通常の推論で対応
 
 ## スキル階層構造
 
-スキルは **親スキル（カテゴリ）** と **子スキル（具体的な機能）** の階層構造になっています。
-
-```
-skills/
-├── impl/                  # 実装（機能追加、テスト作成）
-├── harness-review/        # レビュー（品質、セキュリティ、パフォーマンス）
-├── verify/                # 検証（ビルド、エラー復旧、修正適用）
-├── setup/                 # 統合セットアップ（プロジェクト初期化、ツール設定、2-Agent、harness-mem、Codex CLI、ルールローカライズ）
-├── memory/                # メモリ管理（SSOT、decisions.md、patterns.md、SSOT昇格、記憶検索）
-├── troubleshoot/          # 診断・修復（エラー、CI障害含む）
-├── principles/            # 原則・ガイドライン（VibeCoder、差分編集）
-├── auth/                  # 認証・決済（Clerk、Supabase、Stripe）
-├── deploy/                # デプロイ（Vercel、Netlify、アナリティクス）
-├── ui/                    # UI（コンポーネント、フィードバック）
-├── handoff/               # ワークフロー（ハンドオフ、自動修正）
-├── notebookLM/            # ドキュメント（NotebookLM、YAML）
-└── maintenance/           # メンテナンス（クリーンアップ）
-```
+スキルは `skills/<name>/SKILL.md` を本体とし、必要に応じて `references/` 配下に
+補助ファイルを持つフラット構成です。配布対象スキルの完全な一覧と説明は、下の
+「全スキルカテゴリ一覧」（`skills/*/SKILL.md` から自動生成）を参照してください。
 
 **使い方:**
-1. 親スキルを Skill ツールで起動
-2. 親スキルがユーザーの意図に応じて適切な子スキル（doc.md）にルーティング
-3. 子スキルの手順に従って作業実行
+1. 依頼に該当するスキルを Skill ツールで起動
+2. スキルがユーザーの意図に応じて適切な `references/` をロード
+3. 手順に従って作業実行
 
 ## 全スキルカテゴリ一覧
 
-| カテゴリ | 用途 | トリガー例 |
-|---------|------|-----------|
-| work | タスク実装（スコープ自動判断、--codex 対応） | 「実装して」「全部やって」「/work」 |
-| breezing | Agent Teams で完全自動完走（--codex 対応） | 「チームで完走」「breezing」 |
-| impl | 実装、機能追加、テスト作成 | 「実装して」「機能追加」「コードを書いて」 |
-| harness-review | コードレビュー、品質チェック | 「レビューして」「セキュリティ」「パフォーマンス」 |
-| verify | ビルド検証、エラー復旧 | 「ビルド」「エラー復旧」「検証して」 |
-| setup | セットアップ統合ハブ（プロジェクト初期化、ツール設定、2-Agent、harness-mem、Codex CLI、ルールローカライズ） | 「セットアップ」「CLAUDE.md」「初期化」「CI setup」「2-Agent」「Cursor設定」「harness-mem」「codex-setup」 |
-| memory | SSOT管理、記憶検索、SSOT昇格、Cursor連携メモリ | 「SSOT」「decisions.md」「マージ」「SSOT昇格」「記憶検索」「harness-mem」 |
-| principles | 開発原則、ガイドライン | 「原則」「VibeCoder」「安全性」 |
-| auth | 認証、決済機能 | 「ログイン」「Clerk」「Stripe」「決済」 |
-| deploy | デプロイ、アナリティクス | 「デプロイ」「Vercel」「GA」 |
-| ui | UIコンポーネント生成 | 「コンポーネント」「ヒーロー」「フォーム」 |
-| handoff | ハンドオフ、自動修正 | 「ハンドオフ」「PMに報告」「自動修正」 |
-| notebookLM | ドキュメント生成 | 「ドキュメント」「NotebookLM」「スライド」 |
-| troubleshoot | 診断と修復（CI障害含む） | 「動かない」「エラー」「CIが落ちた」 |
-| maintenance | ファイル整理 | 「整理して」「クリーンアップ」 |
-| harness-plan-brief | 着工前 Plan Brief HTML 生成 (Phase 65.1) | 「plan brief」「計画概要」「計画レビュー」 |
-| harness-accept | 引き渡し時 Acceptance Demo HTML 生成 (Phase 65.2) | 「受け入れ判断」「ship/wait/reject」「検収レビュー」 |
-| harness-progress | 進捗 Tracker HTML 生成 + 自動再生成 (Phase 65.4) | 「進捗確認」「進捗ボード」「dashboard」 |
+下表は `skills/*/SKILL.md` の frontmatter から自動生成される。手で編集せず、
+`harness gen docs` を実行して更新する（`harness gen docs --check` で CI 固定）。
+
+<!-- BEGIN GENERATED SKILL CATALOG (harness gen docs) -->
+<!-- Auto-generated from skills/*/SKILL.md frontmatter. Do not edit by hand; run `harness gen docs`. -->
+
+## スキルカタログ一覧
+
+| スキル | 説明 |
+|--------|------|
+| agent-browser | Browser automation through the repo agent-browser CLI. Explicit helper for navigation, forms, screenshots, scraping, and web-app checks. Prefer Browser Use or Playwright when available. Do NOT load for: sharing URLs, embedding links, or editing screenshot files. |
+| breezing | Team execution mode — backward-compatible alias for harness-work with team orchestration. Composer/composer 2.5 maps to the cursor backend. |
+| cc-cursor-cc | Validates brainstormed ideas with Cursor PM, updates Plans.md, then handoff back. Cursor ↔ Claude Code 2-Agent workflow support. Use when user mentions Cursor PM handoff, 2-agent plan validation, CC-Cursor round trip, or brainstorm review. Do NOT load for: implementation work, single-agent tasks, or direct coding. |
+| cc-update-review | Quality guardrail for Claude/Codex update integration. Detects doc-only Feature Table additions and requires implementation or explicit planning. Internal use only. |
+| ci | CI red? Call us. Pipeline fire brigade deploys. Use when user mentions CI failures, build errors, test failures, or pipeline issues. Do NOT load for: local builds, standard implementation work, reviews, or setup. |
+| cursor-ask | Read-only delegate to cursor-agent (Composer) for questions, investigation, design discussion, and adversarial sanity checks. No worktree, no cherry-pick, no Lead diff review — cursor-agent is locked to ask mode and cannot write. Use when user says: ask cursor, cursor sanity check, get a second opinion, adversarial review, design discussion, investigate with cursor, cursor:ask. Do NOT load for: implementation, refactor, file edits, commit/push work, anything requiring write access (use cursor:do or breezing --cursor instead). |
+| cursor-do | Delegate a single write task to Cursor Composer via cursor-companion.sh inside an isolated worktree, then Lead-review the diff and cherry-pick. Use when user invokes cursor:do, says delegate to cursor, have composer write it, refactor with cursor, hand a file edit to Composer. Do NOT load for: planning, code review only, read-only investigation, or multi-task team runs (use breezing --cursor or cursor:ask instead). |
+| cursor-rescue | Diagnose and recover Cursor backend failures for Harness workflows. Use when user invokes cursor:rescue, Cursor delegation fails, cursor-agent is missing, setup-cursor fails, or backend resolution unexpectedly falls back to claude. |
+| cursor-review | Run a Cursor Composer review as an advisory second opinion while keeping the primary review verdict on the host brain. Use when user invokes cursor:review, asks Cursor to review, or wants composer to sanity-check a diff. Cursor never owns APPROVE/REQUEST_CHANGES. |
+| cursor-setup | Configure and verify the Cursor backend for Claude Code Harness. Use when user invokes cursor:setup, wants Cursor as the local default implementation backend, or asks to check Cursor plugin/agent readiness. Distribution default remains opt-in; only local env/user settings are changed when explicitly requested. |
+| gogcli-ops | Use gogcli for Google Workspace CLI operations (Drive/Sheets/Docs/Slides). Trigger when a user asks to check, list, search, export, read, or update Google files via gogcli; when a Google URL/ID needs parsing; when auth/account selection or safe read-only workflows are needed; or when troubleshooting gogcli access/errors. Do NOT load for: general file operations, non-Google cloud storage, or standard shell commands. |
+| harness-accept | Generate an Acceptance Demo HTML for non-engineer vibecoders right before ship/wait/reject decision. Reads back the acceptance_criteria that were stored as personal-preference.v1 by harness-plan-brief (joined by user_request_hash), then renders a single-file HTML showing each criterion as verified or unverified along with a ship/wait/reject recommendation. Use when the user asks for an acceptance review, wants to decide whether to ship a delivered task, or says: acceptance demo, accept demo, 受け入れ判断, 受入レビュー, ship/wait/reject 判定, 検収レビュー. Do NOT load for: implementation, code review, release work. |
+| harness-loop | Long-running task loop using /loop (Claude Code dynamic mode) and ScheduleWakeup to re-enter with fresh context on each wake-up. Internally invokes harness-work through Agent. Trigger: long-running, loop, wake-up, autonomous. Do NOT load for: one-shot task execution, review, release, planning. |
+| harness-orchestration | Show how much this session/project orchestrated across backends (Claude / Codex / Cursor). Renders an on-demand HTML scorecard + terminal summary from the orchestration ledger and lifetime totals. Use when the user asks to see orchestration usage, a backend scorecard, which backend was used, how much Codex/Cursor was used, lifetime totals, or wants something to show off (自慢). Do NOT load for: implementing tasks, reviews, planning, or release. |
+| harness-plan | HAR: Research-backed, team-validated task planning, Plans.md management, progress sync. Trigger: create a plan, add tasks, update Plans.md, mark complete, check progress. Do NOT load for: implementation, review, release. |
+| harness-plan-brief | Generate a Plan Brief HTML for non-engineer vibecoders before implementation starts. Searches harness-mem (project-only) for relevant past decisions, patterns, and Plans archive entries, then renders a single-file HTML artifact summarizing understanding, options, risks, acceptance criteria, and confidence. Use when the user requests a planning preview, a non-engineer-friendly summary before approval, or says: plan brief, planning preview, 計画概要, 計画レビュー. Do NOT load for: actual implementation, code review, release work. |
+| harness-progress | Generate a Progress Tracker HTML for non-engineer vibecoders to glance at session progress (cc:WIP / cc:TODO / cc:完了 counts, percentage, elapsed/estimated minutes, cost so far/estimate, drift alerts). Uses Plans.md as source of truth, renders a single-file HTML with auto-regeneration support. Use when user asks for progress overview, session status snapshot, dashboard, or says: progress tracker, 進捗確認, 進捗ボード, dashboard. Do NOT load for: actual implementation, code review, release work. |
+| harness-release | Generic release automation for projects using Keep a Changelog + GitHub. Single confirmation gate then end-to-end automation: bump detection, CHANGELOG promotion, PR/main merge, tag, GitHub Release. Trigger: release, version bump, publish. Do NOT load for: implementation, review, planning, setup. |
+| harness-review | HAR: Multi-angle code, plan, scope review. Security/quality check. Trigger: review, code review, plan review, scope analysis. Do NOT load for: implementation, new features, bugfix, setup, release. |
+| harness-setup | HAR: Project init, tool setup, agent config, memory setup, skill mirror sync. Trigger: setup, init, new project, CI/Codex setup, harness-mem, mirror. Do NOT load for: implementation, review, release, planning. |
+| harness-sync | HAR: Sync Plans.md with implementation. Drift detect, marker update, retrospective. Trigger: sync-status, where am I, check progress. --snapshot for snapshots. Do NOT load for: planning, implementation, review, release. |
+| harness-work | HAR: Execute Plans.md tasks from single task to full parallel team run. Trigger: implement, execute, do everything, breezing, team run, parallel, composer, composer 2.5. Do NOT load for: planning, review, release, setup. |
+| maintenance | File cleanup and archiving. Tidies up bloated Plans.md, session-log.md, old logs, and state files. Trigger: /maintenance, cleanup, archive, organize, split session-log. Do NOT load for: implementation, review, release, new feature development. |
+| memory | Manage SSOT, memory, and cross-tool memory search. Guardian of decisions.md and patterns.md. Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, migration, SSOT promotion, sync memory, save learnings, memory search, harness-mem, past decisions, or record this. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging. |
+
+<!-- END GENERATED SKILL CATALOG (harness gen docs) -->
 
 ## 開発用スキル（非公開）
 

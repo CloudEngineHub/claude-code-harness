@@ -55,7 +55,7 @@ jq -e '
 
 jq -e '
   any(.skills[]; .path == "skills/gogcli-ops/SKILL.md" and .disable_model_invocation == true) and
-  any(.skills[]; .path == "skills/session-control/SKILL.md" and .user_invocable == false and .disable_model_invocation == true) and
+  any(.skills[]; .path == "skills/cc-update-review/SKILL.md" and .user_invocable == false and .disable_model_invocation == true) and
   any(.skills[]; .path == "skills/ci/SKILL.md" and .user_invocable == true and .disable_model_invocation == true)
 ' "${OUTPUT_JSON}" >/dev/null
 

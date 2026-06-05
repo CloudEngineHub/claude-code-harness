@@ -765,14 +765,10 @@ grep -q 'manual shell follow-up queue' "${ROOT_DIR}/skills/harness-loop/SKILL.md
   echo "shared harness-loop skill must mention manual shell follow-up queue inheritance"
   exit 1
 }
-grep -q 'stale proxy env' "${ROOT_DIR}/skills/session/SKILL.md" || {
-  echo "session skill must mention stale proxy env inheritance for shell snapshots"
-  exit 1
-}
-grep -q 'Unicode / dead-key' "${ROOT_DIR}/skills/session/SKILL.md" || {
-  echo "session skill must mention Unicode / dead-key input inheritance for WSL terminals"
-  exit 1
-}
+# NOTE: The `session` skill was removed in Phase 91.7 (accreted session cluster pruned).
+# Its "stale proxy env" / "Unicode / dead-key" inheritance assertions are dropped here;
+# the underlying C:自動継承 policy stays pinned in PHASE53_SNAPSHOT_DOC (see the
+# Codex 0.123.0 inheritance grep above).
 
 # Phase 53.3.1: closeout must keep Phase 51.2 audit ownership separate
 grep -q '53.3.1 Phase 53 closeout / Phase 51.2 dependency note' "${PHASE53_SNAPSHOT_DOC}" || {
@@ -1436,19 +1432,17 @@ grep_plans_or_archive 'upstream-update-snapshot-2026-05-27' || {
   echo "Plans.md (or archive) is missing upstream-update-snapshot-2026-05-27 reference"
   exit 1
 }
+# NOTE: The version-pinned rules .claude/rules/skill-frontmatter-2.1.152-plus.md and
+# .claude/rules/hooks-2.1.152-plus.md were removed in Phase 91.7 (version-pinned rules
+# superseded by capability detection). Only the still-present message-display-policy.md
+# is asserted here; the disallowed-tools documentation assertion on the removed rule is dropped.
 for phase80_rule in \
-  "${ROOT_DIR}/.claude/rules/skill-frontmatter-2.1.152-plus.md" \
-  "${ROOT_DIR}/.claude/rules/hooks-2.1.152-plus.md" \
   "${ROOT_DIR}/docs/message-display-policy.md"; do
   [ -f "${phase80_rule}" ] || {
     echo "${phase80_rule} does not exist — Phase 80.1.3"
     exit 1
   }
 done
-grep -q 'disallowed-tools' "${ROOT_DIR}/.claude/rules/skill-frontmatter-2.1.152-plus.md" || {
-  echo "skill-frontmatter-2.1.152-plus.md must document disallowed-tools — Phase 80.1.3"
-  exit 1
-}
 grep -q '/reload-skills' "${ROOT_DIR}/CLAUDE.md" || {
   echo "CLAUDE.md must document /reload-skills — Phase 80.1.3"
   exit 1

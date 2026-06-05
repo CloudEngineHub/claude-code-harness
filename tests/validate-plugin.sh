@@ -642,16 +642,10 @@ else
 fi
 
 echo ""
-echo "9. Migration residue check"
-echo "----------------------------------------"
-
-if bash "$PLUGIN_ROOT/scripts/check-residue.sh" > /dev/null 2>&1; then
-    pass_test "No migration residue detected (scripts/check-residue.sh clean)"
-else
-    fail_test "Migration residue found — run 'bash scripts/check-residue.sh' to see details"
-fi
-
-echo ""
+# Section 9 (Migration residue check) removed in Phase 91.7: scripts/check-residue.sh
+# and .claude/rules/deleted-concepts.yaml were deleted as superseded scaffolding (the
+# deny-surface self-audit now lives in go/internal/policy/selfaudit.go). Section numbers
+# below intentionally retain their original labels to keep the diff minimal.
 echo "10. Optional integration tests"
 echo "----------------------------------------"
 

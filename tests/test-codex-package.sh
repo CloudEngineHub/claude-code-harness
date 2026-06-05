@@ -390,8 +390,10 @@ if ! diff -qr "${codex_breezing_ssot}" "codex/.codex/skills/breezing" >/dev/null
   echo "  drift: codex breezing mirror does not match ${codex_breezing_ssot}"
   workflow_surface_ok=false
 fi
+# NOTE: the workflow-guide skill was removed in Phase 91.7; only codex/AGENTS.md
+# remains as a surface to scan for forbidden legacy command tokens.
 for forbidden_pat in '$plan-with-agent' '$work' '$verify' '$remember'; do
-  if rg -n --fixed-strings "$forbidden_pat" "codex/AGENTS.md" "codex/.codex/skills/workflow-guide/SKILL.md" "codex/.codex/skills/workflow-guide/references/commands.md" >/tmp/codex-surface-forbidden.$$ 2>/dev/null; then
+  if rg -n --fixed-strings "$forbidden_pat" "codex/AGENTS.md" >/tmp/codex-surface-forbidden.$$ 2>/dev/null; then
     echo "  forbidden legacy command remains: $forbidden_pat"
     head -5 /tmp/codex-surface-forbidden.$$ | sed 's/^/    /'
     workflow_surface_ok=false
