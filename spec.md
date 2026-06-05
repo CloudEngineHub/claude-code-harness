@@ -398,12 +398,19 @@ tier evidence.
 
 ## Host Distribution Contract
 
-Distribution is a single `harness` CLI binary. Per-host shims — the hooks.json
-configs, the skill/agent mirrors, the manifest version, and the catalog docs —
-are `harness gen` build artifacts, generated at install time and gitignored, not
-hand-maintained source trees. There is one version: a single git tag. Manifests
-and mirrors do not carry independently bumped versions, and there is no separate
-per-host package to release.
+Distribution is a single `harness` CLI binary plus the manifests and mirrors that
+hosts read directly. Per-host shims — the hooks.json configs, the skill/agent
+mirrors, the manifest, and the catalog docs — are generated from one source
+(`hosts.toml`, `skills/`, and the embedded prompt pack), never hand-maintained,
+and are committed-and-drift-checked rather than gitignored. The reason they stay
+committed: the Claude plugin marketplace clones the repo and reads
+`.claude-plugin/*` directly, and `scripts/setup-codex.sh` / `setup-opencode.sh`
+copy the committed mirror into the host — there is no install-time generation
+step, so the generated artifacts must be present in the distributed tree. Drift is
+prevented by CI gates (`harness gen --check`, `sync-skill-mirrors.sh --check`),
+not by regenerating on the target. There is one version: a single git tag.
+Manifests and mirrors do not carry independently bumped versions, and there is no
+separate per-host package to release.
 
 Rules:
 
@@ -414,9 +421,11 @@ Rules:
   `hosts.toml` (`.claude-plugin/hooks.json`, `.codex/hooks.json`,
   `.cursor/hooks.json`), each routing to `bin/harness hook pre-tool`. `harness
   gen --check` diffs the generated output against golden fixtures in CI so the
-  generator cannot drift. (Today the generator writes only the Codex and Cursor
-  hook configs; the tracked Claude `.claude-plugin/hooks.json` is not yet
-  overwritten — see Cutover status below.)
+  generator cannot drift. The generator writes the Codex and Cursor hook configs;
+  the Claude `.claude-plugin/hooks.json` is hand-maintained across its full event
+  set and is not overwritten, but `harness gen --check` verifies its PreToolUse
+  guardrail group still matches `hosts.toml`, so the pre-action route shared by
+  all three hosts cannot drift even though the rest of that file is not generated.
 - A host's generated shim must not cross-contaminate another host: the Codex
   artifact contains only Codex hook config and the Codex skill/agent mirror, the
   Cursor artifact only Cursor's, and so on. Cross-host manifests never appear in
@@ -438,13 +447,22 @@ Rules:
   smoke and release gates pass. Generating their shims does not by itself promote
   a host to `supported`.
 
-Cutover status: the manifest and mirror untracking is the pending final step
-(Phase 91.8(b)). `harness gen` already produces the generated `.codex/hooks.json`
-and `.cursor/hooks.json`, but the currently-tracked manifests and mirror trees —
-including `.claude-plugin/hooks.json` — are still committed source and are not yet
-deleted-and-generated. This section describes the target contract; the cutover
-that removes the tracked manifests/mirrors and makes them generated-on-install is
-the remaining work.
+Cutover status (Phase 91.8(b), landed as generated-and-committed): the manifests
+and mirrors are generated from one source and kept committed under CI drift gates,
+not untracked. Investigation of the real distribution paths settled this: both
+paths consume committed files with no install-time generation — the Claude
+marketplace clones the repo and reads `.claude-plugin/*`, and `setup-codex.sh` /
+`setup-opencode.sh` copy the committed `codex/.codex/skills` and `opencode/skills`
+mirrors — so untracking and gitignoring them (the originally sketched
+"generated-on-install" model) would break installation at the distribution target.
+Instead the SSOT is `skills/` + `hosts.toml` + the prompt pack: `sync-skill-mirrors.sh
+--check` pins the mirrors to `skills/`, `harness gen --check` pins the Codex/Cursor
+hooks.json to `hosts.toml` and verifies the committed Claude PreToolUse guardrail
+group matches the descriptor, and `harness gen docs --check` pins the catalog. The
+artifacts stay committed so distribution keeps working, and the gates make them as
+drift-proof as gitignored build output would be. A future pure-CLI install that
+regenerates on the target could revisit untracking; it is out of scope while
+marketplace and setup-copy distribution is the supported path.
 
 ## Clean Mode And Compatibility Mode
 

@@ -1,6 +1,6 @@
 # Zero-Base Redesign — 0 ベース再設計提案（最終モデル）
 
-Status: 設計提案 (decision-pending)
+Status: **実装完了** — Phase 91.1–91.8 を本 repo に実装（2026-06-06）。配布モデルは当初スケッチの「manifest/mirror を untrack + gitignore + install 時生成」から **generated-and-committed + CI drift-check** に着地した。理由: Claude plugin marketplace は repo を clone して `.claude-plugin/*` を直接読み、Codex/OpenCode の setup script は committed mirror を copy する ＝ install 時に `harness gen` を走らせる経路が無く、untrack すると配布が壊れる。権威ある契約は root `spec.md` の Host Distribution Contract（本書の「gitignore 生成物」記述は当初案の歴史記録）。
 Base commit: v4.14.0 (`4c26acd9`)
 Method: 18-agent multi-perspective workflow（4 独立案 → 2 lens scoring → synthesis）＋ owner レビュー 4 往復で収束
 Confidence: **high**
