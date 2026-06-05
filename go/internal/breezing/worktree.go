@@ -3,11 +3,12 @@ package breezing
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // WorktreeManager は git worktree の作成・クリーンアップを管理する。
@@ -96,10 +97,8 @@ func (wm *WorktreeManager) Remove(worktreePath string, force bool) error {
 		args = append(args, "--force")
 	}
 
-	cmd := exec.Command("git", args...)
-	cmd.Dir = wm.projectRoot
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("worktree remove: %s: %w", strings.TrimSpace(string(out)), err)
+	if out, err := gitport.CombinedOutput(wm.projectRoot, args...); err != nil {
+		return fmt.Errorf("worktree remove: %s: %w", strings.TrimSpace(out), err)
 	}
 
 	// ブランチ削除
@@ -191,15 +190,11 @@ func (wm *WorktreeManager) HandleWorktreeRemove(worktreePath string) {
 func (wm *WorktreeManager) gitWorktreeAdd(worktreeDir, branchName string) error {
 	// ディレクトリが既に存在する場合は削除
 	if _, err := os.Stat(worktreeDir); err == nil {
-		rmCmd := exec.Command("git", "worktree", "remove", worktreeDir, "--force")
-		rmCmd.Dir = wm.projectRoot
-		_ = rmCmd.Run()
+		_ = gitport.Run(wm.projectRoot, "worktree", "remove", worktreeDir, "--force")
 	}
 
-	cmd := exec.Command("git", "worktree", "add", "-b", branchName, worktreeDir, "HEAD")
-	cmd.Dir = wm.projectRoot
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
+	if out, err := gitport.CombinedOutput(wm.projectRoot, "worktree", "add", "-b", branchName, worktreeDir, "HEAD"); err != nil {
+		return fmt.Errorf("%s: %w", strings.TrimSpace(out), err)
 	}
 	return nil
 }
@@ -209,9 +204,7 @@ func (wm *WorktreeManager) deleteBranch(branch string) {
 	if branch == "" {
 		return
 	}
-	cmd := exec.Command("git", "branch", "-D", branch)
-	cmd.Dir = wm.projectRoot
-	_ = cmd.Run()
+	_ = gitport.Run(wm.projectRoot, "branch", "-D", branch)
 }
 
 // sanitizeBranch はタスク ID をブランチ名に使えるようサニタイズする。

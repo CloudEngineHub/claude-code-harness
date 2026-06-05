@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // worktreeInput is the stdin JSON payload for the WorktreeCreate hook.
@@ -156,18 +157,14 @@ func gitWorktreeAdd(repoCWD, path, branch string) error {
 	if base != "" {
 		args = append(args, base)
 	}
-	cmd := exec.Command("git", args...)
-	cmd.Dir = repoCWD
-	if outBytes, err := cmd.CombinedOutput(); err != nil {
+	if outBytes, err := gitport.CombinedOutput(repoCWD, args...); err != nil {
 		// Branch may already exist from a prior run; retry without -b but
 		// name the branch explicitly so git checks out the intended
 		// existing branch (not one derived from the target's basename).
-		retry := exec.Command("git", "worktree", "add", path, branch)
-		retry.Dir = repoCWD
-		if outBytes2, err2 := retry.CombinedOutput(); err2 != nil {
+		if outBytes2, err2 := gitport.CombinedOutput(repoCWD, "worktree", "add", path, branch); err2 != nil {
 			return fmt.Errorf("%s / %s: %w",
-				strings.TrimSpace(string(outBytes)),
-				strings.TrimSpace(string(outBytes2)), err2)
+				strings.TrimSpace(outBytes),
+				strings.TrimSpace(outBytes2), err2)
 		}
 	}
 	return nil
@@ -176,18 +173,14 @@ func gitWorktreeAdd(repoCWD, path, branch string) error {
 // originDefaultRef returns origin/<default-branch> if it can be resolved,
 // otherwise an empty string (caller falls back to HEAD).
 func originDefaultRef(repoCWD string) string {
-	cmd := exec.Command("git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
-	cmd.Dir = repoCWD
-	if outBytes, err := cmd.Output(); err == nil {
-		if ref := strings.TrimSpace(string(outBytes)); ref != "" {
+	if outBytes, err := gitport.Output(repoCWD, "symbolic-ref", "--short", "refs/remotes/origin/HEAD"); err == nil {
+		if ref := strings.TrimSpace(outBytes); ref != "" {
 			return ref
 		}
 	}
 	// Fallback: probe common default branch names on origin.
 	for _, name := range []string{"origin/main", "origin/master"} {
-		verify := exec.Command("git", "rev-parse", "--verify", "--quiet", name)
-		verify.Dir = repoCWD
-		if verify.Run() == nil {
+		if gitport.Run(repoCWD, "rev-parse", "--verify", "--quiet", name) == nil {
 			return name
 		}
 	}
@@ -206,13 +199,11 @@ func isGitWorktree(path string) bool {
 	// subdirectory (or a leftover dir inside the main checkout) would be
 	// misreported as a reusable worktree. A worktree root requires git's
 	// toplevel to equal path itself.
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	cmd.Dir = path
-	outBytes, err := cmd.Output()
+	outBytes, err := gitport.Output(path, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return false
 	}
-	return sameDir(strings.TrimSpace(string(outBytes)), path)
+	return sameDir(strings.TrimSpace(outBytes), path)
 }
 
 // sameDir reports whether two paths resolve to the same directory, accounting

@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // driftTailWindow は collectDrift が参照する末尾行数。
@@ -264,13 +266,11 @@ func isGitRepository(projectRoot string) bool {
 }
 
 func runGit(projectRoot string, args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = projectRoot
-	output, err := cmd.Output()
+	output, err := gitport.Output(projectRoot, args...)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(output)), nil
+	return strings.TrimSpace(output), nil
 }
 
 // collectPlansState は Plans.md の状態を収集する。

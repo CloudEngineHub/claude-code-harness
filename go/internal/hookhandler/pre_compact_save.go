@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // PreCompactSave は pre-compact-save.js の Go 移植。
@@ -524,13 +525,11 @@ func getWIPTasks(rows []planRow) []string {
 // getRecentEdits は git から最近変更されたファイルを取得する。
 func (h *PreCompactSave) getRecentEdits(repoRoot string) []string {
 	run := func(args ...string) string {
-		cmd := exec.Command("git", args...)
-		cmd.Dir = repoRoot
-		out, err := cmd.Output()
+		out, err := gitport.Output(repoRoot, args...)
 		if err != nil {
 			return ""
 		}
-		return strings.TrimSpace(string(out))
+		return strings.TrimSpace(out)
 	}
 
 	staged := run("diff", "--name-only", "--cached")
