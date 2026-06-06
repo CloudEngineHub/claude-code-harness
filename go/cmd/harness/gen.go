@@ -34,9 +34,13 @@ const hostsDescriptorName = "hosts.toml"
 //	                         exit 1 on mismatch
 //
 // The tracked .claude-plugin/hooks.json (claude) is NEVER overwritten by the
-// hooks path; it is regenerated at the Phase 91.8 cutover. `harness gen` prints a
-// skip line for claude and writes only .codex/hooks.json and .cursor/hooks.json
-// (both gitignored generated artifacts).
+// hooks path: its full event set is hand-maintained and stays committed because
+// the Claude marketplace reads it directly (Model A — see spec.md Host
+// Distribution Contract). `harness gen` prints a skip line for claude and writes
+// only .codex/hooks.json and .cursor/hooks.json (both gitignored generated
+// artifacts for local dev). `harness gen --check` separately verifies that the
+// committed Claude PreToolUse guardrail group still matches hosts.toml, so the
+// shared pre-action route cannot drift even though that file is not generated.
 func runGen(args []string) {
 	// Subcommand dispatch: `docs` routes to the catalog generator. `hooks`
 	// (or no subcommand) stays on the host-hooks path below.
@@ -184,7 +188,7 @@ func runGenWrite(root string) error {
 		h := hosts[name]
 		dest := filepath.Join(root, filepath.FromSlash(h.HookPath))
 		if name == "claude" {
-			fmt.Printf("gen: %-7s %s  skipped (tracked; regenerated at cutover)\n", name, h.HookPath)
+			fmt.Printf("gen: %-7s %s  skipped (tracked, hand-maintained; PreToolUse drift-checked)\n", name, h.HookPath)
 			continue
 		}
 		data, genErr := hostgen.GenerateHooksJSON(h)
