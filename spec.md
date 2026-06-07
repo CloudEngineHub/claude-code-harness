@@ -439,13 +439,30 @@ Rules:
   generated with `user-invocable: false` to register them as Agent-Decides
   skills invokable via `/skill-name`; the Claude artifact keeps the original
   `user-invocable: true` slash contract.
-- A Cursor local install must be a real directory under
-  `~/.cursor/plugins/local/<name>`. Cursor rejects symlinks whose target is
-  outside that directory, so install tooling copies the generated package in
-  rather than linking to an external build path.
+- A Cursor local install lives under `~/.cursor/plugins/local/<name>`. Cursor's
+  plugins doc supports symlinking an external plugin repo into that directory
+  (`ln -s`); install tooling nonetheless real-copies the generated package so the
+  install is self-contained and idempotent and does not depend on an external
+  build path staying present (symlinks are also unreliable on Windows).
 - Codex and Cursor remain below Claude in support tier until their own workflow
   smoke and release gates pass. Generating their shims does not by itself promote
   a host to `supported`.
+
+Two layers, not one. The `hook_path` configs above (`.codex/hooks.json`,
+`.cursor/hooks.json`) are the enforcement-wiring layer `harness gen` emits to
+route each host's native pre-action hook to `bin/harness hook pre-tool`; each is a
+first-class standalone hook location on its host and needs no plugin to run (Codex
+discovers `~/.codex/hooks.json` and `<repo>/.codex/hooks.json` next to its config
+layers when trusted; Cursor reads project `.cursor/hooks.json`). The
+install-delivery layer is separate: `scripts/build-host-plugin-dist.sh` packages
+each host's native plugin bundle (`.claude-plugin/` / `.codex-plugin/` /
+`.cursor-plugin/`) carrying the generated skills/agents, which setup installs into
+the host (`~/.cursor/plugins/local/<name>`, the Claude marketplace clone,
+`~/.codex/plugins/<name>` + `~/.agents/plugins/marketplace.json`). Using a host's
+native plugin as the install envelope does not contradict "single `harness` CLI,
+not a host plugin": the binary plus `hosts.toml` and the embedded prompt pack stay
+the sole source of truth and the release unit; the plugin is only the generated,
+committed-and-drift-checked envelope that carries the shims to the host.
 
 Cutover status (Phase 91.8(b), landed as generated-and-committed): the manifests
 and mirrors are generated from one source and kept committed under CI drift gates,
@@ -759,6 +776,59 @@ coordinate them to reduce file conflicts, but only under these rules.
 - A broadcast channel whose fire conditions are too narrow dies silently, as
   the 2026-02 broadcast corpse proved. Any revival must prove via tests that
   its fire strategy triggers on normal edits.
+
+## Tri-Tool Parallel Collaboration Contract
+
+One Lead drives several DIFFERENT tasks in parallel across the three backends
+(Claude / Codex / Cursor) through the existing `harness work --team` orchestrator
+(Execution Backend Contract), so the human steers ONE Lead and A/B/C all land.
+This contract governs the SAFETY and conflict-separation rules layered on that
+orchestrator. It builds on the Execution Backend Contract (backend resolution),
+the Orchestration Visibility Contract (ledger), and the Session Coordination
+Contract (lease); it does not replace them.
+
+- Hub-spoke, no worker-to-worker. Workers emit only `companionresult.v1` on
+  stdout; they never address or message each other. All coordination is
+  spoke->hub (worker result -> Lead). For v1 the Lead is Claude Code, the only
+  host that can natively spawn Claude subagents; Codex and Cursor cannot fan out
+  to other backends, so "any of the three as Lead" is a future goal, not a v1
+  claim.
+- Headless v1. The Lead drives Codex/Cursor as background workers via their
+  companions; there is no live session-to-session message bus in v1. The
+  `harness_session_*` and `harness_mem_signal_*` MCP tools are EXTERNAL
+  (harness-mem-owned) and are not a dependency of this contract.
+- Physical separation first. Before fan-out the Lead establishes ONE fresh base
+  (`git fetch`; `BASE=$(git rev-parse HEAD)`) and creates branch-per-task plus
+  worktree-per-branch off that single BASE, so workers cannot collide while
+  running. Shared files (`Plans.md`, `CHANGELOG.md`, `spec.md`) are written as
+  owner-assigned append-only blocks; `VERSION` is never bumped inside a worktree;
+  generated artifacts are regenerated once on trunk after merge; `rerere.enabled`
+  is set. The Lead aggregates one task at a time: rebase the task branch onto
+  trunk, `cherry-pick --no-commit`, run the pre-merge policy gate, commit.
+- Two distinct floors — do not conflate them.
+  - The PRE-MERGE POLICY GATE is the existing `go/internal/floor` (`floor.Gate`):
+    deny-surface integrity, R01-R13 over the changed files, and the contract
+    scripts. It runs at integration and catches file-level violations.
+  - The RUNTIME ACTION HARD FLOOR (the human stop) is enforced BEFORE a worker
+    action runs, at the companion-invocation / pre-action layer, because a
+    post-hoc file diff cannot see a runtime side effect. Five categories ALWAYS
+    stop and ask the human and are non-overridable in every config: (1)
+    money/billing, (2) external send / network egress to a non-allowlisted
+    destination, (3) credential entry or secret read, (4) production deploy or
+    publish, (5) destruction OUTSIDE the task worktree.
+- Auto-approve scope. Inside a CONFINED worktree the Lead may auto-judge
+  code/file/git "ask" gates; the runtime hard floor is the only escalation path.
+  Auto-approve must NOT be enabled until both the runtime floor and worktree
+  confinement exist.
+- Worktree confinement. Codex/Cursor workers must be confined to their worktree
+  path; `--workspace` is a working-directory hint, NOT a write boundary. The v1
+  confinement is a pre/post worktree fingerprint: any change outside the task
+  worktree ($HOME-sensitive paths, trunk, sibling worktrees) hard-stops the run
+  (this is also floor category 5). OS-level confinement (`sandbox-exec` /
+  `unshare`) is a later hardening, not a v1 requirement.
+- Visibility. Every dispatch, result, and aggregate event is emitted to the
+  orchestration ledger; near-real-time visibility comes from the ledger, not a
+  live IPC bus.
 
 ## Non-Goals
 
