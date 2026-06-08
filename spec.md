@@ -827,8 +827,44 @@ Contract (lease); it does not replace them.
   (this is also floor category 5). OS-level confinement (`sandbox-exec` /
   `unshare`) is a later hardening, not a v1 requirement.
 - Visibility. Every dispatch, result, and aggregate event is emitted to the
-  orchestration ledger; near-real-time visibility comes from the ledger, not a
-  live IPC bus.
+  orchestration ledger.
+
+Two operating modes sit on this contract. Mode 1 is fully autonomous
+orchestration (headless, no live bus); Mode 2 is human-present peer co-drive
+(live notice messaging). Both honor the safety core (runtime floor + worktree
+confinement) above.
+
+Mode 1 — orchestrated Producer hierarchy. The Lead/Producer (the CLI the human
+talks to; for v1 the Lead is Claude Code) delegates each lane to a Sub-Lead on
+the same CLI. The Sub-Lead decomposes the lane into a mini-plan, delegates
+implementation to Composer 2.5 (the Cursor backend) workers in parallel, then
+review-iterates: fresh-context parallel sub-agent review plus cross-CLI review
+(the implementing backend never reviews its own output — Execution Backend
+Contract), re-dispatching refinement into the same worktree until the lane's DoD
+is met or a max-iteration cap is hit, after which it escalates to the human. The
+Sub-Lead reports up to the Lead, which aggregates. Workers still never message
+each other; all coordination is spoke->hub.
+
+Mode 2 — CCH-owned live notice messaging. Live, notice-guaranteed messaging
+between concurrent terminals (and the Mode 1 cross-CLI review transport) is owned
+by claude-code-harness, NOT the memory layer. It is a self-contained,
+dependency-free SQLite (WAL, append-only event log) store plus host-hook delivery
+notice, modeled on the agmsg pattern (MIT): turn = a Stop hook that reads the
+inbox at each turn boundary; monitor = a SessionStart hook streaming via the
+Monitor tool (Claude Code only; Codex/Cursor fall back to turn). The delivery
+must prove via tests that it fires on a normal turn — the 2026-02 broadcast
+corpse died precisely because store and notice were split and the notice never
+fired; reuniting them in the host-hook-owning layer is the fix. A human gives the
+GO; the harness drives the A->B->A loop with a max-round cap and stops for the
+human on the five hard-floor categories. self-audit allowlists the delivery hooks
+this layer writes into `.claude/settings.local.json` so the harness does not flag
+its own messaging hook as tampering.
+
+Memory boundary. Durable, work-linked, ackable handoff stays in harness-mem
+(`signal-store` / workgraph claim+handoff) and is load-bearing there; this Phase
+does not move or modify it. Live notice messaging is the CCH-owned layer above.
+The two are distinct: durable work-handoff = harness-mem signal; live notice
+messaging = CCH.
 
 ## Non-Goals
 
