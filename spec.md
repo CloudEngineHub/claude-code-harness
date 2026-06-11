@@ -265,8 +265,9 @@ env-only checks skip project `env.local`, user-scope defaults, and call-site
 defaults.
 
 Backend is role-scoped: the implementation (worker) role uses the selected
-backend. The primary review and advisor roles stay on the brain (Opus /
-`claude` host). The self-review prohibition is scoped to the producing
+backend. The primary review and advisor roles stay on the brain (the `claude`
+host; Opus 4.8 by default, `claude-fable-5` via the `HARNESS_BRAIN_MODEL`
+opt-in). The self-review prohibition is scoped to the producing
 context, not the model family: the session that produced a diff must never
 review its own output, but a fresh-context reviewer session on the same
 backend (for example the cursor `review` tier, `composer-2.5-fast`) may run
@@ -302,9 +303,10 @@ The concrete model for any host+role is resolved by
 `scripts/model-routing.sh --host <backend> --role <role>`. This contract does
 not reimplement model selection. The claude-host brain tiers (`deep`,
 `advisor`) default to `claude-opus-4-8`; setting `HARNESS_BRAIN_MODEL=fable`
-opts those two tiers into `claude-fable-5`. The opt-in never changes the
-worker or review tiers, never touches the codex/cursor catalogs, and an
-unknown value fails with exit 2 instead of falling back silently.
+opts those two tiers into `claude-fable-5`. Unset, empty, or `opus` keeps the
+default; any other value fails with exit 2 instead of falling back silently.
+The opt-in never changes the worker or review tiers and never touches the
+codex/cursor catalogs.
 
 Cursor remains `internal-compatible`, not a public `supported` claim. The
 shipped `harness` CLI keeps Cursor opt-in by default; individual
@@ -849,8 +851,9 @@ talks to; for v1 the Lead is Claude Code) delegates each lane to a Sub-Lead on
 the same CLI. The Sub-Lead decomposes the lane into a mini-plan, delegates
 implementation to Composer 2.5 (the Cursor backend) workers in parallel, then
 review-iterates: fresh-context parallel sub-agent review plus cross-CLI review
-(the implementing backend never reviews its own output — Execution Backend
-Contract), re-dispatching refinement into the same worktree until the lane's DoD
+(the session that produced the diff never reviews its own output — self-review
+scope, Execution Backend Contract), re-dispatching refinement into the same
+worktree until the lane's DoD
 is met or a max-iteration cap is hit, after which it escalates to the human. The
 Sub-Lead reports up to the Lead, which aggregates. Workers still never message
 each other; all coordination is spoke->hub.

@@ -71,6 +71,18 @@ fi
 
 # --- Fable brain opt-in (HARNESS_BRAIN_MODEL) ---
 
+unset_default_model="$(env -u HARNESS_BRAIN_MODEL bash "${ROUTER}" --host claude --role advisor --field model)"
+[ "${unset_default_model}" = "claude-opus-4-8" ] || {
+  echo "unset HARNESS_BRAIN_MODEL must keep claude-opus-4-8"
+  exit 1
+}
+
+empty_default_model="$(HARNESS_BRAIN_MODEL= bash "${ROUTER}" --host claude --role advisor --field model)"
+[ "${empty_default_model}" = "claude-opus-4-8" ] || {
+  echo "empty HARNESS_BRAIN_MODEL must keep claude-opus-4-8"
+  exit 1
+}
+
 fable_advisor_model="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude --role advisor --field model)"
 [ "${fable_advisor_model}" = "claude-fable-5" ] || {
   echo "HARNESS_BRAIN_MODEL=fable must route claude advisor to claude-fable-5"

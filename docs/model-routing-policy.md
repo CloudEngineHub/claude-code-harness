@@ -124,9 +124,9 @@ Notes:
   prompt markers. If reasoning looks shallow on a hard task, raise effort rather
   than prompting around it.
 - `HARNESS_BRAIN_MODEL=fable` opts the `deep` / `advisor` tiers into
-  `claude-fable-5` (Fable 5). Unset or `opus` keeps `claude-opus-4-8`; any other
-  value exits 2 instead of falling back silently. The opt-in is claude-host only
-  and never changes the `standard` / `review` tiers.
+  `claude-fable-5` (Fable 5). Unset, empty, or `opus` keeps `claude-opus-4-8`;
+  any other value exits 2 instead of falling back silently. The opt-in is
+  claude-host only and never changes the `standard` / `review` tiers.
 
 ## Codex Routing
 
@@ -240,8 +240,8 @@ Notes:
 | `/harness-plan` | `opusplan` or Opus for non-trivial planning | `gpt-5.5`, `high` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | planning quality affects all downstream work |
 | `worker` | Sonnet 4.6, `medium` to `high` | `gpt-5.5`, `medium` | `composer-2.5-fast`, `medium` | implementation benefits from iteration and tests |
 | `explorer` / read-only fan-out | Haiku 4.5, `low` | `gpt-5.4-mini`, `low` | `composer-2-fast`, `low` | cheap context isolation |
-| `reviewer` | Sonnet 4.6 `xhigh`; Opus 4.8 `xhigh` for high-risk | `gpt-5.5`, `xhigh` | `composer-2.5-fast`, `xhigh` | review is where deeper reasoning pays |
-| `advisor` | Opus 4.8, `xhigh` | `gpt-5.5`, `xhigh` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | blocked-loop decisions need high confidence |
+| `reviewer` | Sonnet 4.6 `xhigh`; Opus 4.8 `xhigh` for high-risk | `gpt-5.5`, `xhigh` | `composer-2.5-fast`, `xhigh` (fresh-context pre-review only; primary verdict on brain) | review is where deeper reasoning pays |
+| `advisor` | Opus 4.8, `xhigh` (Fable 5 via `HARNESS_BRAIN_MODEL=fable`) | `gpt-5.5`, `xhigh` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | blocked-loop decisions need high confidence |
 | `release` | Sonnet 4.6, `high` | `gpt-5.5`, `high` | `composer-2.5-fast`, `high` | procedural but public-facing |
 
 ## Non-Goals
