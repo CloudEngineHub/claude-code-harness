@@ -113,6 +113,12 @@ fable_worker_model="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude -
   exit 1
 }
 
+fable_reviewer_model="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude --role reviewer --field model)"
+[ "${fable_reviewer_model}" = "claude-sonnet-4-6" ] || {
+  echo "fable brain opt-in must not change the primary review tier"
+  exit 1
+}
+
 fable_cursor_advisor="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host cursor --role advisor --field model)"
 [ "${fable_cursor_advisor}" = "claude-opus-4-8-thinking-xhigh" ] || {
   echo "fable brain opt-in must not touch the cursor model catalog"

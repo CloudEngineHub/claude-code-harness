@@ -212,7 +212,7 @@ Worker 実装は既完了（別系統 = claude / Codex で済んだ）、Reviewe
    - companion は `--write` 未指定で default `--mode ask` (hard read-only stop) になる (cursor-companion.sh の workspace guard は `--write` 時のみ発火)
    - cursor 側はファイル書込・コマンド実行が disabled、worktree 隔離不要
 3. cursor 出力 (REQUEST_CHANGES / APPROVE 相当) を Lead が解釈し、`dual_review.cursor_verdict` に advisory として格納
-4. **primary verdict は Opus reviewer から取る**。cursor 単独では APPROVE を確定しない (harness-work/SKILL.md「実装したバックエンドが自分の出力をレビューしてはならない」不変ルールと整合)
+4. **primary verdict は brain reviewer から取る**。cursor 単独では APPROVE を確定しない (spec.md Execution Backend Contract の self-review scope 契約 = 「diff を生成した同一コンテキストは自分の出力をレビューしない」と整合)。この lean path 自体が fresh-context advisory pre-review であり、委譲先 cursor session は実装 worker と会話状態を共有しないこと
 5. APPROVE なら Plans.md `cc:done [hash]` を Lead が更新
 
 read mode で省略できるもの: 専用 `.git` worktree / Lead diff review / cherry-pick / `worker-report.v1` / self_review 5 件。

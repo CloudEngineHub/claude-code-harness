@@ -266,8 +266,10 @@ defaults.
 
 Backend is role-scoped: the implementation (worker) role uses the selected
 backend. The primary review and advisor roles stay on the brain (the `claude`
-host; Opus 4.8 by default, `claude-fable-5` via the `HARNESS_BRAIN_MODEL`
-opt-in). The self-review prohibition is scoped to the producing
+host); per-role models resolve via `scripts/model-routing.sh`, and the
+`HARNESS_BRAIN_MODEL` opt-in described below affects only the `deep`/`advisor`
+tiers — the primary `review` tier is not changed by it. The self-review
+prohibition is scoped to the producing
 context, not the model family: the session that produced a diff must never
 review its own output, but a fresh-context reviewer session on the same
 backend (for example the cursor `review` tier, `composer-2.5-fast`) may run

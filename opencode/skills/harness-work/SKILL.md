@@ -79,13 +79,14 @@ Lead は `composer` を Claude Worker 内の追加 agent と解釈せず、非 `
 ### role-scoped 制約
 
 バックエンドは **role-scoped**。解決済みバックエンドを使うのは実装（worker）ロールだけ。
-Reviewer と Advisor の両ロールは常に brain（`--host claude`、Opus）に固定する。
-Reviewer を cursor / codex バックエンドに routing しない（実装したバックエンドが自分の出力をレビューしてはならない）。
+Reviewer と Advisor の両ロールは常に brain（`--host claude`）に固定する。
+Primary reviewer を cursor / codex バックエンドに routing しない（diff を生成した同一コンテキストが自分の出力をレビューしてはならない — spec.md Execution Backend Contract の self-review scope 契約）。
+例外は **fresh-context advisory pre-review** のみ: diff を生成した session と会話状態を共有しない cursor `review` tier（composer-2.5-fast、read-only）が brain 一次レビューの前段で advisory findings を出すことは許可。primary verdict（`APPROVE | REQUEST_CHANGES`）は brain のみが出す。
 
 ```bash
 # 実装ロールだけ解決済み backend に従う（例: backend=cursor なら composer-2.5-fast を解決）
 bash "${HARNESS_PLUGIN_ROOT}/scripts/model-routing.sh" --host cursor --role worker --field model
-# review / advisor は常に claude（Opus）固定
+# primary review / advisor は常に claude host 固定（fresh-context advisory pre-review のみ cursor review tier 利用可）
 bash "${HARNESS_PLUGIN_ROOT}/scripts/model-routing.sh" --host claude --role reviewer --field model
 bash "${HARNESS_PLUGIN_ROOT}/scripts/model-routing.sh" --host claude --role advisor --field model
 ```
