@@ -166,8 +166,12 @@ func TestHandleSetupHookInit_AlreadyInitialized(t *testing.T) {
 	}
 	defer os.Chdir(origWD)
 
-	// 事前に状態ディレクトリを作成
+	// 事前に状態ディレクトリと harness.toml を作成し、
+	// 生成ステップが全てスキップされる「初期化済み」分岐を踏ませる
 	if err := os.MkdirAll(filepath.Join(dir, ".claude", "state"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "harness.toml"), []byte("[project]\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -176,7 +180,40 @@ func TestHandleSetupHookInit_AlreadyInitialized(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	assertSetupOutput(t, out.String(), "[Setup:init]")
+	assertSetupOutput(t, out.String(), "ハーネスは既に初期化済みです")
+}
+
+// TestHandleSetupHookInit_SkipsHarnessTomlForForeignPluginRepo は、自前の
+// .claude-plugin/plugin.json を持つ (harness 非 opt-in の) リポジトリでは
+// harness.toml を生成しないことを確認する。生成すると後続の `harness sync` が
+// 既存 plugin.json をテンプレートで上書きしてしまうため (#201 レビュー指摘)。
+func TestHandleSetupHookInit_SkipsHarnessTomlForForeignPluginRepo(t *testing.T) {
+	dir := t.TempDir()
+	origWD, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origWD)
+
+	if err := os.MkdirAll(filepath.Join(dir, ".claude-plugin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	manifest := `{"name":"my-own-plugin","version":"2.3.1"}`
+	if err := os.WriteFile(filepath.Join(dir, ".claude-plugin", "plugin.json"), []byte(manifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	if err := HandleSetupHookInit(strings.NewReader(""), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "harness.toml")); err == nil {
+		t.Error("harness.toml must not be generated in a repo with its own .claude-plugin/plugin.json")
+	}
+	if strings.Contains(out.String(), "harness.toml 生成完了") {
+		t.Errorf("output should not report harness.toml creation: %s", out.String())
+	}
 }
 
 func TestHandleSetupHookInit_HarnessMemAutoSetupDisabledSilentSkip(t *testing.T) {
