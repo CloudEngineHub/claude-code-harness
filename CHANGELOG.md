@@ -12,7 +12,7 @@ Change history for claude-code-harness.
 
 **今まで**: 初回セッションの Setup hook は CLAUDE.md / Plans.md / config.yaml を生成するものの `harness.toml` を作らないため、続く `harness sync` が「harness.toml not found」で失敗していました。CC エージェントが `harness --help` から `harness init` を自力発見してリカバリーするまで auto-bootstrap が止まる状態でした。
 
-**今後**: Setup hook が `harness init` と同一のテンプレート（`go/internal/scaffold` で共有）から `harness.toml` を生成し、auto-bootstrap がそのまま `harness sync` へ繋がります。既存の `harness.toml` は上書きしません。また、自前の `.claude-plugin/plugin.json` / `settings.json` を持つ（harness を SSOT として使っていない）リポジトリでは生成をスキップし、後続 `harness sync` による既存マニフェストの上書き事故を防ぎます。
+**今後**: Setup hook が `harness init` と同一のテンプレート（`go/internal/scaffold` で共有）から `harness.toml` を生成し、auto-bootstrap がそのまま `harness sync` へ繋がります。既存の `harness.toml` は上書きしません。また、自前の `.claude-plugin/` を持つ（harness を SSOT として使っていない plugin / marketplace）リポジトリでは生成をスキップし、後続 `harness sync` による既存マニフェストの上書き事故を防ぎます。
 
 ### Added
 

@@ -198,11 +198,13 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 	// 3.5. harness.toml の生成（`harness sync` の入力ファイル。
 	// これがないと Setup hook 後の auto-bootstrap で sync が失敗する）
 	//
-	// ただし、自前の .claude-plugin/ 資産 (plugin.json / settings.json) を持つのに
-	// harness.toml を持たないリポジトリは、harness を SSOT として opt-in していない
-	// (例: ユーザー自身の CC plugin リポジトリ)。そこへ harness.toml を生成すると、
-	// 後続の `harness sync` が既存 plugin.json / settings.json をテンプレートで
-	// 上書きしてしまうため、生成をスキップする。
+	// ただし、.claude-plugin/ を持つのに harness.toml を持たないリポジトリは、
+	// harness を SSOT として opt-in していない (例: ユーザー自身の CC plugin /
+	// marketplace リポジトリ)。そこへ harness.toml を生成すると、後続の
+	// `harness sync` が既存 plugin.json / settings.json をテンプレートで
+	// 上書き・混入してしまうため、生成をスキップする。
+	// (harness opt-in したリポジトリは sync が .claude-plugin/ を作る前に
+	// 必ず harness.toml を得るので、この条件で誤ってスキップされることはない)
 	if !fileExists("harness.toml") && !hasForeignPluginAssets() {
 		if err := os.WriteFile("harness.toml", []byte(scaffold.HarnessTomlTemplate), 0o644); err == nil {
 			messages = append(messages, "harness.toml 生成完了")
@@ -263,12 +265,13 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 }
 
 // hasForeignPluginAssets は CWD のリポジトリが harness 管理外の .claude-plugin/
-// 資産を持つかを返す。`harness sync` はこれらのファイルを harness.toml から
-// 無条件に再生成するため、harness.toml を持たないのにこれらを持つリポジトリへ
-// harness.toml を自動生成してはならない（上書き事故防止、#201 レビュー指摘）。
+// ディレクトリを持つかを返す。`harness sync` は plugin.json / settings.json を
+// harness.toml から無条件に再生成するため、harness.toml を持たないのに
+// .claude-plugin/ を持つリポジトリ（自前 plugin・marketplace リポジトリ等）へ
+// harness.toml を自動生成してはならない（上書き・混入事故防止、#201 レビュー指摘）。
 func hasForeignPluginAssets() bool {
-	return fileExists(filepath.Join(".claude-plugin", "plugin.json")) ||
-		fileExists(filepath.Join(".claude-plugin", "settings.json"))
+	info, err := os.Stat(".claude-plugin")
+	return err == nil && info.IsDir()
 }
 
 func harnessMemAutoSetupMarkerPath() string {
