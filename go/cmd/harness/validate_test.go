@@ -307,6 +307,21 @@ model: gpt-4
 	}
 }
 
+func TestValidateSkills_FableModelAccepted(t *testing.T) {
+	dir := t.TempDir()
+	writeSkillFile(t, dir, "fable-brain", `---
+name: fable-brain
+description: "Skill opting the brain tier into Fable 5."
+model: claude-fable-5
+---
+`)
+
+	errs, _ := validateSkillsDir(filepath.Join(dir, "skills"))
+	if len(errs) != 0 {
+		t.Errorf("claude-fable-5 must be a recognized model, got: %v", errs)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // validateSkillsDir: no frontmatter
 // ---------------------------------------------------------------------------

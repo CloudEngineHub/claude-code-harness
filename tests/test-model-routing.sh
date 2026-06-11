@@ -69,6 +69,55 @@ if bash "${ROUTER}" --host codex --tier unknown >/tmp/model-routing-unknown.out 
   exit 1
 fi
 
+# --- Fable brain opt-in (HARNESS_BRAIN_MODEL) ---
+
+fable_advisor_model="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude --role advisor --field model)"
+[ "${fable_advisor_model}" = "claude-fable-5" ] || {
+  echo "HARNESS_BRAIN_MODEL=fable must route claude advisor to claude-fable-5"
+  exit 1
+}
+
+fable_deep_model="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude --tier deep --field model)"
+[ "${fable_deep_model}" = "claude-fable-5" ] || {
+  echo "HARNESS_BRAIN_MODEL=fable must route claude deep tier to claude-fable-5"
+  exit 1
+}
+
+fable_advisor_effort="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude --role advisor --field effort)"
+[ "${fable_advisor_effort}" = "xhigh" ] || {
+  echo "fable brain opt-in must keep xhigh effort"
+  exit 1
+}
+
+opus_explicit_model="$(HARNESS_BRAIN_MODEL=opus bash "${ROUTER}" --host claude --role advisor --field model)"
+[ "${opus_explicit_model}" = "claude-opus-4-8" ] || {
+  echo "HARNESS_BRAIN_MODEL=opus must keep claude-opus-4-8"
+  exit 1
+}
+
+fable_worker_model="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude --role worker --field model)"
+[ "${fable_worker_model}" = "claude-sonnet-4-6" ] || {
+  echo "fable brain opt-in must not touch the claude worker tier"
+  exit 1
+}
+
+fable_cursor_advisor="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host cursor --role advisor --field model)"
+[ "${fable_cursor_advisor}" = "claude-opus-4-8-thinking-xhigh" ] || {
+  echo "fable brain opt-in must not touch the cursor model catalog"
+  exit 1
+}
+
+fable_codex_advisor="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host codex --role advisor --field model)"
+[ "${fable_codex_advisor}" = "gpt-5.5" ] || {
+  echo "fable brain opt-in must not touch the codex model catalog"
+  exit 1
+}
+
+if HARNESS_BRAIN_MODEL=bogus bash "${ROUTER}" --host claude --role advisor >/dev/null 2>&1; then
+  echo "unknown HARNESS_BRAIN_MODEL value should fail loudly"
+  exit 1
+fi
+
 mkdir -p "${TMP_DIR}/home/.codex/plugins/openai-codex/1.0.0" "${TMP_DIR}/bin"
 touch "${TMP_DIR}/home/.codex/plugins/openai-codex/1.0.0/codex-companion.mjs"
 

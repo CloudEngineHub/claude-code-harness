@@ -69,6 +69,15 @@ case "$HOST" in
   *) echo "ERROR: unsupported host: $HOST" >&2; exit 2 ;;
 esac
 
+# Brain opt-in: HARNESS_BRAIN_MODEL switches the claude-host brain tiers
+# (deep/advisor) only. codex/cursor catalogs are host-side and stay untouched.
+CLAUDE_BRAIN_MODEL="claude-opus-4-8"
+case "${HARNESS_BRAIN_MODEL:-opus}" in
+  opus) ;;
+  fable) CLAUDE_BRAIN_MODEL="claude-fable-5" ;;
+  *) echo "ERROR: unknown HARNESS_BRAIN_MODEL: ${HARNESS_BRAIN_MODEL} (use opus|fable)" >&2; exit 2 ;;
+esac
+
 MODEL=""
 EFFORT=""
 
@@ -97,7 +106,7 @@ else
   case "$TIER" in
     lite) MODEL="claude-haiku-4-5"; EFFORT="low" ;;
     standard) MODEL="claude-sonnet-4-6"; EFFORT="medium" ;;
-    deep|advisor) MODEL="claude-opus-4-8"; EFFORT="xhigh" ;;
+    deep|advisor) MODEL="$CLAUDE_BRAIN_MODEL"; EFFORT="xhigh" ;;
     review) MODEL="claude-sonnet-4-6"; EFFORT="xhigh" ;;
     release) MODEL="claude-sonnet-4-6"; EFFORT="high" ;;
     long-context) MODEL="sonnet[1m]"; EFFORT="high" ;;
