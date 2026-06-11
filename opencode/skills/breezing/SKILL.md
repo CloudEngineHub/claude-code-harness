@@ -199,13 +199,14 @@ Worker 実装は既完了（別系統 = claude / Codex で済んだ）、Reviewe
    - cursor 側はファイル書込・コマンド実行が disabled、worktree 隔離不要
 3. cursor 出力 (REQUEST_CHANGES / APPROVE 相当) を Lead が解釈し、`dual_review.cursor_verdict` に advisory として格納
 4. **primary verdict は brain reviewer から取る**。cursor 単独では APPROVE を確定しない (spec.md Execution Backend Contract の self-review scope 契約 = 「diff を生成した同一コンテキストは自分の出力をレビューしない」と整合)。この lean path 自体が fresh-context advisory pre-review であり、委譲先 cursor session は実装 worker と会話状態を共有しないこと
-5. APPROVE なら Plans.md `cc:done [hash]` を Lead が更新
+5. **brain 一次レビュー**: Lead が cursor advisory findings を入力として対象 diff を自ら検分し、verdict（`APPROVE | REQUEST_CHANGES`）を出す。brain reviewer が利用不能（rate limit 等）の間は verdict を確定せず、タスクを `cc:wip` のままユーザー判断へ渡す（cursor advisory のみで `cc:done` にしない）
+6. brain の APPROVE 後に Plans.md `cc:done [hash]` を Lead が更新
 
 read mode で省略できるもの: 専用 `.git` worktree / Lead diff review / cherry-pick / `worker-report.v1` / self_review 5 件。
 read mode でも保持必要: `.cursorignore` / egress allowlist (`*.cursor.sh`) / permissions.json (best-effort)。詳細は `.claude/rules/cursor-cli-only.md` 「Read mode delegation (lean path)」節を参照。
 
 **用途**:
-- Anthropic 側 server rate limit で Reviewer が止まった時の逃げ道
+- Anthropic 側 server rate limit で Reviewer が止まった時に advisory findings を先に集めておく前倒し（brain verdict の代替にはならない — verdict は brain 復帰後に確定）
 - Worker 完了済みで Reviewer だけ別系統に分散
 - Codex review が auth 失敗した時の manual fallback
 
