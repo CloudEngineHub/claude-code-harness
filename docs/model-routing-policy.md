@@ -1,7 +1,7 @@
 # Model Routing Policy
 
 Status: adopted
-Last updated: 2026-05-29
+Last updated: 2026-06-11
 
 This document defines the default model and reasoning-effort routing for
 Claude Code, Codex, and Cursor in Harness workflows.
@@ -123,6 +123,10 @@ Notes:
   On Claude Opus 4.8, control reasoning depth with `effort` (`high`/`xhigh`), not
   prompt markers. If reasoning looks shallow on a hard task, raise effort rather
   than prompting around it.
+- `HARNESS_BRAIN_MODEL=fable` opts the `deep` / `advisor` tiers into
+  `claude-fable-5` (Fable 5). Unset or `opus` keeps `claude-opus-4-8`; any other
+  value exits 2 instead of falling back silently. The opt-in is claude-host only
+  and never changes the `standard` / `review` tiers.
 
 ## Codex Routing
 
@@ -222,6 +226,11 @@ Notes:
 - When explicit `model` is set on Task/subagent invocation, routed defaults must
   not override it (`tests/test-model-routing.sh` covers Codex explicit path;
   Cursor uses the same priority rule).
+- The `review` tier (`composer-2.5-fast`, `xhigh`) is a fresh-context pre-review
+  surface: a reviewer session that shares no conversation state with the
+  producing worker may pre-review a diff before the brain's primary review. The
+  session that produced a diff never reviews its own output, and the primary
+  verdict stays with the brain (spec.md Execution Backend Contract).
 
 ## Harness Role Defaults
 

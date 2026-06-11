@@ -6,6 +6,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+- **Fable 5 brain opt-in（`HARNESS_BRAIN_MODEL`）**: `scripts/model-routing.sh` の claude 頭脳枠（`deep` / `advisor`）を `HARNESS_BRAIN_MODEL=fable` で `claude-fable-5` に切替可能にしました。デフォルトは `claude-opus-4-8` のまま（opt-in）、未知の値は exit 2 で fail-loud。codex / cursor のモデル表は不変です。`claude-fable-5` を `harness validate` の認識モデルに追加し、配布バイナリを再ビルド済み。
+
+### Changed
+
+- **レビュー契約の精緻化（spec.md Execution Backend Contract）**: 自己レビュー禁止の対象を「モデルファミリー」から「diff を生成した同一コンテキスト」に明確化しました。フレッシュコンテキスト（producing worker と会話状態を共有しないセッション）の cursor `review` tier（`composer-2.5-fast`）による advisory プレレビューを、brain 一次レビューの前段として正式に許可します。primary verdict は引き続き brain 固定です。
+
 ## [4.15.0] - 2026-06-05
 
 ### テーマ: settings 自己書換保護を配布物まで届ける

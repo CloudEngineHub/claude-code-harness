@@ -266,9 +266,15 @@ defaults.
 
 Backend is role-scoped: the implementation (worker) role uses the selected
 backend. The primary review and advisor roles stay on the brain (Opus /
-`claude` host) so the implementing backend never reviews its own output.
-When the resolved backend is `cursor`, review flows may add Cursor as a
-read-only second opinion, but Cursor remains advisory and never owns the
+`claude` host). The self-review prohibition is scoped to the producing
+context, not the model family: the session that produced a diff must never
+review its own output, but a fresh-context reviewer session on the same
+backend (for example the cursor `review` tier, `composer-2.5-fast`) may run
+an advisory pre-review pass before the brain's primary review. A pre-review
+session qualifies as fresh-context only when it shares no conversation state
+with the producing worker session and starts from the diff plus the task
+brief. Pre-review findings are advisory input to the brain; the primary
+verdict always remains with the brain reviewer, and Cursor never owns the
 primary verdict.
 
 Cursor-capable host packages must expose the Cursor namespace as first-class
@@ -294,7 +300,11 @@ namespace as the user-facing mental model.
 
 The concrete model for any host+role is resolved by
 `scripts/model-routing.sh --host <backend> --role <role>`. This contract does
-not reimplement model selection.
+not reimplement model selection. The claude-host brain tiers (`deep`,
+`advisor`) default to `claude-opus-4-8`; setting `HARNESS_BRAIN_MODEL=fable`
+opts those two tiers into `claude-fable-5`. The opt-in never changes the
+worker or review tiers, never touches the codex/cursor catalogs, and an
+unknown value fails with exit 2 instead of falling back silently.
 
 Cursor remains `internal-compatible`, not a public `supported` claim. The
 shipped `harness` CLI keeps Cursor opt-in by default; individual
