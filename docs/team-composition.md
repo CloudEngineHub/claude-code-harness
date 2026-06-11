@@ -94,6 +94,14 @@ SendMessage(
 )
 ```
 
+## parallel worktree root
+
+並列 Worker を fan-out する前に Lead は `scripts/spawn-parallel.sh <task...>`（または
+`harness work --team` 前段）で **1 つの base SHA** から worktree を作る。root は
+`.harness-worktrees/` のみ（`task-<name>` 配下、branch は `task/<name>`）。`.claude/worktrees/`
+は CC live agent 専用で混同しない。規約の正本は [`spec.md` の Worktree Root Discipline](../spec.md)
+を参照。
+
 ## breezing 時の main 反映
 
 Worker は worktree または feature branch で commit する。

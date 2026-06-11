@@ -791,6 +791,27 @@ coordinate them to reduce file conflicts, but only under these rules.
   the 2026-02 broadcast corpse proved. Any revival must prove via tests that
   its fire strategy triggers on normal edits.
 
+## Worktree Root Discipline
+
+Harness uses two distinct worktree roots. They must never be merged, relocated,
+or referenced interchangeably.
+
+- `.harness-worktrees/` is the **single root** for Harness-managed parallel task
+  worktrees. `scripts/spawn-parallel.sh` (and `harness work --team` preflight)
+  runs `git fetch origin`, captures one `BASE=$(git rev-parse HEAD)`, and creates
+  `task/<name>` branches at `.harness-worktrees/task-<name>` from that shared
+  base. Go `breezing.WorktreeManager` also resolves paths under
+  `HarnessWorktreesRoot` (`.harness-worktrees/`). Re-running spawn for an
+  existing worktree is idempotent when the base SHA matches; a base mismatch
+  must fail fast without deleting the existing worktree.
+- `.claude/worktrees/` is **Claude Code live-agent isolation only** (Task tool /
+  Agent isolation runtime). It is not the parallel-task root, must not be moved
+  into `.harness-worktrees/`, and must not be rewritten by spawn or breezing
+  tooling.
+
+Project-local `git config rerere.enabled true` is set during parallel spawn so
+cherry-pick/rebase conflict reuse is reproducible across machines.
+
 ## Tri-Tool Parallel Collaboration Contract
 
 One Lead drives several DIFFERENT tasks in parallel across the three backends

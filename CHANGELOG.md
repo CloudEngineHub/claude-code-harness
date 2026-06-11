@@ -8,6 +8,8 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **Parallel worktree spawn（Phase 92.1.1）**: `scripts/spawn-parallel.sh` で `git fetch origin` + 単一 base SHA から `.harness-worktrees/task-<name>` / `task/<name>` を idempotent に作成。`rerere.enabled` を project config に設定。`spec.md` Worktree Root Discipline で `.harness-worktrees/` と `.claude/worktrees/` の責務分離を明文化。
+
 - **Fable 5 brain opt-in（`HARNESS_BRAIN_MODEL`）**: `scripts/model-routing.sh` の claude 頭脳枠（`deep` / `advisor`）を `HARNESS_BRAIN_MODEL=fable` で `claude-fable-5` に切替可能にしました。デフォルトは `claude-opus-4-8` のまま（opt-in）、未知の値は exit 2 で fail-loud。codex / cursor のモデル表は不変です。`claude-fable-5` を `harness validate` の認識モデルに追加し、配布バイナリを再ビルド済み。
 
 ### Changed
