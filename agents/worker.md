@@ -250,6 +250,16 @@ Lead は次のいずれかを観測したら同じ task を最大 1 回だけ再
 
 Worker 自身は stall 検出を行わない (Lead 側の責務)。Worker は `task_complexity_note` に「stall が起きた」事実だけ記録する。
 
+## Mode 1 producer 階層下の Worker
+
+`HARNESS_TEAM_HIERARCHY=sublead` が有効な Go team 経路（`harness work --team`）では、Worker は **Sub-Lead から受け取った subtask 1 件**を実装する立場になる（`go/internal/sublead/sublead.go` の inner orchestrator fan-out）。Sub-Lead が lane を mini-plan に分解し、各 subtask を並列 dispatch する。
+
+- **hub-spoke**: subtask 間で messaging しない。peer の結果や channel は受け取らない。報告は Sub-Lead への `companion-result.v1` 集約のみ。
+- **self-review scope**: diff を生成した **producing context** からの自己レビューは禁止（spec.md Execution Backend Contract の self-review scope と整合）。`worker-report.v1` の `self_review` 5 件ゲートは **backend=claude** の agent spawn 経路向けであり、Sub-Lead 配下の cursor companion subWorker では Lead/companion 経路の diff レビューが品質ゲートになる。
+- **例外**: **fresh-context advisory pre-review**（producing session と会話状態を共有しない read-only reviewer pass）は許可。primary verdict は brain（Lead）のみが出す（`HARNESS_REVIEW_ITERATE=on` 時の `reviewiterate` ループ参照）。
+
+上記は Mode 1 階層の追加文脈であり、`worker-report.v1` / `self_review` 5 件 / NG-1〜3 の既存 Worker 契約は変えない。
+
 ## モード別ルール
 
 > **注意**: embedded git repo 検出 (NG-2) と nested teammate spawn 禁止 (NG-3) は universal NG rules として全 mode に適用される。Plans.md cc:* マーカー書換禁止 (NG-1) は `mode == breezing` 限定で、他 mode の Plans.md 更新契約は維持される。
