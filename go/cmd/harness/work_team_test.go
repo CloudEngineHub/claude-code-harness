@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -11,6 +14,8 @@ import (
 	"github.com/Chachamaru127/claude-code-harness/go/internal/breezing"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/companionresult"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/floor"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/orchestrationledger"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/runtimefloor"
 )
 
 // passingFloorGate installs a floorGate stub that always passes, so tests that
@@ -353,5 +358,155 @@ func TestRunTeamFloorGateNotRunForFailedSubRun(t *testing.T) {
 	}
 	if results[0].ExitCode != 127 {
 		t.Errorf("failed sub-run ExitCode = %d, want 127 (unchanged)", results[0].ExitCode)
+	}
+}
+
+func installFakeCompanionScript(t *testing.T, root string) {
+	t.Helper()
+	scriptDir := filepath.Join(root, "scripts")
+	if err := os.MkdirAll(scriptDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(root, "companion-ran")
+	script := filepath.Join(scriptDir, "codex-companion.sh")
+	body := "#!/bin/bash\ntouch " + marker + "\nexit 99\n"
+	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HARNESS_PROJECT_ROOT", root)
+	t.Setenv("CLAUDE_PLUGIN_ROOT", root)
+}
+
+func readLedgerEntries(t *testing.T, path string) []orchestrationledger.Entry {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read ledger %s: %v", path, err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) == 1 && lines[0] == "" {
+		return nil
+	}
+	out := make([]orchestrationledger.Entry, 0, len(lines))
+	for _, line := range lines {
+		var e orchestrationledger.Entry
+		if err := json.Unmarshal([]byte(line), &e); err != nil {
+			t.Fatalf("unmarshal ledger line: %v", err)
+		}
+		out = append(out, e)
+	}
+	return out
+}
+
+func TestRunTeam_DispatchFloorStopsCompanion(t *testing.T) {
+	passingFloorGate(t)
+	root := t.TempDir()
+	installFakeCompanionScript(t, root)
+	marker := filepath.Join(root, "companion-ran")
+
+	origFloor := runtimeFloorCheck
+	runtimeFloorCheck = func(_ string, _ runtimefloor.Context) runtimefloor.Decision {
+		return runtimefloor.Decision{
+			Stopped:  true,
+			Category: runtimefloor.CategoryEgress,
+			Reason:   "runtime action hard floor: test stop",
+		}
+	}
+	defer func() { runtimeFloorCheck = origFloor }()
+
+	orig := teamWorkerFactory
+	teamWorkerFactory = productionCompanionWorker
+	defer func() { teamWorkerFactory = orig }()
+
+	results, err := runTeam([]string{"t-floor"}, "codex", 1)
+	if err != nil {
+		t.Fatalf("runTeam: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("got %d results, want 1", len(results))
+	}
+	r := results[0]
+	if r.Success {
+		t.Fatal("floor stop must yield Success=false")
+	}
+	if r.ExitCode != 2 {
+		t.Fatalf("ExitCode = %d, want 2", r.ExitCode)
+	}
+	if !strings.HasPrefix(r.Summary, "RUNTIME_FLOOR:") {
+		t.Fatalf("Summary = %q, want RUNTIME_FLOOR prefix", r.Summary)
+	}
+	if _, err := os.Stat(marker); err == nil {
+		t.Fatal("companion script must not run when runtime floor stops dispatch")
+	}
+}
+
+func TestRunTeam_AutoApproveLedger_Disabled(t *testing.T) {
+	passingFloorGate(t)
+	root := t.TempDir()
+	ledger := filepath.Join(root, "ledger.jsonl")
+	t.Setenv("HARNESS_PROJECT_ROOT", root)
+	t.Setenv("HARNESS_ORCHESTRATION_LEDGER", ledger)
+	t.Setenv("HARNESS_AUTO_APPROVE", "")
+
+	orig := teamWorkerFactory
+	teamWorkerFactory = recordingFactory(map[string]int{"t1": 0}, &[]string{}, &sync.Mutex{})
+	defer func() { teamWorkerFactory = orig }()
+
+	if _, err := runTeam([]string{"t1"}, "codex", 1); err != nil {
+		t.Fatalf("runTeam: %v", err)
+	}
+
+	entries := readLedgerEntries(t, ledger)
+	if len(entries) != 1 {
+		t.Fatalf("got %d ledger entries, want 1", len(entries))
+	}
+	e := entries[0]
+	if e.Subcommand != "team-dispatch" {
+		t.Fatalf("subcommand = %q, want team-dispatch", e.Subcommand)
+	}
+	if e.SessionID != "HARNESS_AUTO_APPROVE not set" {
+		t.Fatalf("reason(session_id) = %q, want disabled reason", e.SessionID)
+	}
+	if e.Counts {
+		t.Fatal("counts should be false when auto-approve disabled")
+	}
+}
+
+func TestRunTeam_AutoApproveLedger_Enabled(t *testing.T) {
+	passingFloorGate(t)
+	root := t.TempDir()
+	ledger := filepath.Join(root, "ledger.jsonl")
+	binDir := filepath.Join(root, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(binDir, "harness"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HARNESS_PROJECT_ROOT", root)
+	t.Setenv("HARNESS_ORCHESTRATION_LEDGER", ledger)
+	t.Setenv("HARNESS_AUTO_APPROVE", "on")
+
+	orig := teamWorkerFactory
+	teamWorkerFactory = recordingFactory(map[string]int{"t1": 0}, &[]string{}, &sync.Mutex{})
+	defer func() { teamWorkerFactory = orig }()
+
+	if _, err := runTeam([]string{"t1"}, "cursor", 1); err != nil {
+		t.Fatalf("runTeam: %v", err)
+	}
+
+	entries := readLedgerEntries(t, ledger)
+	if len(entries) != 1 {
+		t.Fatalf("got %d ledger entries, want 1", len(entries))
+	}
+	e := entries[0]
+	if e.SessionID != "enabled" {
+		t.Fatalf("reason(session_id) = %q, want enabled", e.SessionID)
+	}
+	if !e.Counts {
+		t.Fatal("counts should be true when auto-approve enabled")
+	}
+	if e.Backend != "cursor" {
+		t.Fatalf("backend = %q, want cursor", e.Backend)
 	}
 }

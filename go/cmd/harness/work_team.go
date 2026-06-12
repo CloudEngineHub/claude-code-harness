@@ -10,9 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/autoapprove"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/breezing"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/companionresult"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/floor"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/orchestrationledger"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/runtimefloor"
 )
 
 // floorGate is the FLOOR pre-merge backstop applied to a successful non-CC
@@ -21,6 +24,14 @@ import (
 // inject a gate outcome without shelling out to the contract scripts. Production
 // never reassigns it.
 var floorGate = floor.Gate
+
+// runtimeFloorCheck is the RUNTIME ACTION HARD FLOOR pre-dispatch gate.
+// Tests may inject a stub; production uses runtimefloor.CheckCommand.
+var runtimeFloorCheck = runtimefloor.CheckCommand
+
+// emitTeamDispatchLedger records team-side orchestration visibility. Tests may
+// replace it; production uses orchestrationledger.EmitTeamDispatch.
+var emitTeamDispatchLedger = orchestrationledger.EmitTeamDispatch
 
 // runWorkTeam handles `harness work --team <taskID...>`: fan out N independent
 // backend sub-runs through breezing.Orchestrator (the harness owns the fan-out;
@@ -134,6 +145,8 @@ var teamWorkerFactory = func(backend string) breezing.WorkerFunc {
 // order. This is the production (non-test-internal) caller that proves the
 // Orchestrator fans out N independent sub-runs.
 func runTeam(tasks []string, backend string, maxParallel int) ([]companionresult.Result, error) {
+	recordTeamAutoApproveLedger(backend)
+
 	worker := teamWorkerFactory(backend)
 
 	o := breezing.NewOrchestrator(worker, breezing.WithMaxParallel(maxParallel))
@@ -163,6 +176,29 @@ func runTeam(tasks []string, backend string, maxParallel int) ([]companionresult
 		out = append(out, applyFloorGate(resultFromTaskResult(backend, id, tr)))
 	}
 	return out, nil
+}
+
+// recordTeamAutoApproveLedger writes one team-dispatch ledger line for the
+// auto-approve fail-safe decision before any companion is spawned.
+func recordTeamAutoApproveLedger(backend string) {
+	start := time.Now()
+	repoRoot := resolveRepoRoot()
+	enabled, reason := autoapprove.AutoApproveEnabled(repoRoot)
+	exit := 0
+	emitTeamDispatchLedger(orchestrationledger.TeamDispatchOpts{
+		Backend:    backend,
+		Write:      true,
+		ExitCode:   &exit,
+		DurationMs: time.Since(start).Milliseconds(),
+		Reason:     reason,
+		Enabled:    enabled,
+		RepoRoot:   repoRoot,
+	})
+}
+
+// resolveWorktreeRoot returns the absolute Harness-managed worktree path for taskID.
+func resolveWorktreeRoot(taskID string) string {
+	return breezing.ManagerWorktreePath(resolveRepoRoot(), taskID)
 }
 
 // applyFloorGate runs the FLOOR pre-merge backstop over a successful sub-run's
@@ -274,6 +310,30 @@ func productionCompanionWorker(backend string) breezing.WorkerFunc {
 		// The prompt asks the backend to work the given task ID; the actual
 		// task body is resolved by the host/companion from Plans.md.
 		prompt := fmt.Sprintf("Work task %s.", task.ID)
+
+		// Pre-dispatch runtime floor check on the prompt + script invocation surface.
+		floorStart := time.Now()
+		floorCmd := fmt.Sprintf("bash %s task --write %s", script, prompt)
+		floorCtx := runtimefloor.Context{WorktreeRoot: resolveWorktreeRoot(task.ID)}
+		if decision := runtimeFloorCheck(floorCmd, floorCtx); decision.Stopped {
+			reason := fmt.Sprintf("RUNTIME_FLOOR:%s: %s", decision.Category, decision.Reason)
+			exit := 2
+			emitTeamDispatchLedger(orchestrationledger.TeamDispatchOpts{
+				Backend:    backend,
+				Write:      true,
+				ExitCode:   &exit,
+				DurationMs: time.Since(floorStart).Milliseconds(),
+				Reason:     reason,
+				Enabled:    true,
+				RepoRoot:   resolveRepoRoot(),
+			})
+			r := companionresult.New(backend, task.ID)
+			r.Success = false
+			r.ExitCode = 2
+			r.Summary = reason
+			return carryResult(r)
+		}
+
 		cmd := exec.CommandContext(ctx, "bash", script, "task", "--write", prompt)
 		cmd.Dir = resolveRepoRoot()
 
