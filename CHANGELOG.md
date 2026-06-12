@@ -14,6 +14,8 @@ Change history for claude-code-harness.
 
 - **Shared File Discipline（Phase 92.1.3）**: 並列 worktree 実行時の共有ファイル編集規約を `.claude/rules/shared-file-discipline.md` に正本化（共有 append ファイルは owner-assigned append-only / VERSION は worktree 内で bump しない / 生成物は trunk で 1 回再生成）。`check-consistency.sh` の Section 15 が規約存在と 3 invariant キーフレーズを CI 検証。
 
+- **Runtime action hard floor（Phase 92.2.1）**: Bash command を実行前（PreToolUse 層）に pattern-match して 5 カテゴリ（money/billing・外部送信/egress・認証/secret 読取・本番 deploy・worktree 外破壊）の運用は必ず human escalation に上げる仕組みを `go/internal/runtimefloor` として追加しました。`CheckCommand` は disable flag / env var / config 読込を構造的に持たないため、どの設定でも無効化できません。decision は `permissionDecision=ask` + reason `RUNTIME_FLOOR:<category>:...` 形式で返ります。既存の file gate (`go/internal/floor`) は "pre-merge policy gate" と名称分離し、混同を防ぎました。
+
 - **Fable 5 brain opt-in（`HARNESS_BRAIN_MODEL`）**: `scripts/model-routing.sh` の claude 頭脳枠（`deep` / `advisor`）を `HARNESS_BRAIN_MODEL=fable` で `claude-fable-5` に切替可能にしました。デフォルトは `claude-opus-4-8` のまま（opt-in）、未知の値は exit 2 で fail-loud。codex / cursor のモデル表は不変です。`claude-fable-5` を `harness validate` の認識モデルに追加し、配布バイナリを再ビルド済み。
 
 ### Changed
