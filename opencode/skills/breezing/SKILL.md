@@ -25,6 +25,20 @@ description: "Team execution mode — backward-compatible alias for harness-work
 
 banner 1 行 (`🚀 <backend> / <model> / <branch> / <task>`) + 計画 2-4 行。1 秒以内に出し、即 Step 1 へ。
 
+### Fallback 警告（backend = `claude` 確定時）
+
+resolver 出力が `claude`、または resolver 未経由で backend が `claude` と確定した場合、**起動 banner 直後に 1 行だけ**次を出す（計画行の前）:
+
+```
+⚠️ backend=claude (via resolver / not via resolver) — composer/cursor を使う場合は `--cursor` or `bash "${HARNESS_PLUGIN_ROOT}/scripts/resolve-impl-backend.sh"` を確認
+```
+
+- **`via resolver` / `not via resolver`**: resolver を実行したかで literal を選ぶ（経由時 `via resolver`、未経由時 `not via resolver`）
+- **確認先**: `--cursor` flag と bundled `resolve-impl-backend.sh`（`bash "${HARNESS_PLUGIN_ROOT}/scripts/resolve-impl-backend.sh"`）の 2 つを必ず含める
+- **env unset 罠の可視化**: default / env / file 解決で `claude` に落ちたことを 1 行で示し、cursor 意図なら override または persistent default を促す
+
+「禁止 (= 冗長さ)」節と衝突しない: この警告は banner 直後 **1 行に圧縮**し、同一 run 内で繰り返さない（計画行・進捗行に同内容を言い換えない）。
+
 ### 進捗報告は出してよい (見やすい範囲で)
 
 - 各ステップの開始・完了を 1 行ステータスで (`✓ backend=cursor / model=composer-2.5-fast`)

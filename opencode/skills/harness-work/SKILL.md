@@ -70,6 +70,18 @@ bash "${HARNESS_PLUGIN_ROOT}/scripts/resolve-impl-backend.sh"
 env / `--cursor` / `--codex` / `--backend <v>` per-run flag / project `env.local` / user file の precedence は resolver が一括解決する（高い順: 明示フラグ > env > project file > user file > 既定値 `claude`）。プロジェクト設定はユーザースコープを上書きする。
 明示フラグ（`--backend` / `--cursor` / `--codex`）は env / file / default を常に上書きする。
 
+### Fallback 警告（backend = `claude` 確定時）
+
+backend resolution 結果が `claude` のとき（resolver 出力が `claude`、または resolver 未経由で `claude` と確定）、host は起動 banner 直後に **1 行だけ**次を出す。フォーマットは `breezing` の Narration Rules「Fallback 警告」と同一（cross-ref: `skills/breezing/SKILL.md`）:
+
+```
+⚠️ backend=claude (via resolver / not via resolver) — composer/cursor を使う場合は `--cursor` or `bash "${HARNESS_PLUGIN_ROOT}/scripts/resolve-impl-backend.sh"` を確認
+```
+
+- **`via resolver` / `not via resolver`**: resolver 実行有無で literal を選ぶ
+- **確認先**: `--cursor` と bundled `resolve-impl-backend.sh`（`bash "${HARNESS_PLUGIN_ROOT}/scripts/resolve-impl-backend.sh"`）
+- env unset / default fallback で `claude` に落ちる罠を 1 行で可視化。同一 run 内で繰り返さない（`breezing` の冗長さ禁止と整合）
+
 ### 自然言語 backend trigger
 
 ユーザーが `composer` / `コンポーザー` / `Composer で` / `composer 2.5` / `composer モード` と言った場合は、`cursor backend` 指定として扱う。
