@@ -30,8 +30,78 @@ type IntegrationOpts struct {
 	FloorPass    bool
 }
 
-// EmitIntegration appends one integration ledger line. RED stub: no-op.
-func EmitIntegration(_ IntegrationOpts) {}
+// EmitIntegration appends one integration ledger line. Fail-open: write errors
+// are ignored and never propagate to callers.
+func EmitIntegration(opts IntegrationOpts) {
+	backend := strings.TrimSpace(opts.Backend)
+	if backend == "" {
+		backend = "lead"
+	}
+	dur := opts.DurationMs
+	exit := opts.ExitCode
+	entry := integrationEntry{
+		TS:         nowUTC(),
+		Backend:    backend,
+		Subcommand: subcommandIntegration,
+		Write:      opts.Write,
+		ExitCode:   exit,
+		DurationMs: &dur,
+		SessionID:  opts.TaskBranch,
+		Counts: integrationCounts{
+			Sequence:     opts.Sequence,
+			TaskBranch:   opts.TaskBranch,
+			TrunkBranch:  opts.TrunkBranch,
+			CommitSHA:    opts.CommitSHA,
+			RereResolved: opts.RereResolved,
+			FloorPass:    opts.FloorPass,
+		},
+	}
+	_ = emitIntegration(entry, opts.RepoRoot)
+}
+
+type integrationCounts struct {
+	Sequence     int    `json:"sequence"`
+	TaskBranch   string `json:"task_branch"`
+	TrunkBranch  string `json:"trunk_branch"`
+	CommitSHA    string `json:"commit_sha"`
+	RereResolved bool   `json:"rere_resolved"`
+	FloorPass    bool   `json:"floor_pass"`
+}
+
+type integrationEntry struct {
+	TS         string            `json:"ts"`
+	Backend    string            `json:"backend"`
+	Subcommand string            `json:"subcommand"`
+	Write      bool              `json:"write"`
+	ExitCode   *int              `json:"exit_code"`
+	DurationMs *int64            `json:"duration_ms"`
+	SessionID  string            `json:"session_id"`
+	Counts     integrationCounts `json:"counts"`
+}
+
+func emitIntegration(entry integrationEntry, repoRoot string) error {
+	path := ledgerPath(repoRoot)
+	if path == "" {
+		return nil
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	line, err := json.Marshal(entry)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		return err
+	}
+	return nil
+}
 
 // Entry is one orchestration-ledger.v1 line. Nullable fields use pointers so
 // JSON encodes them as null when unset, matching the shell helper.

@@ -150,16 +150,19 @@ func TestIntegrate_RereReplay_SharedFileConflict(t *testing.T) {
 	runGit(t, dir, "add", "SHARED.md")
 	runGit(t, dir, "commit", "-m", "t2 change")
 
-	// Pre-record rerere resolution for T1-vs-T2 conflict on trunk.
-	runGit(t, dir, "checkout", "trunk")
-	if _, err := runGitAllowFail(dir, "cherry-pick", "--no-commit", "task/t2"); err == nil {
-		t.Fatal("expected cherry-pick conflict")
+	// Pre-record rerere resolution by completing one rebase, then rewinding the branch.
+	runGit(t, dir, "checkout", "task/t2")
+	t2SHA := runGit(t, dir, "rev-parse", "HEAD")
+	if _, err := runGitAllowFail(dir, "rebase", "trunk"); err == nil {
+		t.Fatal("expected rebase conflict")
 	}
 	if err := os.WriteFile(shared, []byte("T1 line\nT2 line\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	runGit(t, dir, "add", "SHARED.md")
-	runGit(t, dir, "cherry-pick", "--abort")
+	runGit(t, dir, "rebase", "--continue")
+	runGit(t, dir, "checkout", "trunk")
+	runGit(t, dir, "branch", "-f", "task/t2", t2SHA)
 
 	res, err := Integrate(ctx, Options{
 		RepoRoot:     dir,
