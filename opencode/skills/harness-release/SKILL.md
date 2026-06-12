@@ -30,11 +30,11 @@ if $ARGUMENTS == "":
 
 ### Output Contract (P35: 「止まったように見える」UX 対策)
 
-skill 結論時の output の **最後の 1 行**は必ず次の literal を含める:
+skill 結論時の output の **最後の 1 行**は必ず P35 footer を configured language（`i18n.language` / `CLAUDE_CODE_HARNESS_LANG`。未設定なら session language）で出力する。これは `<local-command-stdout>` 経由の表示で user が「止まった」と感じる UX 問題への明示的な instruction (patterns.md P35) で、意図は言語に依存しないため literal は言語ごとに切り替える (#208):
 
-`↑この結果は Claude が要約します。Enter キーで次へ進むか、新規 prompt で別の指示を出してください。`
-
-これは `<local-command-stdout>` 経由で text response として表示されると user が「止まった」と感じる UX 問題への明示的な instruction (patterns.md P35)。
+- ja: `↑この結果は Claude が要約します。Enter キーで次へ進むか、新規 prompt で別の指示を出してください。`
+- en: `↑Claude will summarize this result. Press Enter to continue, or send a new prompt for a different instruction.`
+- その他の言語: 同じ意味の 1 行を configured language で出力する
 
 `harness-release` / `/release` だけが入力された場合、これは
 **「今までの作業をコミットし、PR/main 反映まで完了してリリースしたい」** という意味として扱う。

@@ -8,6 +8,12 @@ Change history for claude-code-harness.
 
 ### Fixed
 
+#### P35 footer が i18n.language を無視して日本語固定だった問題（#208）
+
+**今まで**: `harness-review` / `harness-release` の結論時 footer（「止まったように見える」UX 対策の instruction line）が日本語 literal のハードコードで、`i18n.language` / `CLAUDE_CODE_HARNESS_LANG` を `ko` 等に設定しても必ず日本語が出力されていました。同じ SKILL.md の「出力言語は configured language に従う」ルールとも矛盾していました。
+
+**今後**: footer は configured language で出力されます。ja / en の canonical literal を SKILL.md に定義し、その他の言語では同義の 1 行を configured language で出力します。governance テストには en literal の回帰ゲートを追加しました。
+
 #### Setup hook の auto-bootstrap が harness.toml を生成しない問題（#201）
 
 **今まで**: 初回セッションの Setup hook は CLAUDE.md / Plans.md / config.yaml を生成するものの `harness.toml` を作らないため、続く `harness sync` が「harness.toml not found」で失敗していました。CC エージェントが `harness --help` から `harness init` を自力発見してリカバリーするまで auto-bootstrap が止まる状態でした。

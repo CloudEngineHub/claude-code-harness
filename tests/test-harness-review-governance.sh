@@ -50,6 +50,8 @@ required_skill_terms=(
   "rejected findings"
   "stop-on-clean"
   "↑この結果は Claude が要約します"
+  "↑Claude will summarize this result"
+  "configured language"
 )
 
 required_reference_terms=(

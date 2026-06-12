@@ -31,6 +31,8 @@ required_terms=(
   'if $ARGUMENTS == ""'
   "タスクが不明確"
   "↑この結果は Claude が要約します"
+  "↑Claude will summarize this result"
+  "configured language"
 )
 
 failures=0
