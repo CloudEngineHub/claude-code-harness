@@ -1,0 +1,14 @@
+{
+  "question": "単一オプションのみの無効カード",
+  "options": [
+    {
+      "id": "only",
+      "label": "唯一の選択肢",
+      "consequence": "minItems 2 違反"
+    }
+  ],
+  "recommendation": "only",
+  "confidence": "high",
+  "impact": "fixture only",
+  "diff_summary": "invalid fixture"
+}
