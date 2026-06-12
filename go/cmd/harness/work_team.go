@@ -33,6 +33,10 @@ var runtimeFloorCheck = runtimefloor.CheckCommand
 // replace it; production uses orchestrationledger.EmitTeamDispatch.
 var emitTeamDispatchLedger = orchestrationledger.EmitTeamDispatch
 
+// emitCompanionResultLedger records per-task companion outcomes. Tests may
+// replace it; production uses orchestrationledger.EmitCompanionResult.
+var emitCompanionResultLedger = orchestrationledger.EmitCompanionResult
+
 // runWorkTeam handles `harness work --team <taskID...>`: fan out N independent
 // backend sub-runs through breezing.Orchestrator (the harness owns the fan-out;
 // each sub-run is single-threaded), collecting a companion-result.v1 per task.
@@ -303,6 +307,7 @@ func productionCompanionWorker(backend string) breezing.WorkerFunc {
 			r.Success = false
 			r.ExitCode = 127
 			r.Summary = fmt.Sprintf("%s companion script not found (scripts/%s-companion.sh)", backend, backend)
+			recordCompanionResultLedger(backend, task.ID, r)
 			return carryResult(r)
 		}
 
@@ -331,6 +336,7 @@ func productionCompanionWorker(backend string) breezing.WorkerFunc {
 			r.Success = false
 			r.ExitCode = 2
 			r.Summary = reason
+			recordCompanionResultLedger(backend, task.ID, r)
 			return carryResult(r)
 		}
 
@@ -359,8 +365,23 @@ func productionCompanionWorker(backend string) breezing.WorkerFunc {
 		}
 
 		r := companionresult.Normalize(backend, task.ID, exitCode, stdout.String(), stderr.String(), dur)
+		recordCompanionResultLedger(backend, task.ID, r)
 		return carryResult(r)
 	}
+}
+
+// recordCompanionResultLedger appends one companion-result orchestration line.
+func recordCompanionResultLedger(backend, taskID string, r companionresult.Result) {
+	exit := r.ExitCode
+	emitCompanionResultLedger(orchestrationledger.CompanionResultOpts{
+		Backend:    backend,
+		TaskID:     taskID,
+		Write:      true,
+		ExitCode:   &exit,
+		DurationMs: r.DurationMs,
+		Success:    r.Success,
+		RepoRoot:   resolveRepoRoot(),
+	})
 }
 
 // resolveCompanionScript finds scripts/<backend>-companion.sh, mirroring the

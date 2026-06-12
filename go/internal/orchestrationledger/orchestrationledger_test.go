@@ -122,6 +122,49 @@ func TestEmitIntegration_WritesJsonl(t *testing.T) {
 	}
 }
 
+func TestEmitCompanionResult_WritesJsonl(t *testing.T) {
+	dir := t.TempDir()
+	ledger := filepath.Join(dir, "ledger.jsonl")
+	t.Setenv("HARNESS_ORCHESTRATION_LEDGER", ledger)
+
+	exit := 0
+	EmitCompanionResult(CompanionResultOpts{
+		Backend:    "claude",
+		TaskID:     "wt-a",
+		Write:      true,
+		ExitCode:   &exit,
+		DurationMs: 7,
+		Success:    true,
+		RepoRoot:   dir,
+	})
+
+	data, err := os.ReadFile(ledger)
+	if err != nil {
+		t.Fatalf("read ledger: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 1 {
+		t.Fatalf("got %d lines, want 1", len(lines))
+	}
+
+	var entry Entry
+	if err := json.Unmarshal([]byte(lines[0]), &entry); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if entry.Subcommand != subcommandCompanionResult {
+		t.Fatalf("subcommand = %q, want %q", entry.Subcommand, subcommandCompanionResult)
+	}
+	if entry.Backend != "claude" {
+		t.Fatalf("backend = %q, want claude", entry.Backend)
+	}
+	if entry.SessionID != "wt-a" {
+		t.Fatalf("session_id(task_id) = %q, want wt-a", entry.SessionID)
+	}
+	if !entry.Counts {
+		t.Fatal("counts should reflect companion success")
+	}
+}
+
 func TestEmitTeamDispatchLedger_SchemaCompatibility(t *testing.T) {
 	// Required fields and nullability must match scripts/lib/orchestration-ledger.sh.
 	dir := t.TempDir()

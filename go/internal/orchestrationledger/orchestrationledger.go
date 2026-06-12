@@ -13,6 +13,7 @@ import (
 )
 
 const subcommandTeamDispatch = "team-dispatch"
+const subcommandCompanionResult = "companion-result"
 const subcommandIntegration = "integration"
 
 // IntegrationOpts records Lead integration (task branch take-in) outcome.
@@ -125,6 +126,37 @@ type TeamDispatchOpts struct {
 	Reason     string
 	Enabled    bool
 	RepoRoot   string
+}
+
+// CompanionResultOpts records one backend companion sub-run outcome.
+type CompanionResultOpts struct {
+	Backend    string
+	TaskID     string
+	Write      bool
+	ExitCode   *int
+	DurationMs int64
+	Success    bool
+	RepoRoot   string
+}
+
+// EmitCompanionResult appends one companion-result ledger line. Fail-open: write
+// errors are ignored and never propagate to callers.
+func EmitCompanionResult(opts CompanionResultOpts) {
+	if strings.TrimSpace(opts.Backend) == "" {
+		return
+	}
+	dur := opts.DurationMs
+	entry := Entry{
+		TS:         nowUTC(),
+		Backend:    opts.Backend,
+		Subcommand: subcommandCompanionResult,
+		Write:      opts.Write,
+		ExitCode:   opts.ExitCode,
+		DurationMs: &dur,
+		SessionID:  opts.TaskID,
+		Counts:     opts.Success,
+	}
+	_ = emit(entry, opts.RepoRoot)
 }
 
 // EmitTeamDispatch appends one team-dispatch ledger line. Fail-open: write errors
