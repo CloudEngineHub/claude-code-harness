@@ -1,6 +1,10 @@
-// Package floor implements the Phase 91.6 "FLOOR" — the universal pre-merge
-// backstop that an untrusted (codex/cursor) backend's changes must pass before
-// they are cherry-picked into the trunk.
+// Package floor implements the PRE-MERGE POLICY GATE (Phase 91.6 "FLOOR") — the
+// universal integration-time file gate that an untrusted (codex/cursor) backend's
+// changes must pass before they are cherry-picked into the trunk.
+//
+// This is distinct from the RUNTIME ACTION HARD FLOOR in go/internal/runtimefloor,
+// which pattern-matches Bash commands before a worker action runs and always
+// escalates five non-overridable categories to a human.
 //
 // Non-Claude backends produce changes that are untrusted until they clear the
 // harness's guardrails. The FLOOR is the mandatory gate that runs, in order:
@@ -77,7 +81,7 @@ type ScriptRunner interface {
 	Run(repoRoot, script string, args ...string) (int, string)
 }
 
-// Gate runs the mandatory pre-merge backstop for a non-CC backend take-in over
+// Gate runs the mandatory pre-merge policy gate for a non-CC backend take-in over
 // changedFiles, using runner for the contract scripts. It evaluates every step
 // (it does not short-circuit) so the Report names each failure, then sets
 // Passed iff all steps passed.
