@@ -168,6 +168,10 @@ directory」で拒否され何も実行できない)。`--trust` は **workspace
 `--force` / `--yolo` (= Run Everything: コマンド自動実行) とは別物。`cursor-companion.sh`
 は `--trust` を常に付け、`--force` / `--yolo` は決して付けない。
 
+`--workspace <dir>` は cursor-agent への **CWD ヒント**であり、書込境界ではない。
+cursor は `--workspace` 外にも書き込める。Harness 側の境界は (1) 専用 worktree、(2) 実行前後の
+fingerprint 比較 (`bin/harness wt fingerprint`)、(3) Lead diff review + cherry-pick の 3 段で構築する。
+
 ## Sandbox 要件 (CC 外側 sandbox を有効のまま使う場合)
 
 `cursor-companion.sh` を CC sandbox 有効のまま動かすには、`~/.claude/settings.json` の

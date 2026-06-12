@@ -100,6 +100,8 @@ func main() {
 		runCodexLoop(os.Args[2:])
 	case "mem":
 		runMem(os.Args[2:])
+	case "wt":
+		runWt(os.Args[2:])
 	case "pre-compact":
 		runPreCompact(os.Args[2:])
 	case "version":
@@ -146,6 +148,8 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [--migration-report] [root]  Health check plus migration status/report")
 	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
 	fmt.Fprintln(os.Stderr, "  mem status|setup|update|doctor|off|purge|health  Manage harness-mem companion")
+	fmt.Fprintln(os.Stderr, "  wt fingerprint capture --output <path>  Snapshot sensitive $HOME paths")
+	fmt.Fprintln(os.Stderr, "  wt fingerprint diff --before <p> --after <p>  Detect worktree-escape (exit 2 on change)")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")
 	fmt.Fprintln(os.Stderr, "  gen [hooks] [--check] [root]  Generate per-host hooks.json from hosts.toml (--check vs golden)")
 	fmt.Fprintln(os.Stderr, "  work <taskID>           Emit the work prompt + task context (host executes; no LLM call)")

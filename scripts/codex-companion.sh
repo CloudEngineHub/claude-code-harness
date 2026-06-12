@@ -19,6 +19,10 @@
 #   task サブコマンド実行時に calculate-effort.sh で effort を計算し、
 #   --effort フラグで companion に渡す。calculate-effort.sh がない場合は
 #   環境変数 CODEX_EFFORT（未設定時: medium）にフォールバックする。
+#
+# Worktree containment (Phase 92.2.2):
+#   task 実行の前後で `bin/harness wt fingerprint` を呼び、$HOME 機微パスへの
+#   書込変化があれば hard-stop する。`--cwd` / `--cd` は CWD ヒントであり書込境界ではない。
 
 set -euo pipefail
 
@@ -26,6 +30,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PRIMARY_ENV_GUARD="${SCRIPT_DIR}/codex-primary-environment-guard.sh"
 MODEL_ROUTER="${SCRIPT_DIR}/model-routing.sh"
 EXECUTION_ROOT="${HARNESS_CODEX_EXECUTION_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HARNESS_BIN="${EXECUTION_ROOT}/bin/harness"
+FP_BEFORE=""
+FP_AFTER=""
 
 # Orchestration ledger (Phase 90): record each delegation for the scorecard.
 # This path exec()s into codex/node, so exit_code/duration are recorded null.
@@ -36,6 +43,53 @@ fi
 if ! command -v orch_emit_ledger >/dev/null 2>&1; then
   orch_emit_ledger() { return 0; }
 fi
+
+fingerprint_capture() {
+  local output="$1"
+  if [ ! -x "${HARNESS_BIN}" ]; then
+    echo "ERROR: harness binary not found at ${HARNESS_BIN}" >&2
+    return 1
+  fi
+  "${HARNESS_BIN}" wt fingerprint capture --output "${output}"
+}
+
+fingerprint_diff_or_stop() {
+  if [ -z "${FP_BEFORE}" ] || [ ! -f "${FP_BEFORE}" ]; then
+    return 0
+  fi
+  FP_AFTER="$(mktemp "${TMPDIR:-/tmp}/codex-companion-fp-after.XXXXXX")"
+  if ! fingerprint_capture "${FP_AFTER}"; then
+    echo "ERROR: worktree fingerprint capture (after) failed" >&2
+    rm -f "${FP_AFTER}"
+    return 1
+  fi
+  if ! "${HARNESS_BIN}" wt fingerprint diff --before "${FP_BEFORE}" --after "${FP_AFTER}"; then
+    echo "WORKTREE-ESCAPE detected: see stderr for path list" >&2
+    rm -f "${FP_AFTER}"
+    return 1
+  fi
+  rm -f "${FP_AFTER}"
+  return 0
+}
+
+run_task_with_fingerprint() {
+  FP_BEFORE="$(mktemp "${TMPDIR:-/tmp}/codex-companion-fp-before.XXXXXX")"
+  if ! fingerprint_capture "${FP_BEFORE}"; then
+    rm -f "${FP_BEFORE}"
+    echo "ERROR: worktree fingerprint capture (before) failed" >&2
+    exit 1
+  fi
+  set +e
+  "$@"
+  local rc=$?
+  set -e
+  if ! fingerprint_diff_or_stop; then
+    rm -f "${FP_BEFORE}"
+    exit 1
+  fi
+  rm -f "${FP_BEFORE}"
+  exit "${rc}"
+}
 
 is_valid_codex_effort() {
   case "${1:-}" in
@@ -226,7 +280,7 @@ run_structured_task_exec() {
     fi
   fi
 
-  exec codex exec "${passthrough[@]}"
+  run_task_with_fingerprint codex exec "${passthrough[@]}"
 }
 
 build_codex_task_model_args() {
@@ -359,7 +413,7 @@ if [ "$SUBCOMMAND" = "task" ]; then
           if [ "${STRUCTURED_TASK_EXEC}" -eq 1 ]; then
             run_structured_task_exec "$@" "${MODEL_ARGS[@]}" --effort "${COMPUTED_EFFORT}" <<< "$STDIN_CONTENT"
           else
-            exec node "$COMPANION" "$@" "${MODEL_ARGS[@]}" --effort "${COMPUTED_EFFORT}" <<< "$STDIN_CONTENT"
+            run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]}" --effort "${COMPUTED_EFFORT}" <<< "$STDIN_CONTENT"
           fi
         fi
         # stdin が空の場合（</dev/null 等）はフォールスルーして通常フローへ
@@ -383,7 +437,7 @@ if [ "$SUBCOMMAND" = "task" ]; then
     if [ "${STRUCTURED_TASK_EXEC}" -eq 1 ]; then
       run_structured_task_exec "$@" "${MODEL_ARGS[@]}" --effort "$COMPUTED_EFFORT"
     else
-      exec node "$COMPANION" "$@" "${MODEL_ARGS[@]}" --effort "$COMPUTED_EFFORT"
+      run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]}" --effort "$COMPUTED_EFFORT"
     fi
   fi
 fi
@@ -397,7 +451,7 @@ if [ "$SUBCOMMAND" = "task" ]; then
   while IFS= read -r arg; do
     MODEL_ARGS+=("$arg")
   done < <(build_codex_task_model_args "$@")
-  exec node "$COMPANION" "$@" "${MODEL_ARGS[@]}"
+  run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]}"
 fi
 
 exec node "$COMPANION" "$@"
