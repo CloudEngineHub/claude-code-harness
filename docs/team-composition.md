@@ -102,6 +102,11 @@ SendMessage(
 は CC live agent 専用で混同しない。規約の正本は [`spec.md` の Worktree Root Discipline](../spec.md)
 を参照。
 
+worktree の**中身**（共有ファイルの誰が書くか、`VERSION` bump 禁止、生成物の trunk 再生成）は
+[Shared File Discipline](../.claude/rules/shared-file-discipline.md) に従う。Lead は sprint contract で
+`Plans.md` / `CHANGELOG.md` / `spec.md` に owner を 1 人ずつ割り当て（または owner なし → Lead 統合時追記）、
+worker は割り当て外ファイルを触らない。
+
 ## breezing 時の main 反映
 
 Worker は worktree または feature branch で commit する。

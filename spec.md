@@ -840,6 +840,9 @@ Contract (lease); it does not replace them.
   generated artifacts are regenerated once on trunk after merge; `rerere.enabled`
   is set. The Lead aggregates one task at a time: rebase the task branch onto
   trunk, `cherry-pick --no-commit`, run the pre-merge policy gate, commit.
+  Normative detail (3 invariants, owner-assign table, Phase 92.1.1 CHANGELOG
+  collision precedent): `.claude/rules/shared-file-discipline.md`. Complements
+  Worktree Root Discipline above (where worktrees live vs what workers may edit).
 - Two distinct floors — do not conflate them.
   - The PRE-MERGE POLICY GATE is the existing `go/internal/floor` (`floor.Gate`):
     deny-surface integrity, R01-R13 over the changed files, and the contract
