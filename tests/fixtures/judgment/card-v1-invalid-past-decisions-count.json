@@ -1,0 +1,49 @@
+{
+  "question": "テスト用 invalid similar_past_decisions count",
+  "options": [
+    {
+      "id": "a",
+      "label": "Option A",
+      "consequence": "consequence A"
+    },
+    {
+      "id": "b",
+      "label": "Option B",
+      "consequence": "consequence B"
+    }
+  ],
+  "recommendation": "a",
+  "confidence": "low",
+  "impact": "test",
+  "diff_summary": "test",
+  "similar_past_decisions": [
+    {
+      "summary": "one",
+      "decision": "a",
+      "outcome": "ok",
+      "decided_at": "2026-05-01T10:00:00Z",
+      "mem_id": "obs-1"
+    },
+    {
+      "summary": "two",
+      "decision": "b",
+      "outcome": "ok",
+      "decided_at": "2026-05-02T10:00:00Z",
+      "mem_id": "obs-2"
+    },
+    {
+      "summary": "three",
+      "decision": "a",
+      "outcome": "ok",
+      "decided_at": "2026-05-03T10:00:00Z",
+      "mem_id": "obs-3"
+    },
+    {
+      "summary": "four",
+      "decision": "b",
+      "outcome": "ok",
+      "decided_at": "2026-05-04T10:00:00Z",
+      "mem_id": "obs-4"
+    }
+  ]
+}

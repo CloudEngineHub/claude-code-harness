@@ -1,0 +1,20 @@
+{
+  "question": "テスト用 invalid impact_score",
+  "options": [
+    {
+      "id": "a",
+      "label": "Option A",
+      "consequence": "consequence A"
+    },
+    {
+      "id": "b",
+      "label": "Option B",
+      "consequence": "consequence B"
+    }
+  ],
+  "recommendation": "a",
+  "confidence": "low",
+  "impact": "test",
+  "diff_summary": "test",
+  "impact_score": -1
+}
