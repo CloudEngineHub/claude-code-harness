@@ -24,6 +24,10 @@ Change history for claude-code-harness.
 
 - **レビュー契約の精緻化（spec.md Execution Backend Contract）**: 自己レビュー禁止の対象を「モデルファミリー」から「diff を生成した同一コンテキスト」に明確化しました。フレッシュコンテキスト（producing worker と会話状態を共有しないセッション）の cursor `review` tier（`composer-2.5-fast`）による advisory プレレビューを、brain 一次レビューの前段として正式に許可します。primary verdict は引き続き brain 固定です。
 
+### Fixed
+
+- **Reviewer の defensive-security intent 明示（issue #172）**: `claude-code-harness:reviewer` が security レビューを開始した直後に Anthropic 側 model safeguard が false-trigger し、Opus 4.7 にフォールバックされて応答が止まる現象を緩和するため、`agents/reviewer.md` と `skills/harness-review/references/security-profile.md` の冒頭に「authorized defensive code review」「audit-only / exploit payload は出力しない」を scope 宣言として追加しました。security findings は引き続き OWASP / CWE 観点で `major` 以上として記録します（観測の報告のみ、攻撃コードは含めません）。
+
 ## [4.15.0] - 2026-06-05
 
 ### テーマ: settings 自己書換保護を配布物まで届ける
