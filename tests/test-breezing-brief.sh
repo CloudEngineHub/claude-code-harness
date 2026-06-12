@@ -17,7 +17,7 @@ PASS=0
 FAIL=0
 FAIL_MESSAGES=()
 
-pass() { PASS=$((PASS + 1)); echo "✓ $1"; }
+pass() { PASS=$((PASS + 1)); echo "✓ $1" >&2; }
 fail() { FAIL=$((FAIL + 1)); FAIL_MESSAGES+=("$1"); echo "✗ $1" >&2; }
 
 assert_eq() {
@@ -44,7 +44,10 @@ assert_exit() {
     pass "$label"
   else
     fail "$label (expected exit ${expected_exit}, got ${exit_code}; output: ${output})"
+    printf '%s' "$output"
+    return
   fi
+  # Keep command stdout separate from pass/fail lines for $(...) capture.
   printf '%s' "$output"
 }
 
