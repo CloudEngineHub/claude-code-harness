@@ -196,7 +196,7 @@ func EvaluatePreTool(input hookproto.HookInput) hookproto.HookResult {
 				WorktreeRoot: worktreeRoot,
 			}); decision.Stopped {
 				return hookproto.HookResult{
-					Decision: hookproto.DecisionAsk,
+					Decision: hookproto.DecisionDeny,
 					Reason: fmt.Sprintf(
 						"RUNTIME_FLOOR:%s: %s",
 						decision.Category,

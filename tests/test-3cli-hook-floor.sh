@@ -5,9 +5,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HARNESS="${ROOT_DIR}/bin/harness"
 WORKTREE_DIR="$(mktemp -d)"
-trap 'rm -rf "${WORKTREE_DIR}"' EXIT
+HARNESS_BIN="$(mktemp)"
+
+cleanup() {
+  rm -rf "${WORKTREE_DIR}"
+  rm -f "${HARNESS_BIN}"
+}
+trap cleanup EXIT
 
 PASSED=0
 FAILED=0
@@ -16,6 +21,12 @@ if ! command -v jq >/dev/null 2>&1; then
   echo "jq is required for deny envelope assertions"
   exit 1
 fi
+
+if ! GO111MODULE=on go build -o "${HARNESS_BIN}" "${ROOT_DIR}/go/cmd/harness" 2>/dev/null; then
+  echo "failed to build harness CLI from go/cmd/harness"
+  exit 1
+fi
+HARNESS="${HARNESS_BIN}"
 
 assert_deny_envelope() {
   local host="$1"

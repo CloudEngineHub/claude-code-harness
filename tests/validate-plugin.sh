@@ -447,6 +447,12 @@ else
     fail_test "reactive hook runtime (TaskCreated/FileChanged/CwdChanged) に問題があります"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-3cli-hook-floor.sh" >/dev/null 2>&1; then
+    pass_test "3 CLI hook runtime floor parity (5 categories × CC/Cursor/Codex, exit 2 deny) が維持されています (test-3cli-hook-floor.sh)"
+else
+    fail_test "3 CLI hook runtime floor parity に問題があります — 'bash tests/test-3cli-hook-floor.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then
     pass_test "Claude Code 2.1.80-2.1.86 の統合ポイントが配線されています"
 else
