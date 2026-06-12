@@ -863,6 +863,16 @@ fi
 rm -f "$SELF_AUDIT_HARNESS_BIN" 2>/dev/null || true
 rm -rf "$SELF_AUDIT_FIXTURE_DIR" 2>/dev/null || true
 
+echo ""
+echo "11c. deny baseline hash regression (SSOT templates/security/deny-baseline.json)"
+echo "----------------------------------------"
+
+if bash "$PLUGIN_ROOT/tests/test-deny-baseline.sh" > /dev/null 2>&1; then
+    pass_test "deny baseline: repo settings match SSOT and trimmed fixture exits 2 (test-deny-baseline.sh)"
+else
+    fail_test "deny baseline regression gate failed — 'bash tests/test-deny-baseline.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-render-html.sh" > /dev/null 2>&1; then
     pass_test "render-html.sh は mustache 展開と Claude Harness palette 検証を満たします (test-render-html.sh)"
 else
