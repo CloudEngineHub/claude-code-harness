@@ -12,7 +12,7 @@ Change history for claude-code-harness.
 
 **今まで**: Windows では harness-mem CLI の実体（`harness-mem.js`）を直接 `fork/exec` しようとして「%1 is not a valid Win32 application」で失敗していました。Windows は shebang（`#!/usr/bin/env node`）を解釈しないため、`.js` をプロセスとして起動できません。
 
-**今後**: 解決した CLI パスが `.js` / `.mjs` / `.cjs`、または Windows 上の拡張子なし shebang スクリプトの場合、`node`（なければ `bun`）を前置して起動します。Windows の npm レイアウトで拡張子なしラッパーが無い場合は隣の `harness-mem.js` も自動探索します。`harness-mem.cmd` shim や Unix の従来挙動は変わりません。
+**今後**: Windows では runtime ディレクトリの `harness-mem.js`（node エントリ）を優先して解決し、JS runtime を前置して起動します。解決したパスが `.js` / `.mjs` / `.cjs` の場合は他 OS でも JS runtime を前置します（通常は `node`、shebang が `bun` を指す場合は bun を優先）。Windows の拡張子なしファイルは shebang が node / bun を指す場合のみ wrap し、bash スクリプト等には手を付けません。`harness-mem.cmd` shim と、Unix の標準レイアウト（拡張子なしラッパーの直接実行）の挙動は変わりません。
 
 ### Added
 
