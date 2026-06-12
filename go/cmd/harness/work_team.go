@@ -12,6 +12,7 @@ import (
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/autoapprove"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/breezing"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/breezingmem"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/companionresult"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/floor"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/orchestrationledger"
@@ -36,6 +37,15 @@ var emitTeamDispatchLedger = orchestrationledger.EmitTeamDispatch
 // emitCompanionResultLedger records per-task companion outcomes. Tests may
 // replace it; production uses orchestrationledger.EmitCompanionResult.
 var emitCompanionResultLedger = orchestrationledger.EmitCompanionResult
+
+// breezingMemRecorder posts breezing lifecycle events to harness-mem (fail-open).
+type breezingMemRecorder interface {
+	RecordEvent(ctx context.Context, eventType, project, sessionID, content string)
+	IngestBrief(ctx context.Context, project, sessionID string, briefJSON []byte)
+}
+
+// breezingMemClient is injectable for tests; production uses breezingmem.New().
+var breezingMemClient breezingMemRecorder = breezingmem.New()
 
 // runWorkTeam handles `harness work --team <taskID...>`: fan out N independent
 // backend sub-runs through breezing.Orchestrator (the harness owns the fan-out;

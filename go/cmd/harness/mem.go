@@ -70,6 +70,8 @@ func runMemCommand(args []string, stdout, stderr io.Writer) int {
 		return streamHarnessMem("recall", []string{"off"}, false, stdout, stderr)
 	case "purge":
 		return runMemPurge(args[1:], stdout, stderr)
+	case "record-breezing-event":
+		return runMemRecordBreezingEvent(args[1:], stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "Unknown mem subcommand: %s\n", args[0])
 		return 1
@@ -304,4 +306,10 @@ func ensureTrailingNewline(s string) string {
 		return s
 	}
 	return s + "\n"
+}
+
+// runMemRecordBreezingEvent is a RED stub for `harness mem record-breezing-event`.
+func runMemRecordBreezingEvent(_ []string, _ io.Writer, stderr io.Writer) int {
+	fmt.Fprintln(stderr, "record-breezing-event: not implemented")
+	return 1
 }
