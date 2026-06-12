@@ -5,6 +5,7 @@
 #   should-issue --reason <reason> [--floor-category <cat>]
 #   validate <card.json>
 #   record-answer <card.json> --answer <option-id> --why "<text>" --project <p> --session <s>
+#   compute-impact --files-changed N --lines-changed M [--floor-category CAT]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,6 +23,7 @@ Usage:
   judgment-card.sh should-issue --reason <reason> [--floor-category <cat>]
   judgment-card.sh validate <card.json>
   judgment-card.sh record-answer <card.json> --answer <option-id> --why "<text>" --project <p> --session <s>
+  judgment-card.sh compute-impact --files-changed N --lines-changed M [--floor-category CAT]
 EOF
 }
 
@@ -154,8 +156,95 @@ def validate_card(data, schema):
     if data["confidence"] not in allowed:
         fail(f"confidence must be one of: {', '.join(allowed)}")
 
+    if "impact_score" in data:
+        impact_spec = properties.get("impact_score", {})
+        val = data["impact_score"]
+        if not isinstance(val, int) or isinstance(val, bool):
+            fail("impact_score must be an integer")
+        minimum = impact_spec.get("minimum", 0)
+        maximum = impact_spec.get("maximum", 100)
+        if val < minimum or val > maximum:
+            fail(f"impact_score must be between {minimum} and {maximum}")
+
+    if "similar_past_decisions" in data:
+        past_spec = properties.get("similar_past_decisions", {})
+        arr = data["similar_past_decisions"]
+        if not isinstance(arr, list):
+            fail("similar_past_decisions must be an array")
+        max_items = past_spec.get("maxItems")
+        if max_items is not None and len(arr) > max_items:
+            fail(f"similar_past_decisions must have at most {max_items} items")
+
+        item_spec = past_spec.get("items", {})
+        item_required = item_spec.get("required", [])
+        item_props = item_spec.get("properties", {})
+        for index, item in enumerate(arr):
+            if not isinstance(item, dict):
+                fail(f"similar_past_decisions[{index}] must be an object")
+            if item_spec.get("additionalProperties") is False:
+                extra = set(item.keys()) - set(item_props.keys())
+                if extra:
+                    fail(
+                        f"similar_past_decisions[{index}] additional properties not allowed: {sorted(extra)}"
+                    )
+            for key in item_required:
+                if key not in item:
+                    fail(f"similar_past_decisions[{index}] missing required property: {key}")
+            for key in item_required:
+                if not isinstance(item[key], str):
+                    fail(f"similar_past_decisions[{index}].{key} must be a string")
+
 
 validate_card(data, schema)
+PY
+}
+
+cmd_compute_impact() {
+  local files_changed=0
+  local lines_changed=0
+  local floor_category=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --files-changed)
+        files_changed="${2:-0}"
+        shift 2
+        ;;
+      --lines-changed)
+        lines_changed="${2:-0}"
+        shift 2
+        ;;
+      --floor-category)
+        floor_category="${2:-}"
+        shift 2
+        ;;
+      *)
+        echo "compute-impact: unknown argument: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  python3 - "$files_changed" "$lines_changed" "$floor_category" <<'PY'
+import json
+import sys
+
+files = int(sys.argv[1])
+lines = int(sys.argv[2])
+floor = sys.argv[3]
+
+if floor:
+    score = 100
+    hard_stop = True
+else:
+    files = max(0, files)
+    lines = max(0, lines)
+    score = min(99, files * 5 + lines // 10)
+    hard_stop = False
+
+print(json.dumps({"impact_score": score, "hard_stop": hard_stop}))
+if hard_stop:
+    raise SystemExit(2)
 PY
 }
 
@@ -287,6 +376,9 @@ main() {
       ;;
     record-answer)
       cmd_record_answer "$@"
+      ;;
+    compute-impact)
+      cmd_compute_impact "$@"
       ;;
     ""|-h|--help|help)
       usage

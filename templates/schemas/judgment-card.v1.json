@@ -57,6 +57,37 @@
     "diff_summary": {
       "type": "string",
       "minLength": 1
+    },
+    "impact_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "similar_past_decisions": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["summary", "decision", "outcome", "decided_at", "mem_id"],
+        "additionalProperties": false,
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "decided_at": {
+            "type": "string"
+          },
+          "mem_id": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }
