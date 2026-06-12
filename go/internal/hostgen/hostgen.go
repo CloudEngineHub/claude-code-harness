@@ -158,7 +158,7 @@ func deliveryTurnGroups(h Host, entry commandEntry) interface{} {
 }
 
 func GenerateHooksJSON(h Host) ([]byte, error) {
-	var doc interface{}
+	var doc map[string]interface{}
 	switch h.Name {
 	case "cursor":
 		doc = cursorDoc(h)
@@ -169,6 +169,7 @@ func GenerateHooksJSON(h Host) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("hostgen: unknown host %q (expected claude, codex, or cursor)", h.Name)
 	}
+	doc["floor_policy"] = FloorPolicyFragment()
 	return marshalStable(doc)
 }
 

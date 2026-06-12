@@ -121,7 +121,7 @@ func TestGenerateHooksJSON_ExistingHooksBlockUnchanged(t *testing.T) {
 	}
 	for _, name := range []string{"claude", "codex", "cursor"} {
 		h := hosts[name]
-		want, err := baselineHooksJSON(h)
+		want, err := baselineHooksRaw(h)
 		if err != nil {
 			t.Fatalf("%s baseline hooks: %v", name, err)
 		}
@@ -129,7 +129,7 @@ func TestGenerateHooksJSON_ExistingHooksBlockUnchanged(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GenerateHooksJSON(%s): %v", name, err)
 		}
-		got, err := extractHooksJSON(out)
+		got, err := extractHooksRaw(out)
 		if err != nil {
 			t.Fatalf("%s extract hooks: %v", name, err)
 		}
@@ -139,22 +139,26 @@ func TestGenerateHooksJSON_ExistingHooksBlockUnchanged(t *testing.T) {
 	}
 }
 
-func baselineHooksJSON(h Host) ([]byte, error) {
-	var hooks interface{}
+func baselineHooksRaw(h Host) (json.RawMessage, error) {
+	var doc map[string]interface{}
 	switch h.Name {
 	case "claude":
-		hooks = claudeDoc(h)["hooks"]
+		doc = claudeDoc(h)
 	case "codex":
-		hooks = codexDoc(h)["hooks"]
+		doc = codexDoc(h)
 	case "cursor":
-		hooks = cursorDoc(h)["hooks"]
+		doc = cursorDoc(h)
 	default:
 		return nil, fmt.Errorf("unknown host %q", h.Name)
 	}
-	return marshalStable(map[string]interface{}{"hooks": hooks})
+	b, err := marshalStable(doc)
+	if err != nil {
+		return nil, err
+	}
+	return extractHooksRaw(b)
 }
 
-func extractHooksJSON(doc []byte) ([]byte, error) {
+func extractHooksRaw(doc []byte) (json.RawMessage, error) {
 	var parsed struct {
 		Hooks json.RawMessage `json:"hooks"`
 	}
@@ -164,11 +168,7 @@ func extractHooksJSON(doc []byte) ([]byte, error) {
 	if parsed.Hooks == nil {
 		return nil, fmt.Errorf("missing hooks key")
 	}
-	var hooks interface{}
-	if err := json.Unmarshal(parsed.Hooks, &hooks); err != nil {
-		return nil, fmt.Errorf("parse hooks value: %w", err)
-	}
-	return marshalStable(map[string]interface{}{"hooks": hooks})
+	return parsed.Hooks, nil
 }
 
 func extractFloorPolicyBytes(doc []byte) ([]byte, error) {
