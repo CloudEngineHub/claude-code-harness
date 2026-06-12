@@ -77,6 +77,7 @@ Not observed in this repo's smoke (2026-05-28):
 - Cloud Agent API workflow smoke with auth
 - Multitask mode proof for full Breezing cherry-pick loop
 - Hook runtime block parity with Claude PreToolUse
+  (superseded 2026-06-12 — see "Hook runtime deny parity — VERIFIED" below)
 
 ## Separation: PM Handoff vs Adapter Support
 
@@ -312,6 +313,52 @@ harness execution backend; Cursor stays `candidate` and no support tier changes.
 
 Support tier is unchanged (cursor=`candidate`); no consumer distribution claim
 is added by this entry.
+
+## Hook runtime deny parity — VERIFIED (2026-06-12, Phase 83.7)
+
+Make-or-break check for "CCH guardrails executed inside Cursor": can Cursor
+hooks perform a PreToolUse-equivalent **deny** (protected-path write block)?
+**Yes — verified live.** This supersedes the 2026-05-28 "not observed" entry.
+
+### Official docs (cursor.com/docs/agent/hooks, fetched 2026-06-12)
+
+- hooks.json levels: Enterprise / Team / **Project (`.cursor/hooks.json`)** /
+  User (`~/.cursor/hooks.json`); schema `{"version":1,"hooks":{event:[{command,timeout}]}}`.
+- Permission-capable events: `preToolUse` (allow|deny), `beforeShellExecution` /
+  `beforeMCPExecution` (allow|deny|ask), `beforeReadFile` (allow|deny),
+  `subagentStart` (allow|deny). Deny response: `{"permission":"deny",
+  "user_message":...,"agent_message":...}`. **Exit code 2 == deny**; other
+  non-zero exit codes fail open.
+- Hooks run in the IDE **and the CLI (`cursor-agent`)**; cloud agents support a
+  command-hook subset.
+
+### Live spike (cursor-agent `2026.06.12`, throwaway `mktemp -d` workspace)
+
+Project-level `.cursor/hooks.json` with a `preToolUse` hook that denies any
+tool action whose input contains `protected.txt`, plus logging hooks.
+
+| Test | Result |
+| --- | --- |
+| Agent asked to create `protected.txt` | ✅ **blocked pre-write** — file absent after run; agent surfaced "blocked: protected path" and stopped |
+| `preToolUse` firing scope | fired for **every** tool call (Shell / Read / Grep / Write); stdin carries `{conversation_id, generation_id, model, tool_name, tool_input, ...}` |
+| Control: create `allowed.txt` (hook allows) | ✅ written — no false positive |
+| Repo wiring roundtrip (`bin/harness hook pre-tool --host cursor`) | deny path already emits the Cursor schema `{"permission":"deny","agent_message":...}` + exit 2 (`hookcodec.DenyOutput`, Phase 91.4) |
+| **Gap found and fixed** | live CLI names its shell tool `"Shell"` (not `"Bash"`); the unmapped name slipped past R06/R11 (fail-open). Fix: `hookcodec.Normalize` now maps `Shell`→`Bash`, with live-shape tests (`TestNormalize_Cursor_ShellToolNameMapsToBash`, smoke case `cursor-live-shell`) |
+
+### Consequences
+
+1. `.cursor/hooks.json` `preToolUse` → `bin/harness hook pre-tool --host cursor`
+   (hostgen, Phase 91.3) is a **real runtime deny layer** for cursor workers,
+   not just config shape.
+2. Defense in depth unchanged: dedicated-`.git` worktree + fingerprint gate +
+   Lead diff review + cherry-pick remain mandatory. Hooks are workspace-config
+   scoped — a process launched outside the workspace does not load them — so
+   they harden, not replace, Harness-side containment.
+3. Support tier unchanged: Cursor stays `candidate`; this entry adds no public
+   support claim.
+
+Verification: `go test ./internal/hookcodec/ ./cmd/harness/` (live-shape cases)
+plus the spike transcript facts above.
 
 ## Promotion Conditions
 

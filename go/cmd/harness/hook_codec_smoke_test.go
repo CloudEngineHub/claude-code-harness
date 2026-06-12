@@ -64,6 +64,21 @@ func TestHookCodecSmoke_ForcePushDeniedAcrossHosts(t *testing.T) {
 				"workspace_roots":["/proj"]
 			}`,
 		},
+		{
+			// Live cursor-agent shape (2026-06-12 spike): tool_name "Shell"
+			// + structured tool_input, no top-level command shorthand.
+			name:     "cursor-live-shell",
+			hostHint: hookcodec.HostCursor,
+			wantHost: hookcodec.HostCursor,
+			stdin: `{
+				"conversation_id":"conv-cursor-live",
+				"hook_event_name":"preToolUse",
+				"model":"composer-2.5",
+				"tool_name":"Shell",
+				"tool_input":{"command":"git push --force origin main"},
+				"workspace_roots":["/proj"]
+			}`,
+		},
 	}
 
 	for _, tc := range cases {

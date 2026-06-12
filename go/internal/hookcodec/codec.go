@@ -39,8 +39,8 @@ const (
 // Unknown fields are ignored (hosts add their own metadata we don't need).
 type rawPayload struct {
 	// session / conversation identity
-	SessionID      string `json:"session_id"`
-	ConversationID string `json:"conversation_id"`
+	SessionID       string `json:"session_id"`
+	ConversationID  string `json:"conversation_id"`
 	ConversationID2 string `json:"conversationId"`
 
 	// tool identity
@@ -107,6 +107,14 @@ func Normalize(raw []byte, hostHint string) (hookproto.HookInput, string, error)
 	// Bash action.
 	input.ToolName = firstNonEmpty(p.ToolName, p.ToolName2)
 	if input.ToolName == "" && p.Command != "" {
+		input.ToolName = "Bash"
+	}
+	// The live Cursor CLI names its shell tool "Shell" (preToolUse stdin
+	// observed 2026-06-12; docs/research/cursor-adapter-candidate.md "Hook
+	// runtime deny parity"). The policy kernel only knows the canonical
+	// "Bash" name, so an unmapped "Shell" would slip past R06/R11. No other
+	// host uses "Shell", so the mapping is unconditional.
+	if input.ToolName == "Shell" {
 		input.ToolName = "Bash"
 	}
 

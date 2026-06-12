@@ -126,7 +126,11 @@ func TestNormalize_Cursor_PreToolUse(t *testing.T) {
 	if host != HostCursor {
 		t.Errorf("inferred host = %q, want cursor", host)
 	}
-	// tool_name is explicitly "Shell" here; the command still lands in tool_input.
+	// tool_name is explicitly "Shell" here; Normalize maps it to the
+	// canonical "Bash" so the policy kernel (R06/R11) can match it.
+	if in.ToolName != "Bash" {
+		t.Errorf("ToolName = %q, want Bash (mapped from Cursor's Shell)", in.ToolName)
+	}
 	if got := in.ToolInput["command"]; got != forceCmd {
 		t.Errorf("command = %v, want %q", got, forceCmd)
 	}
@@ -165,6 +169,37 @@ func TestNormalize_Cursor_BeforeShellExecution(t *testing.T) {
 	// cwd present wins over workspace_roots, but workspace_roots[0] is the fallback.
 	if in.CWD != "/proj" {
 		t.Errorf("CWD = %q, want /proj", in.CWD)
+	}
+}
+
+func TestNormalize_Cursor_ShellToolNameMapsToBash(t *testing.T) {
+	// Phase 83.7 live evidence: the real cursor-agent CLI (2026.06.12) sends
+	// preToolUse stdin with tool_name "Shell" + tool_input.command (plus
+	// model / cursor_version metadata). Before the Shell-to-Bash mapping this
+	// shape slipped past the policy kernel (fail-open), because only the
+	// top-level-command shorthand was normalized to "Bash".
+	raw := []byte(`{
+		"conversation_id":"73236a11-4816-44ed-95fb-deb1fb666d5c",
+		"generation_id":"73236a11-4816-44ed-95fb-deb1fb666d5c",
+		"model":"composer-2.5",
+		"hook_event_name":"preToolUse",
+		"cursor_version":"2026.06.12",
+		"tool_name":"Shell",
+		"tool_input":{"command":"git push --force origin main"},
+		"workspace_roots":["/proj"]
+	}`)
+	in, host, err := Normalize(raw, HostCursor)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if host != HostCursor {
+		t.Errorf("host = %q, want cursor", host)
+	}
+	if in.ToolName != "Bash" {
+		t.Errorf("ToolName = %q, want Bash (mapped from live Cursor Shell payload)", in.ToolName)
+	}
+	if got := in.ToolInput["command"]; got != forceCmd {
+		t.Errorf("command = %v, want %q", got, forceCmd)
 	}
 }
 
