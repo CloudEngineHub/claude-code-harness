@@ -172,7 +172,7 @@ func TestStore_AppendIsAppendOnly(t *testing.T) {
 		t.Fatalf("ReadDir: %v", err)
 	}
 	for _, e := range entries {
-		if !strings.HasSuffix(e.Name(), ".go") {
+		if !strings.HasSuffix(e.Name(), ".go") || strings.HasSuffix(e.Name(), "_test.go") {
 			continue
 		}
 		body, readErr := os.ReadFile(filepath.Join(mailboxDir, e.Name()))
@@ -302,14 +302,35 @@ func TestStore_LaneEnumValidation(t *testing.T) {
 }
 
 func TestStore_NoLivemsgCoupling_GrepAudit(t *testing.T) {
-	mailboxDir, err := filepath.Abs(filepath.Join("..", "mailbox"))
+	mailboxDir := filepath.Join("..", "mailbox")
+	entries, err := os.ReadDir(mailboxDir)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	}
+	const forbidden = "livemsg"
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		body, readErr := os.ReadFile(filepath.Join(mailboxDir, name))
+		if readErr != nil {
+			t.Fatalf("ReadFile %s: %v", name, readErr)
+		}
+		if strings.Contains(string(body), forbidden) {
+			t.Fatalf("%s contains %q token (coupling audit)", name, forbidden)
+		}
+	}
+
+	// shell grep でも二重確認（_test.go 除外）
+	mailboxAbs, err := filepath.Abs(mailboxDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command("grep", "-r", "livemsg", mailboxDir, "--include=*.go")
+	cmd := exec.Command("grep", "-r", forbidden, mailboxAbs, "--include=*.go", "--exclude=*_test.go")
 	out, grepErr := cmd.CombinedOutput()
 	if grepErr == nil && len(strings.TrimSpace(string(out))) > 0 {
-		t.Fatalf("livemsg token found in mailbox package:\n%s", out)
+		t.Fatalf("forbidden token found in mailbox package:\n%s", out)
 	}
 	if grepErr != nil {
 		exitErr, ok := grepErr.(*exec.ExitError)
