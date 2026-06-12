@@ -60,13 +60,14 @@ Harness の統合実行スキル。
 
 ### 解決手順
 
-run 開始時に 1 回だけ解決する。backend 判定は **必ず resolver 経由**にし、`HARNESS_IMPL_BACKEND` env だけを直読みして判定しない:
+run 開始時に 1 回だけ解決する。**resolver 経由が backend 選択の唯一の正規入口**。
+`HARNESS_IMPL_BACKEND` env を直接読んで backend を決めてはならない（skill 記述・実装とも禁止）:
 
 ```bash
 bash "${HARNESS_PLUGIN_ROOT}/scripts/resolve-impl-backend.sh"
 ```
 
-precedence（高い順）: `--backend <v>` / `--cursor` / `--codex` フラグ > `HARNESS_IMPL_BACKEND` 環境変数 > プロジェクト `env.local` の同名行 > ユーザー `~/.config/claude-harness/impl-backend.env` の同名行 > 既定値 `claude`。プロジェクト設定はユーザースコープを上書きする。
+env / `--cursor` / `--codex` / `--backend <v>` per-run flag / project `env.local` / user file の precedence は resolver が一括解決する（高い順: 明示フラグ > env > project file > user file > 既定値 `claude`）。プロジェクト設定はユーザースコープを上書きする。
 明示フラグ（`--backend` / `--cursor` / `--codex`）は env / file / default を常に上書きする。
 
 ### 自然言語 backend trigger
@@ -300,7 +301,7 @@ fi
 ### Backend-resolved executor path (Solo / Parallel / Breezing)
 
 Solo / Parallel / Breezing は同じ resolver result から実装 executor を選ぶ。
-`harness-work 3 --cursor` と user/project `HARNESS_IMPL_BACKEND=cursor` は、1 件タスクでも local Read/Write/Edit/Bash に fall through してはいけない。
+`harness-work 3 --cursor` や resolver 出力が `cursor` の run（project / user file 経由の default 含む）は、1 件タスクでも local Read/Write/Edit/Bash に fall through してはいけない。
 
 ```
 resolver_backend_arg = ""
@@ -431,7 +432,7 @@ backend=`cursor` / `codex` の場合は native Worker spawn を使わず、task 
 `--parallel N` で明示指定した場合は、タスク数に関係なくこのモードを使用。
 同一ファイルへの書き込みが競合する場合は git worktree で分離。
 各 task の実装 executor は Backend-resolved executor path に従う。
-`--parallel N --cursor`、`--backend cursor`、または default `HARNESS_IMPL_BACKEND=cursor` の場合、Parallel でも native Worker spawn ではなく task ごとの Cursor companion worktree を使う。
+`--parallel N --cursor`、`--backend cursor`、または resolver 出力が `cursor` の場合、Parallel でも native Worker spawn ではなく task ごとの Cursor companion worktree を使う。
 
 ### Codex モード（`--codex` 明示時のみ）
 
