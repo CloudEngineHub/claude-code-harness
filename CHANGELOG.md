@@ -26,6 +26,14 @@ Change history for claude-code-harness.
 
 - **Fable 5 brain opt-in（`HARNESS_BRAIN_MODEL`）**: `scripts/model-routing.sh` の claude 頭脳枠（`deep` / `advisor`）を `HARNESS_BRAIN_MODEL=fable` で `claude-fable-5` に切替可能にしました。デフォルトは `claude-opus-4-8` のまま（opt-in）、未知の値は exit 2 で fail-loud。codex / cursor のモデル表は不変です。`claude-fable-5` を `harness validate` の認識モデルに追加し、配布バイナリを再ビルド済み。
 
+- **Cursor hook deny parity の実証 + Shell tool-name 正規化（Phase 83.7）**: cursor-agent CLI（2026.06.12）の project-level `.cursor/hooks.json` `preToolUse` hook が **書込前 deny を実行できる**ことを live spike で確認しました（protected path への Write が実際に阻止される / 許可 path は誤検知なし）。これにより `.cursor/hooks.json` → `bin/harness hook pre-tool --host cursor` の配線は config shape ではなく実runtime deny 層になります。同時に発見した「live Cursor は shell tool を `Shell` と名乗り、未マップだと R06/R11 を素通りする」fail-open ギャップを `hookcodec.Normalize` の `Shell`→`Bash` 正規化で修正し、live-shape テストを追加。支援 tier は `candidate` のまま不変。
+
+- **AppleScript ポリシー codify（Phase 93.1.2）**: `.claude/rules/cursor-cli-only.md` に「AppleScript は `activate` + `open -a` の 2 動詞のみ許可、`System Events` keystroke/click 注入は禁止」を明文化し、再昇格 4 条件（hook source-identifier / Read tool sandbox 拡張 / Codex 非 Bash イベント / Cursor AppleScript dictionary）を `docs/research/applescript-decision-2026-06.md` に記録しました。
+
+- **3 CLI 公式機能棚卸し（Phase 93.2.1）**: Claude Code / Cursor / Codex の公式機能を「機能名 / 最低バージョン / GA・preview / CCH 重複 / 採用・置換・捨てる」5 列 19 行で `docs/research/official-feature-inventory-2026-06.md` に固定しました。バージョン根拠が repo に無い行は `unverified` と明記（not_observed != absent）。
+
+- **Brief Composer v0（Phase 93.3.1）**: `/breezing` の既存引数に一致しない自由文入力を 3-7 個のサブタスクへ分解して確認する `brief-card.v1`（`templates/schemas/brief-card.v1.json`）と `scripts/breezing-brief.sh`（`classify` / `validate` / `confirm`）を追加しました。No 回答は実行 0 件の dry 契約。既存引数経路への regression はありません（19 assertion + 既存 trigger テスト PASS）。
+
 ### Changed
 
 - **レビュー契約の精緻化（spec.md Execution Backend Contract）**: 自己レビュー禁止の対象を「モデルファミリー」から「diff を生成した同一コンテキスト」に明確化しました。フレッシュコンテキスト（producing worker と会話状態を共有しないセッション）の cursor `review` tier（`composer-2.5-fast`）による advisory プレレビューを、brain 一次レビューの前段として正式に許可します。primary verdict は引き続き brain 固定です。
