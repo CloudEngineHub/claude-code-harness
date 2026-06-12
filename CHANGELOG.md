@@ -22,6 +22,8 @@ Change history for claude-code-harness.
 
 - **Lead 集約 callable（Phase 92.3.1）**: cherry-pick FLOOR を prose 手順から callable 関数 `go/internal/integrate.Integrate(ctx, opts)` へ昇格しました。`rebase task onto trunk → cherry-pick --no-commit → floor.Gate → commit` を 1 関数で実行し、rerere 自動 replay を `using previous resolution` 文言と `.git/rr-cache` mtime 変化の 2 経路で検出します。floor.Gate 失敗時は cherry-pick を abort + working tree を巻き戻し、成功時は `orchestrationledger.EmitIntegration` が `subcommand="integration"` で task branch / commit SHA / `rere_resolved` / `floor_pass` を JSONL ledger に append-only 記録します。GitRunner / ScriptRunner / LedgerWriter は DI 化、e2e テストは temp git repo で 3 task 逐次統合と SHARED.md の rerere replay を実 git で検証（155 test PASS）。
 
+- **本番 WorkerFunc e2e 検証 + companion-result ledger（Phase 92.3.2 / 92.3.3）**: `productionCompanionWorker` が test stub でなく実 companion script を叩く end-to-end 経路を、claude / codex / cursor 異種 3 backend の並列実行 + table-driven 失敗 3 パターン（script 不在 / 非 0 exit / raw stderr）で検証しました。skeptic が指摘していた「stub では PASS したが本番 wiring は未検証」のリンクが埋まりました。あわせて `orchestrationledger.EmitCompanionResult`（`subcommand="companion-result"`）を追加し、companion の全終了経路（script 不在 / runtime floor stop / 実行結果）が backend 別に JSONL ledger へ記録されます。統合後に trunk で生成物を 1 回再生成（platform バイナリ 4 本 + host hooks、Invariant 3）し、validate-plugin 103/0/0 / check-consistency / go test 26 pkg を確認済み。
+
 - **Fable 5 brain opt-in（`HARNESS_BRAIN_MODEL`）**: `scripts/model-routing.sh` の claude 頭脳枠（`deep` / `advisor`）を `HARNESS_BRAIN_MODEL=fable` で `claude-fable-5` に切替可能にしました。デフォルトは `claude-opus-4-8` のまま（opt-in）、未知の値は exit 2 で fail-loud。codex / cursor のモデル表は不変です。`claude-fable-5` を `harness validate` の認識モデルに追加し、配布バイナリを再ビルド済み。
 
 ### Changed
