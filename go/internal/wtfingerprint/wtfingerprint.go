@@ -39,10 +39,24 @@ func Capture(paths []string) (Snapshot, error) {
 }
 
 // DefaultWatchPaths returns v1 sensitive paths under $HOME.
+//
+// Under ~/.claude/ we only watch tampering-sensitive nodes (settings*.json and
+// the plugin install manifests). The CC runtime constantly writes ephemeral
+// session logs and large caches (~/.claude/projects/, ~/.claude/state/,
+// ~/.claude/plugins/cache/, ~/.claude/plugins/data/) — observed at ~8.8 GB
+// / 111k files. Walking those trees both blows up Capture latency (>10s per
+// snapshot) and turns every cursor/codex companion run into a false
+// WORKTREE-ESCAPE. The threat we want to catch is "worker tampered with
+// deny-config / installed plugins manifest / credentials", not "CC wrote a
+// session log or refreshed plugin cache while a worker ran".
 func DefaultWatchPaths() []string {
 	home := homeDir()
 	return []string{
-		filepath.Join(home, ".claude"),
+		filepath.Join(home, ".claude", "settings.json"),
+		filepath.Join(home, ".claude", "settings.local.json"),
+		filepath.Join(home, ".claude", "plugins", "installed_plugins.json"),
+		filepath.Join(home, ".claude", "plugins", "known_marketplaces.json"),
+		filepath.Join(home, ".claude", "plugins", "blocklist.json"),
 		filepath.Join(home, ".aws"),
 		filepath.Join(home, ".ssh"),
 		filepath.Join(home, ".gnupg"),
