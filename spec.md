@@ -829,7 +829,10 @@ One Lead drives several DIFFERENT tasks in parallel across the three backends
 This contract governs the SAFETY and conflict-separation rules layered on that
 orchestrator. It builds on the Execution Backend Contract (backend resolution),
 the Orchestration Visibility Contract (ledger), and the Session Coordination
-Contract (lease); it does not replace them.
+Contract (lease); it does not replace them. Breezing Brief Contract (below)
+defines `brief-card.v1`, `judgment-card.v1`, breezing mem lifecycle events, and
+fail-open memory behavior for `/breezing` free-text entry layered on this
+orchestrator.
 
 - Hub-spoke, no worker-to-worker. Workers emit only `companionresult.v1` on
   stdout; they never address or message each other. All coordination is
@@ -914,6 +917,114 @@ Memory boundary. Durable, work-linked, ackable handoff stays in harness-mem
 does not move or modify it. Live notice messaging is the CCH-owned layer above.
 The two are distinct: durable work-handoff = harness-mem signal; live notice
 messaging = CCH.
+
+## Breezing Brief Contract
+
+`/breezing` may accept free-text input that does not match the existing
+argument-hint surface (`all`, task ranges, `--codex`, `--cursor`,
+`--reviewer-only`, `--parallel N`, `--no-commit`, `--no-discuss`, `--auto-mode`).
+This contract productizes the Brief Composer and Decision Card schemas, breezing
+mem write layer, and their precedence against the runtime hard floor. It builds
+on Tri-Tool Parallel Collaboration Contract (team orchestrator, worktree
+discipline) and Memory Contract (harness-mem when available); it does not
+replace them.
+
+### Input classification and brief-card.v1
+
+- `scripts/breezing-brief.sh classify "<args>"` deterministically classifies
+  input as `structured` or `free-text` (regex/token parse; no LLM).
+- `structured` input continues on the existing team path unchanged.
+- `free-text` input is decomposed by the Lead into a `brief-card.v1` card for
+  user confirmation before any worktree dispatch.
+- User confirmation is Yes/No. `scripts/breezing-brief.sh confirm no` emits
+  `DISPATCH: 0` — zero worker executions (dry contract). Yes dispatches one
+  worker per confirmed subtask onto the existing worktree-per-task team path.
+- `scripts/breezing-brief.sh validate <card.json>` validates against
+  `templates/schemas/brief-card.v1.json`.
+
+Schema `brief-card.v1` required fields:
+
+| Field | Shape | Constraints |
+|-------|-------|-------------|
+| `goal` | string | non-empty |
+| `subtasks` | array | 3–7 items; each item `{id, title, dod}` (all non-empty strings) |
+| `scope_files` | string[] | repo-relative paths in scope |
+| `risk_notes` | string[] | free-form risk strings |
+| `confidence` | enum | `high` \| `medium` \| `low` |
+
+No additional properties are permitted on the card root or subtask objects.
+
+### judgment-card.v1
+
+When a worker or Lead needs human judgment during breezing — and the runtime
+hard floor does not apply — Harness may issue one `judgment-card.v1` card.
+Schema: `templates/schemas/judgment-card.v1.json`.
+
+Issuance conditions (any one triggers a card):
+
+1. DoD interpretation diverges (multiple valid readings of done-ness).
+2. A change outside the user-approved scope is required.
+3. A trade-off choice is required (mutually exclusive options).
+
+Required fields:
+
+| Field | Shape | Constraints |
+|-------|-------|-------------|
+| `question` | string | non-empty |
+| `options` | array | 2–3 items; each `{id, label, consequence}` (all non-empty strings) |
+| `recommendation` | string | non-empty |
+| `confidence` | enum | `high` \| `medium` \| `low` |
+| `impact` | string | non-empty |
+| `diff_summary` | string | non-empty one-line diff summary |
+
+No additional properties are permitted on the card root or option objects.
+User answer and rationale may be recorded via `harness_mem_record_checkpoint`
+when harness-mem is available (fail-open; see below).
+
+### Breezing mem lifecycle events
+
+`go/internal/breezingmem` posts breezing lifecycle events to harness-mem
+(`POST /v1/events/record`) and ingests the confirmed brief
+(`POST /v1/ingest/knowledge-file` at path `breezing/brief-card.v1.json`,
+kind `decisions_md`). Event type literals (fixed):
+
+| Event type | When |
+|------------|------|
+| `breezing_run_started` | Breezing team run begins |
+| `breezing_brief_confirmed` | User confirms the brief card (Yes) |
+| `breezing_worker_result` | One worker completes (success or failure) |
+| `breezing_aggregation_completed` | Lead aggregation finishes |
+
+This layer does not call workgraph signal APIs (`signal_send`, `signal_read`,
+`signal_ack`, or `/v1/signals/*`). Durable cross-session handoff remains in
+harness-mem signal store per Tri-Tool Parallel Collaboration Contract; breezing
+mem events are run-scoped lifecycle telemetry only.
+
+### Fail-open memory behavior
+
+Breezing must never stop because harness-mem is absent or unreachable.
+
+| State | Behavior |
+|-------|----------|
+| `not-configured` | Silent skip — no warning, no POST |
+| `unreachable` | One stderr warning line (`breezing-mem: record skipped (unreachable)` or ingest equivalent), then continue |
+
+Configured means `~/.harness-mem` or legacy `~/.claude-mem` exists (see
+`go/internal/breezingmem` `configured()`). HTTP timeout is 1s. Mem state never
+blocks brief confirmation, worker dispatch, judgment cards, or aggregation.
+
+### Floor precedence over judgment cards
+
+The five-category **runtime action hard floor** (Phase 92.2.1; money/billing,
+external send/egress, credential/secret read, production deploy/publish,
+destruction outside the task worktree) always takes precedence over
+`judgment-card.v1`:
+
+- When any hard-floor category matches, Harness hard-stops for the human and
+  does **not** issue a judgment card.
+- Judgment cards apply only to non-floor ambiguity (DoD, scope, trade-offs).
+- The pre-merge policy gate (`go/internal/floor`) and runtime hard floor remain
+  distinct; see Tri-Tool Parallel Collaboration Contract.
 
 ## Non-Goals
 
