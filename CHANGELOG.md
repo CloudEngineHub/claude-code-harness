@@ -10,6 +10,10 @@ Change history for claude-code-harness.
 
 - **Parallel worktree spawn（Phase 92.1.1）**: `scripts/spawn-parallel.sh` で `git fetch origin` + 単一 base SHA から `.harness-worktrees/task-<name>` / `task/<name>` を idempotent に作成。`rerere.enabled` を project config に設定。`spec.md` Worktree Root Discipline で `.harness-worktrees/` と `.claude/worktrees/` の責務分離を明文化。
 
+- **Worktree reap（Phase 92.1.2）**: `scripts/reap-worktrees.sh` で `.harness-worktrees/` 配下の worktree と reap 成功した `task/*` branch のみを掃除（`.claude/worktrees/` 等の他 root は不可侵）。dirty worktree は default skip / `--force` でのみ削除、CWD 内実行は fail-fast、0 件でも安全な no-op。
+
+- **Shared File Discipline（Phase 92.1.3）**: 並列 worktree 実行時の共有ファイル編集規約を `.claude/rules/shared-file-discipline.md` に正本化（共有 append ファイルは owner-assigned append-only / VERSION は worktree 内で bump しない / 生成物は trunk で 1 回再生成）。`check-consistency.sh` の Section 15 が規約存在と 3 invariant キーフレーズを CI 検証。
+
 - **Fable 5 brain opt-in（`HARNESS_BRAIN_MODEL`）**: `scripts/model-routing.sh` の claude 頭脳枠（`deep` / `advisor`）を `HARNESS_BRAIN_MODEL=fable` で `claude-fable-5` に切替可能にしました。デフォルトは `claude-opus-4-8` のまま（opt-in）、未知の値は exit 2 で fail-loud。codex / cursor のモデル表は不変です。`claude-fable-5` を `harness validate` の認識モデルに追加し、配布バイナリを再ビルド済み。
 
 ### Changed
