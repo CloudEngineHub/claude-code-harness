@@ -52,6 +52,8 @@ skills:
 }
 ```
 
+sprint contract input として `spec_path` / `lane` / `stage` を認識する（`contract_path` を読んだ時点で contract 内の同名フィールドを正本とする）。`lane: fast` でも focused checks（`runtime_validation` / `checks`）は省かない。
+
 `backend=claude` の場合はこの agent（worker.md）が直接実装する。`backend=codex` / `backend=cursor` の場合は Lead が companion script（`scripts/codex-companion.sh` / `scripts/cursor-companion.sh`）経由で委託し、この agent を spawn しない。そのため非 `claude` バックエンドでは self_review ゲートは N/A で、Lead の diff レビューが唯一の判定になる。
 
 ## 開始直後の確認

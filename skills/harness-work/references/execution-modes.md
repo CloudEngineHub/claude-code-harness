@@ -54,3 +54,29 @@ boundary.
 Codex-native Breezing reads this flow through `spawn_agent`, `send_input`,
 `wait_agent`, and `close_agent` rather than Claude Code `Agent` /
 `SendMessage` pseudo-code.
+
+## Lane and Stage Contract
+
+Sprint contract generation passes `spec_path`, `lane`, `stage`, and evidence
+fields to Worker / Reviewer. See `skills/harness-work/SKILL.md`「Sprint
+Contract」for the full field list.
+
+### Stage gate (5 stages)
+
+| stage | 目的 |
+|-------|------|
+| `research` | 現状調査・evidence 収集。未取得データは `unknown` と報告 |
+| `plan` | scope / DoD / lane を Plans に freeze |
+| `impl` | TDD Red→Green 実装。`[tdd:required]` は `tdd_red_log` 必須 |
+| `review` | `review_artifact`（`APPROVE` / `REQUEST_CHANGES`）を contract に載せる |
+| `closeout` | `pr_closeout`（`base_ref` / `head_ref` / evidence pack）を載せる |
+
+### Lane: what to lighten vs what to keep
+
+| lane | 軽くする項目 | 省けない項目 |
+|------|-------------|-------------|
+| `fast` | full review（major-only または advisory で可）、PR body の詳細、release preflight | `spec_path`、unknown data contract（`not_observed != absent`）、focused checks（`runtime_validation` / `checks`）、`tdd_red_log` または `skip_tdd_reason`（`[tdd:required]` 時） |
+| `gate` | —（軽量化なし） | spec alignment、TDD when required、major-only or full review、re-review until clean、`research_evidence` |
+| `release` | —（軽量化なし） | version/tag/GitHub Release/CI 検証、`pr_closeout` + release preflight、full evidence pack |
+
+`[tdd:required]` タスクは lane に関わらず、`tdd_red_log` または明示 `skip_tdd_reason` が sprint contract に無い限り完了扱いにしない。

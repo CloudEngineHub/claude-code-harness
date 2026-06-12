@@ -736,6 +736,24 @@ node "${HARNESS_PLUGIN_ROOT}/scripts/generate-sprint-contract.js" 32.1.1
 - `risk_flags`: `needs-spike`, `security-sensitive`, `ux-regression` など
 - `reviewer_profile`: `static`, `runtime`, `browser`
 
+**必須メタデータ（lane / stage / evidence）** — Worker / Scaffolder / Reviewer へ渡す sprint contract input:
+
+| フィールド | 意味 | 例 |
+|-----------|------|-----|
+| `spec_path` | root `spec.md`（または最寄 sub-spec）のパス | `spec.md`, `docs/spec/00-project-spec.md` |
+| `lane` | タスクの lane taxonomy | `fast`, `gate`, `release` |
+| `stage` | 5-stage gate の現在段階 | `research`, `plan`, `impl`, `review`, `closeout` |
+| `research_evidence` | research 結果の link / commit / file | `docs/research/phase-72-evidence.md`, commit hash |
+| `tdd_red_log` | `[tdd:required]` タスクの RED 証跡（commit hash または log path） | `.claude/state/tdd-red-log/72.1.3.jsonl`, `abc1234` |
+| `review_artifact` | review verdict と findings | `{ verdict: "APPROVE", findings: [...] }` |
+| `pr_closeout` | closeout artifact（base/head refs + evidence pack） | `{ base_ref, head_ref, evidence_pack }` |
+
+`generate-sprint-contract.js` 実行時、Lead は `spec_path` / `lane` / `stage` を Plans metadata から contract に載せ、research 完了後は `research_evidence` を追記する。TDD Red 後は `tdd_red_log` を載せ、review 後は `review_artifact`、PR closeout 後は `pr_closeout` を載せる。
+
+**TDD 完了ゲート**: `[tdd:required]` タスクでは sprint contract に `tdd_red_log` または明示 `skip_tdd_reason` が無い限り完了扱いにしない（`cc:完了` 更新・cherry-pick・PR closeout すべて対象）。
+
+**Fast lane の軽量化境界**: `lane: fast` は full review を省略できるが、`not_observed != absent` の unknown data contract と focused checks（`runtime_validation` / `checks` の DoD 分解）は省かない。
+
 **Phase C: Post-delegate（統合・報告）**:
 1. 全タスクの commit log を集計
 2. **リッチ完了報告**（「完了報告フォーマット」の Breezing テンプレート）を出力
