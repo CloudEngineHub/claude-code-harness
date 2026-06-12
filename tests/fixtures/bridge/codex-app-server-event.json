@@ -1,0 +1,8 @@
+{
+  "type": "thread.started",
+  "thread_id": "thread-xyz",
+  "payload": {
+    "model": "gpt-5"
+  },
+  "ts": 1718000000000000002
+}

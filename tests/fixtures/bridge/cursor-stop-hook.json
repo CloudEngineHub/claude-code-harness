@@ -1,0 +1,7 @@
+{
+  "conversation_id": "conv-cursor-001",
+  "hook_event_name": "stop",
+  "session_id": "sess-abc",
+  "message": "task complete",
+  "ts": 1718000000000000001
+}

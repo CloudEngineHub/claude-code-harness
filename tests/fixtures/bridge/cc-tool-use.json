@@ -1,0 +1,9 @@
+{
+  "conversation_id": "conv-cc-001",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "go test ./..."
+  },
+  "timestamp": 1718000000000000000
+}
