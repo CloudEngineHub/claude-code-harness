@@ -1,0 +1,9 @@
+{
+  "type": "stop",
+  "followup_message": {
+    "role": "assistant",
+    "content": "Bridge notice: task handoff pending"
+  },
+  "conversation_id": "conv-cursor-001",
+  "ts": 1718000000000000001
+}
