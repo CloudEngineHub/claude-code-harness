@@ -1,0 +1,28 @@
+{
+  "spec_path": "spec.md",
+  "lane": "gate",
+  "stage": "closeout",
+  "review_command": "bash scripts/codex-companion.sh review --base origin/main --json",
+  "focused_tests": [
+    "bash tests/test-pr-closeout.sh"
+  ],
+  "accepted_findings": [
+    {
+      "id": "acc-1",
+      "severity": "minor",
+      "summary": "Default dry-run prevents accidental gh side effects"
+    }
+  ],
+  "rejected_findings": [
+    {
+      "id": "rej-1",
+      "severity": "recommendation",
+      "summary": "Optional mirror sync in same PR",
+      "reason": "Deferred to task 72.1.6"
+    }
+  ],
+  "release_preflight_warnings": [
+    "mirror sync check not run in this worktree"
+  ],
+  "residual_risk": "Low — script-only change with explicit push gate"
+}

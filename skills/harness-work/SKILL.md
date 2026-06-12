@@ -752,6 +752,22 @@ node "${HARNESS_PLUGIN_ROOT}/scripts/generate-sprint-contract.js" 32.1.1
 
 **TDD 完了ゲート**: `[tdd:required]` タスクでは sprint contract に `tdd_red_log` または明示 `skip_tdd_reason` が無い限り完了扱いにしない（`cc:完了` 更新・cherry-pick・PR closeout すべて対象）。
 
+### PR Closeout（review APPROVE 後）
+
+review APPROVE 後の PR title/body は `bash "${HARNESS_PLUGIN_ROOT}/scripts/harness-pr-closeout.sh"` で evidence pack から組み立てる。**default は `dry-run` preview**（`git push` / `gh pr create` は `push` サブコマンド + 確認または `--yes` のみ）。
+
+```bash
+bash "${HARNESS_PLUGIN_ROOT}/scripts/harness-pr-closeout.sh" build \
+  --base origin/main --head "$(git branch --show-current)" \
+  --evidence .claude/state/evidence-pack.json \
+  --out .claude/state/pr-payload.json
+bash "${HARNESS_PLUGIN_ROOT}/scripts/harness-pr-closeout.sh" dry-run --payload .claude/state/pr-payload.json
+# 明示 push のみ（確認必須、--yes で skip 可）:
+bash "${HARNESS_PLUGIN_ROOT}/scripts/harness-pr-closeout.sh" push --payload .claude/state/pr-payload.json
+```
+
+`harness-review` 経路からの自動 push / PR / merge は禁止（read-only boundary）。detached HEAD では `push` 前に branch 作成が必要。
+
 **Fast lane の軽量化境界**: `lane: fast` は full review を省略できるが、`not_observed != absent` の unknown data contract と focused checks（`runtime_validation` / `checks` の DoD 分解）は省かない。
 
 **Phase C: Post-delegate（統合・報告）**:
