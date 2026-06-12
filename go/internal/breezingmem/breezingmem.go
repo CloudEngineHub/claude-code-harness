@@ -119,7 +119,11 @@ func (c *Client) IngestBrief(ctx context.Context, project, sessionID string, bri
 }
 
 func (c *Client) configured() bool {
-	home, err := c.homeDir()
+	homeDir := c.homeDir
+	if homeDir == nil {
+		homeDir = os.UserHomeDir
+	}
+	home, err := homeDir()
 	if err != nil {
 		return false
 	}

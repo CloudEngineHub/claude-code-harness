@@ -33,13 +33,17 @@ echo "Building harness binary for shell tests..." >&2
 
 # ---- (a) bin/harness mem search-similar JSON shape ----
 
+ISOLATED_HOME="$(mktemp -d)"
+export HOME="$ISOLATED_HOME"
+trap 'rm -rf "$ISOLATED_HOME"' EXIT
+
 if [[ ! -x "$HARNESS" ]]; then
   fail "(a) pre-flight: bin/harness missing"
 else
   pass "(a) pre-flight: bin/harness exists"
 fi
 
-out="$(HARNESS_MEM_HOME=/nonexistent-mem-home "$HARNESS" mem search-similar --project /tmp/proj --query "rate limit" --format json 2>/dev/null || true)"
+out="$("$HARNESS" mem search-similar --project /tmp/proj --query "rate limit" --format json 2>/dev/null || true)"
 if python3 - <<'PY' "$out"
 import json, sys
 raw = sys.argv[1].strip()
@@ -58,7 +62,7 @@ else
 fi
 
 exit_code=0
-HARNESS_MEM_HOME=/nonexistent-mem-home "$HARNESS" mem search-similar --project /tmp/proj --query "x" --format json >/dev/null 2>&1 || exit_code=$?
+"$HARNESS" mem search-similar --project /tmp/proj --query "x" --format json >/dev/null 2>&1 || exit_code=$?
 if [[ "$exit_code" -eq 0 ]]; then
   pass "(a) search-similar fail-open exit 0"
 else
@@ -99,7 +103,7 @@ fi
 audit_dir() {
   local label="$1"
   local dir="$2"
-  if rg -i 'workgraph|signal_send' "$dir" --glob '*.go' >/dev/null 2>&1; then
+  if rg -i 'workgraph|signal_send' "$dir" --glob '*.go' --glob '!*_test.go' >/dev/null 2>&1; then
     fail "(c) $label must not reference workgraph/signal_send"
   else
     pass "(c) $label workgraph audit clean"

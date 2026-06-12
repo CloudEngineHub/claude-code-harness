@@ -16,6 +16,7 @@ Usage:
   breezing-brief.sh classify "<args>"
   breezing-brief.sh validate <card.json>
   breezing-brief.sh confirm <yes|no> <card.json>
+  breezing-brief.sh recall <goal-text> [--project P]
 EOF
 }
 
@@ -182,6 +183,35 @@ validate_card(data, schema)
 PY
 }
 
+cmd_recall() {
+  local goal_text=""
+  local project=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project)
+        project="${2:-}"
+        shift 2
+        ;;
+      *)
+        goal_text="$1"
+        shift
+        ;;
+    esac
+  done
+
+  if [[ -z "$goal_text" ]]; then
+    echo "[]"
+    return 0
+  fi
+
+  if [[ -z "$project" ]]; then
+    project="$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || echo "$ROOT")"
+  fi
+
+  "$ROOT/bin/harness" mem search-similar --project "$project" --query "$goal_text" --format json
+}
+
 cmd_confirm() {
   local decision="${1:-}"
   local card_path="${2:-}"
@@ -232,6 +262,9 @@ main() {
       ;;
     confirm)
       cmd_confirm "${1:-}" "${2:-}"
+      ;;
+    recall)
+      cmd_recall "$@"
       ;;
     ""|-h|--help|help)
       usage

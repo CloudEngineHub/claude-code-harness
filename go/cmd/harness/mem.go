@@ -73,6 +73,8 @@ func runMemCommand(args []string, stdout, stderr io.Writer) int {
 		return runMemPurge(args[1:], stdout, stderr)
 	case "record-breezing-event":
 		return runMemRecordBreezingEvent(args[1:], stdout, stderr)
+	case "search-similar":
+		return runMemSearchSimilar(args[1:], stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "Unknown mem subcommand: %s\n", args[0])
 		return 1
@@ -393,4 +395,70 @@ func breezingEventTypeFromCLI(name string) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+// runMemSearchSimilar handles `harness mem search-similar` (fail-open, exit 0).
+func runMemSearchSimilar(args []string, stdout, _ io.Writer) int {
+	opts, err := parseMemSearchSimilarArgs(args)
+	if err != nil {
+		opts = memSearchSimilarOpts{}
+	}
+	if opts.Project == "" || opts.Query == "" {
+		fmt.Fprintln(stdout, "[]")
+		return 0
+	}
+
+	client := breezingmem.New()
+	results := client.SearchSimilar(context.Background(), opts.Project, opts.Query)
+	if results == nil {
+		results = []breezingmem.SimilarPastDecision{}
+	}
+	data, err := json.Marshal(results)
+	if err != nil {
+		fmt.Fprintln(stdout, "[]")
+		return 0
+	}
+	fmt.Fprintln(stdout, string(data))
+	return 0
+}
+
+type memSearchSimilarOpts struct {
+	Project string
+	Query   string
+	Format  string
+}
+
+func parseMemSearchSimilarArgs(args []string) (memSearchSimilarOpts, error) {
+	var opts memSearchSimilarOpts
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--project":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--project requires a value")
+			}
+			i++
+			opts.Project = args[i]
+		case "--query":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--query requires a value")
+			}
+			i++
+			opts.Query = args[i]
+		case "--format":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--format requires a value")
+			}
+			i++
+			opts.Format = args[i]
+		default:
+			return opts, fmt.Errorf("unknown flag %q", args[i])
+		}
+	}
+	if opts.Format == "" {
+		opts.Format = "json"
+	}
+	if opts.Format != "json" {
+		return opts, fmt.Errorf("unsupported format %q", opts.Format)
+	}
+	return opts, nil
 }
