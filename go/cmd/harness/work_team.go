@@ -17,6 +17,7 @@ import (
 	"github.com/Chachamaru127/claude-code-harness/go/internal/companionresult"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/floor"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/orchestrationledger"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/reviewiterate"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/runtimefloor"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/sublead"
 )
@@ -159,19 +160,35 @@ var teamSubLeadPlanner = func() sublead.Planner {
 // Tests may replace it; production delegates to productionCompanionWorker.
 var teamSubWorkerFactory = productionCompanionWorker
 
+// reviewIterateRunner is the review→iterate loop entry point. Tests replace it.
+var reviewIterateRunner = func(ctx context.Context, cfg reviewiterate.Config, initial companionresult.Result) (reviewiterate.Outcome, error) {
+	return reviewiterate.Run(ctx, cfg, initial)
+}
+
 // teamWorkerFactory builds the per-task worker. The production factory drives
 // the backend companion (flat) or a Sub-Lead hierarchy when
 // HARNESS_TEAM_HIERARCHY=sublead; tests inject fakes that do not shell out.
+// When HARNESS_REVIEW_ITERATE=on the inner worker is wrapped with the
+// cross-CLI fresh-context review→iterate loop (brain-only verdict, N-iter
+// escalation).
 var teamWorkerFactory = func(backend string) breezing.WorkerFunc {
+	var worker breezing.WorkerFunc
 	if teamHierarchySubLead() {
-		return sublead.NewSubLeadWorker(
+		worker = sublead.NewSubLeadWorker(
 			teamSubLeadPlanner(),
 			teamSubWorkerFactory(backend),
 			backend,
 			teamMaxParallel(),
 		)
+	} else {
+		worker = productionCompanionWorker(backend)
 	}
-	return productionCompanionWorker(backend)
+	return wrapWorkerWithReviewIterate(worker, backend)
+}
+
+// reviewIterateEnabled reports whether the review→iterate loop wraps workers.
+func reviewIterateEnabled() bool {
+	return strings.TrimSpace(os.Getenv("HARNESS_REVIEW_ITERATE")) == "on"
 }
 
 // teamHierarchySubLead reports whether the Sub-Lead producer hierarchy is active.
