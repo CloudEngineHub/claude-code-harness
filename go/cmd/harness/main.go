@@ -155,6 +155,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  inbox check --team <t> --agent <a> --db <path>  Read livemsg inbox (fail-open)")
 	fmt.Fprintln(os.Stderr, "  inbox monitor --team <t> --agent <a> --db <path>  Poll livemsg inbox stream (CC Monitor)")
 	fmt.Fprintln(os.Stderr, "  self-audit hooks --file <path>  Audit settings.local.json command hooks (CCH allowlist)")
+	fmt.Fprintln(os.Stderr, "  self-audit baseline --settings <path> --baseline <path>  Verify deny entries did not regress")
 	fmt.Fprintln(os.Stderr, "  wt fingerprint capture --output <path>  Snapshot sensitive $HOME paths")
 	fmt.Fprintln(os.Stderr, "  wt fingerprint diff --before <p> --after <p>  Detect worktree-escape (exit 2 on change)")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")

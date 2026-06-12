@@ -7,6 +7,8 @@ CLAUDE.md 末尾に `<!-- harness-integrity: ... -->` マーカーがある。
 CLAUDE.md 末尾を **Read ツールで確認**し、以下をチェック:
 
 1. `.claude-plugin/settings.json` の deny エントリが前回監査時から**減少**していないか
+   （機械実行: `bin/harness self-audit baseline --settings .claude-plugin/settings.json --baseline templates/security/deny-baseline.json`。
+   SSOT は `templates/security/deny-baseline.json`。baseline の更新は人間 only）
 2. `.claude-plugin/settings.json` の deny に settings 自己書換保護の 4 パターン
    (`Edit/Write(.claude/settings*)` と `Edit/Write(.claude-plugin/settings*)`) が**揃っているか**
    (CLAUDE.md Permission Boundaries が約束する deny。`tests/validate-plugin.sh` の gate と対応)

@@ -52,11 +52,14 @@ with open(out_path, "w") as f:
     f.write("\n")
 PY
 
-if "$HARNESS_BIN" self-audit baseline --settings "$FIXTURE_DIR/settings-trimmed.json" --baseline "$BASELINE"; then
+set +e
+"$HARNESS_BIN" self-audit baseline --settings "$FIXTURE_DIR/settings-trimmed.json" --baseline "$BASELINE" >/dev/null
+trim_rc=$?
+set -e
+if [ "$trim_rc" -eq 0 ]; then
     echo "FAIL: trimmed settings should exit 2 (deny regression)"
     exit 1
 fi
-trim_rc=$?
 if [ "$trim_rc" -ne 2 ]; then
     echo "FAIL: trimmed settings exit = $trim_rc, want 2"
     exit 1
