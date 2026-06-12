@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/breezingmem"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/harnessmem"
 )
 
@@ -308,8 +309,88 @@ func ensureTrailingNewline(s string) string {
 	return s + "\n"
 }
 
-// runMemRecordBreezingEvent is a RED stub for `harness mem record-breezing-event`.
-func runMemRecordBreezingEvent(_ []string, _ io.Writer, stderr io.Writer) int {
-	fmt.Fprintln(stderr, "record-breezing-event: not implemented")
-	return 1
+// runMemRecordBreezingEvent handles `harness mem record-breezing-event` for the
+// skill layer (brief-confirmed today; extensible via --type).
+func runMemRecordBreezingEvent(args []string, _ io.Writer, stderr io.Writer) int {
+	opts, err := parseMemRecordBreezingEventArgs(args)
+	if err != nil {
+		fmt.Fprintf(stderr, "harness mem record-breezing-event: %v\n", err)
+		return 1
+	}
+	eventType, ok := breezingEventTypeFromCLI(opts.Type)
+	if !ok {
+		fmt.Fprintf(stderr, "harness mem record-breezing-event: unknown type %q\n", opts.Type)
+		return 1
+	}
+	breezingMemClient.RecordEvent(context.Background(), eventType, opts.Project, opts.Session, opts.Content)
+	return 0
+}
+
+type memRecordBreezingEventOpts struct {
+	Type    string
+	Project string
+	Session string
+	Content string
+}
+
+func parseMemRecordBreezingEventArgs(args []string) (memRecordBreezingEventOpts, error) {
+	var opts memRecordBreezingEventOpts
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--type":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--type requires a value")
+			}
+			i++
+			opts.Type = args[i]
+		case "--project":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--project requires a value")
+			}
+			i++
+			opts.Project = args[i]
+		case "--session":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--session requires a value")
+			}
+			i++
+			opts.Session = args[i]
+		case "--content":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--content requires a value")
+			}
+			i++
+			opts.Content = args[i]
+		default:
+			return opts, fmt.Errorf("unknown flag %q", args[i])
+		}
+	}
+	if opts.Type == "" {
+		return opts, fmt.Errorf("--type is required")
+	}
+	if opts.Project == "" {
+		return opts, fmt.Errorf("--project is required")
+	}
+	if opts.Session == "" {
+		return opts, fmt.Errorf("--session is required")
+	}
+	if opts.Content == "" {
+		return opts, fmt.Errorf("--content is required")
+	}
+	return opts, nil
+}
+
+func breezingEventTypeFromCLI(name string) (string, bool) {
+	switch strings.TrimSpace(name) {
+	case "brief-confirmed":
+		return breezingmem.EventBriefConfirmed, true
+	case "run-started":
+		return breezingmem.EventRunStarted, true
+	case "worker-result":
+		return breezingmem.EventWorkerResult, true
+	case "aggregation-done":
+		return breezingmem.EventAggregationDone, true
+	default:
+		return "", false
+	}
 }

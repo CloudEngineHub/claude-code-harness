@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -161,6 +162,13 @@ var teamWorkerFactory = func(backend string) breezing.WorkerFunc {
 func runTeam(tasks []string, backend string, maxParallel int) ([]companionresult.Result, error) {
 	recordTeamAutoApproveLedger(backend)
 
+	if payload, err := json.Marshal(map[string]any{
+		"backend":    backend,
+		"task_count": len(tasks),
+	}); err == nil {
+		recordBreezingMemEvent(breezingmem.EventRunStarted, string(payload))
+	}
+
 	worker := teamWorkerFactory(backend)
 
 	o := breezing.NewOrchestrator(worker, breezing.WithMaxParallel(maxParallel))
@@ -187,8 +195,24 @@ func runTeam(tasks []string, backend string, maxParallel int) ([]companionresult
 			out = append(out, r)
 			continue
 		}
-		out = append(out, applyFloorGate(resultFromTaskResult(backend, id, tr)))
+		r := applyFloorGate(resultFromTaskResult(backend, id, tr))
+		recordBreezingMemWorkerResult(id, r)
+		out = append(out, r)
 	}
+
+	failed := 0
+	for _, r := range out {
+		if !r.Success {
+			failed++
+		}
+	}
+	if payload, err := json.Marshal(map[string]any{
+		"task_count": len(out),
+		"failed":     failed,
+	}); err == nil {
+		recordBreezingMemEvent(breezingmem.EventAggregationDone, string(payload))
+	}
+
 	return out, nil
 }
 
@@ -392,6 +416,41 @@ func recordCompanionResultLedger(backend, taskID string, r companionresult.Resul
 		Success:    r.Success,
 		RepoRoot:   resolveRepoRoot(),
 	})
+}
+
+func breezingMemSessionID() string {
+	for _, key := range []string{
+		"HARNESS_BREEZING_SESSION_ID",
+		"BREEZING_SESSION_ID",
+		"CLAUDE_SESSION_ID",
+	} {
+		if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+			return v
+		}
+	}
+	return "local"
+}
+
+func recordBreezingMemEvent(eventType, content string) {
+	breezingMemClient.RecordEvent(
+		context.Background(),
+		eventType,
+		resolveRepoRoot(),
+		breezingMemSessionID(),
+		content,
+	)
+}
+
+func recordBreezingMemWorkerResult(taskID string, r companionresult.Result) {
+	payload, err := json.Marshal(map[string]any{
+		"task_id":   taskID,
+		"success":   r.Success,
+		"exit_code": r.ExitCode,
+	})
+	if err != nil {
+		return
+	}
+	recordBreezingMemEvent(breezingmem.EventWorkerResult, string(payload))
 }
 
 // resolveCompanionScript finds scripts/<backend>-companion.sh, mirroring the
