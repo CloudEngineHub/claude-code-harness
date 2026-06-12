@@ -18,8 +18,8 @@ func TestCursorAdapter_NormalizesStopHook(t *testing.T) {
 		EventType: "stop",
 		Payload: map[string]interface{}{
 			"conversation_id": "conv-cursor-001",
-			"session_id":        "sess-abc",
-			"message":           "task complete",
+			"session_id":      "sess-abc",
+			"message":         "task complete",
 		},
 		TS: 1718000000000000001,
 	}

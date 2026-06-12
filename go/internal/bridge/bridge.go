@@ -3,8 +3,6 @@
 // adapter 抽象を提供する。store 配線（mailbox 集約）は 95.1.2 で行う。
 package bridge
 
-import "errors"
-
 type Source string
 
 const (
@@ -26,8 +24,6 @@ type Adapter interface {
 	Source() Source
 	Normalize(raw []byte) (Event, error)
 }
-
-var errNotImplemented = errors.New("bridge: not implemented")
 
 type Registry struct {
 	adapters map[Source]Adapter
@@ -54,34 +50,4 @@ func (r *Registry) Normalize(src Source, raw []byte) (Event, bool, error) {
 	}
 	ev, err := a.Normalize(raw)
 	return ev, true, err
-}
-
-type ccMailboxAdapter struct{}
-
-func NewCCMailboxAdapter() Adapter { return &ccMailboxAdapter{} }
-
-func (a *ccMailboxAdapter) Source() Source { return SourceCC }
-
-func (a *ccMailboxAdapter) Normalize(raw []byte) (Event, error) {
-	return Event{}, errNotImplemented
-}
-
-type cursorStopHookAdapter struct{}
-
-func NewCursorStopHookAdapter() Adapter { return &cursorStopHookAdapter{} }
-
-func (a *cursorStopHookAdapter) Source() Source { return SourceCursor }
-
-func (a *cursorStopHookAdapter) Normalize(raw []byte) (Event, error) {
-	return Event{}, errNotImplemented
-}
-
-type codexAppServerAdapter struct{}
-
-func NewCodexAppServerAdapter() Adapter { return &codexAppServerAdapter{} }
-
-func (a *codexAppServerAdapter) Source() Source { return SourceCodex }
-
-func (a *codexAppServerAdapter) Normalize(raw []byte) (Event, error) {
-	return Event{}, errNotImplemented
 }
