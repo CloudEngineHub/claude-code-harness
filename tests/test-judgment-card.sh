@@ -256,7 +256,7 @@ for reason in dod-ambiguous scope-exceeded tradeoff; do
 done
 
 out_no="$(assert_exit "(c) unknown reason → NO_CARD exit 1" 1 \
-  bash "$SCRIPT" should-issue --reason not-a-reason")"
+  bash "$SCRIPT" should-issue --reason 'not-a-reason')"
 assert_eq "(c) unknown reason output" "NO_CARD: reason not in enum" "$out_no"
 
 # ---- (d) mem fail-open ----
