@@ -142,6 +142,37 @@ cursor の write 委託は専用 `.git` を持つ worktree 内で実行し、Lea
 
 理由: docs / README / locale / capability-matrix / spec.md には grep で監視される **固定文字列契約**がある (例: `README_ja.md` の `5動詞ワークフロー`)。composer は表面的な言語的重複を機械的に削減する傾向があり、目視 diff では「綺麗な dedup」に見えても固定句を破壊しうる。
 
+### Mode 1 — Producer → Sub-Lead → Composer 階層
+
+`harness work --team`（Breezing の Go orchestrator 経路）で **Mode 1 producer hierarchy** を有効にする opt-in 配線。正本は `spec.md`「Mode 1 — orchestrated Producer hierarchy」節。実装: `go/internal/sublead/sublead.go`、`go/cmd/harness/work_team.go`。
+
+| 層 | 役割 | 備考 |
+|----|------|------|
+| **Producer（Lead）** | Claude Code 固定。lane 単位で Sub-Lead に委譲し、`companion-result.v1` を集約 | 人間が話す CLI = Lead |
+| **Sub-Lead** | lane 1 件を mini-plan に分解し、subtask を並列 fan-out | orchestrator-spawned **headless CLI**（Lead と同一 CLI backend） |
+| **Composer 2.5** | subtask の実装担当（cursor backend） | `productionCompanionWorker` → `cursor-companion.sh`；lane ごとに `companion-result.v1` で集約 |
+
+**hub-spoke のみ**: subWorker 同士は peer results や channel を受け取らない。Sub-Lead が inner `breezing.Orchestrator` で fan-out し、lane 結果を 1 つの `companion-result.v1` に畳む。
+
+**有効化**: `HARNESS_TEAM_HIERARCHY=sublead`（**default OFF**）。未設定時は flat companion worker（Lead が task ごとに companion を直接呼ぶ従来経路）。
+
+### review→iterate ループ
+
+cross-CLI の品質ゲートを worker 出力に wrap する opt-in 配線。実装: `go/internal/reviewiterate/run.go`、`go/cmd/harness/work_team_reviewiterate.go`。
+
+**有効化**: `HARNESS_REVIEW_ITERATE=on`（**default OFF**）。`teamWorkerFactory` が inner worker（flat companion または Sub-Lead 配下 subWorker）を `wrapWorkerWithReviewIterate` で包む。
+
+| 段階 | 動作 |
+|------|------|
+| 1. advisory fan-out | 複数 lens（例: correctness / security / scope）で **fresh-context** headless reviewer CLI を並列起動（producing session と会話状態を共有しない） |
+| 2. brain primary verdict | **primary verdict（`APPROVE` / `REQUEST_CHANGES`）は brain（claude host / Lead）のみ**が出す。advisory reviewer は findings のみ |
+| 3. refinement re-dispatch | brain が `REQUEST_CHANGES` なら、findings を精緻化プロンプトに畳み、**同 worktree** に inner `WorkerFunc` で再投入 |
+| 4. 反復上限 | `MaxIters` 到達で未収束 → `Outcome.Escalated=true` + `EscalationNote` を付けて human escalation |
+
+**反復上限 env**: `HARNESS_REVIEW_ITERATE_MAX`（未設定時 default `3`）。`reviewiterate.Config.MaxIters` に渡される。
+
+cross-CLI review は **OK まで反復**する（DoD 未達なら精緻化タスクを同 worktree に再投入、N 回未収束で human escalation）。
+
 ## オプション
 
 | オプション | 説明 | デフォルト |
