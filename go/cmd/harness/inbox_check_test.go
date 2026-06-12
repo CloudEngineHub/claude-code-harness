@@ -4,28 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/livemsg"
 )
-
-type inboxCheckResult struct {
-	Team     string                   `json:"team"`
-	Agent    string                   `json:"agent"`
-	Unread   int                      `json:"unread"`
-	Messages []inboxCheckMessageEntry `json:"messages"`
-}
-
-type inboxCheckMessageEntry struct {
-	ID        string `json:"id"`
-	Team      string `json:"team"`
-	FromAgent string `json:"from_agent"`
-	ToAgent   string `json:"to_agent"`
-	Subject   string `json:"subject"`
-	Body      string `json:"body"`
-	CreatedAt string `json:"created_at"`
-}
 
 func seedInboxDB(t *testing.T, team, from, to string, count int) string {
 	t.Helper()
@@ -58,7 +42,6 @@ func runInboxCheckCapture(args []string) (string, int) {
 func TestInboxCheck_EmptyDB(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "no-such-livemsg.db")
 	out, code := runInboxCheckCapture([]string{
-		"check",
 		"--team", "team-a",
 		"--agent", "agent-1",
 		"--db", missing,
@@ -67,7 +50,7 @@ func TestInboxCheck_EmptyDB(t *testing.T) {
 		t.Fatalf("expected exit 0 for missing DB (fail-open), got %d; stderr path ok", code)
 	}
 
-	var result inboxCheckResult
+	var result inboxCheckOutput
 	if err := json.Unmarshal([]byte(out), &result); err != nil {
 		t.Fatalf("invalid JSON: %v\nraw: %s", err, out)
 	}
@@ -90,13 +73,13 @@ func TestInboxCheck_ReadsAndMarksRead(t *testing.T) {
 	agent := "agent-2"
 	dbPath := seedInboxDB(t, team, "agent-1", agent, 2)
 
-	args := []string{"check", "--team", team, "--agent", agent, "--db", dbPath}
+	args := []string{"--team", team, "--agent", agent, "--db", dbPath}
 
 	out1, code1 := runInboxCheckCapture(args)
 	if code1 != 0 {
 		t.Fatalf("first check exit = %d, want 0", code1)
 	}
-	var first inboxCheckResult
+	var first inboxCheckOutput
 	if err := json.Unmarshal([]byte(out1), &first); err != nil {
 		t.Fatalf("first JSON: %v\nraw: %s", err, out1)
 	}
@@ -111,7 +94,7 @@ func TestInboxCheck_ReadsAndMarksRead(t *testing.T) {
 	if code2 != 0 {
 		t.Fatalf("second check exit = %d, want 0", code2)
 	}
-	var second inboxCheckResult
+	var second inboxCheckOutput
 	if err := json.Unmarshal([]byte(out2), &second); err != nil {
 		t.Fatalf("second JSON: %v\nraw: %s", err, out2)
 	}
@@ -123,13 +106,27 @@ func TestInboxCheck_ReadsAndMarksRead(t *testing.T) {
 	}
 }
 
+func copyDBFile(t *testing.T, src string) string {
+	t.Helper()
+	data, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	dst := filepath.Join(t.TempDir(), "livemsg-copy.db")
+	if err := os.WriteFile(dst, data, 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	return dst
+}
+
 func TestInboxCheck_StableJSONOrder(t *testing.T) {
 	team := "team-a"
 	agent := "agent-2"
+	src := seedInboxDB(t, team, "agent-1", agent, 2)
 
-	runOnce := func() string {
-		dbPath := seedInboxDB(t, team, "agent-1", agent, 2)
-		args := []string{"check", "--team", team, "--agent", agent, "--db", dbPath}
+	runOnCopy := func() string {
+		dbPath := copyDBFile(t, src)
+		args := []string{"--team", team, "--agent", agent, "--db", dbPath}
 		out, code := runInboxCheckCapture(args)
 		if code != 0 {
 			t.Fatalf("check exit = %d", code)
@@ -137,8 +134,8 @@ func TestInboxCheck_StableJSONOrder(t *testing.T) {
 		return out
 	}
 
-	a := runOnce()
-	b := runOnce()
+	a := runOnCopy()
+	b := runOnCopy()
 	if a != b {
 		t.Errorf("inbox check JSON not bytes-identical:\nfirst:\n%s\nsecond:\n%s", a, b)
 	}

@@ -30,6 +30,12 @@ import (
 // harness binary: all three hosts converge on this single policy entrypoint.
 const preToolCommand = "hook pre-tool"
 
+const deliveryMatcher = "*"
+
+const inboxCheckCommand = "bin/harness inbox check --team {{TEAM}} --agent {{AGENT}}"
+
+const inboxMonitorCommand = "bin/harness inbox monitor --team {{TEAM}} --agent {{AGENT}}"
+
 // claudeBinary is the binary invocation Codex and Cursor use directly. Claude's
 // own hooks.json wraps the binary in a valid_root bootstrap (see
 // ClaudePreToolCommand); Codex/Cursor configs are generated minimally and
@@ -46,13 +52,16 @@ const ClaudePreToolCommand = `/bin/bash -c 'valid_root(){ local r="${1:-}"; [ -n
 // Host describes one host's pre-action hook capabilities, parsed from a [host]
 // table in hosts.toml.
 type Host struct {
-	Name      string `toml:"-"`
-	HookEvent string `toml:"hook_event"`
-	HookPath  string `toml:"hook_path"`
-	Matcher   string `toml:"matcher"`
-	Deny      string `toml:"deny"`
-	Transport string `toml:"transport"`
-	Model     string `toml:"model"`
+	Name                 string `toml:"-"`
+	HookEvent            string `toml:"hook_event"`
+	HookPath             string `toml:"hook_path"`
+	Matcher              string `toml:"matcher"`
+	Deny                 string `toml:"deny"`
+	Transport            string `toml:"transport"`
+	Model                string `toml:"model"`
+	DeliveryStrategy     string `toml:"delivery_strategy"`
+	DeliveryEventTurn    string `toml:"delivery_event_turn"`
+	DeliveryEventMonitor string `toml:"delivery_event_monitor"`
 }
 
 // Load parses hosts.toml and returns a map keyed by host name (claude, codex,
@@ -87,6 +96,67 @@ func Load(path string) (map[string]Host, error) {
 // output), not by this static config, so the generated file only declares the
 // wiring; the deny mechanism column in hosts.toml documents how each host reads
 // that engine result.
+// GenerateDeliveryHooksJSON emits per-host delivery-notice hook wiring for
+// livemsg inbox check (turn boundary) and, for Claude only, inbox monitor
+// (SessionStart blocking stream). Returns (nil, false, nil) when delivery
+// config is absent — fail-open for hosts without live-notice wiring.
+func GenerateDeliveryHooksJSON(h Host) ([]byte, bool, error) {
+	doc, ok := buildDeliveryDoc(h)
+	if !ok {
+		return nil, false, nil
+	}
+	out, err := marshalStable(doc)
+	if err != nil {
+		return nil, false, err
+	}
+	return out, true, nil
+}
+
+func buildDeliveryDoc(h Host) (interface{}, bool) {
+	if h.DeliveryStrategy == "" || h.DeliveryEventTurn == "" {
+		return nil, false
+	}
+
+	turnEntry := commandEntry{Type: "command", Command: inboxCheckCommand, Timeout: 30}
+	hooks := map[string]interface{}{
+		h.DeliveryEventTurn: deliveryTurnGroups(h, turnEntry),
+	}
+
+	if h.Name == "claude" && h.DeliveryEventMonitor != "" {
+		monitorEntry := commandEntry{Type: "command", Command: inboxMonitorCommand, Timeout: 300}
+		hooks[h.DeliveryEventMonitor] = []matcherGroup{
+			{Matcher: deliveryMatcher, Hooks: []commandEntry{monitorEntry}},
+		}
+	}
+
+	switch h.Name {
+	case "cursor":
+		return map[string]interface{}{
+			"version": 1,
+			"hooks":   hooks,
+		}, true
+	case "codex", "claude":
+		return map[string]interface{}{
+			"hooks": hooks,
+		}, true
+	default:
+		return nil, false
+	}
+}
+
+func deliveryTurnGroups(h Host, entry commandEntry) interface{} {
+	switch h.Name {
+	case "cursor":
+		return []cursorEntry{
+			{Type: entry.Type, Command: entry.Command, Matcher: deliveryMatcher, Timeout: entry.Timeout},
+		}
+	default:
+		return []matcherGroup{
+			{Matcher: deliveryMatcher, Hooks: []commandEntry{entry}},
+		}
+	}
+}
+
 func GenerateHooksJSON(h Host) ([]byte, error) {
 	var doc interface{}
 	switch h.Name {
