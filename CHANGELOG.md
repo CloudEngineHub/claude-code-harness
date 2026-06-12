@@ -20,6 +20,8 @@ Change history for claude-code-harness.
 
 - **Team dispatch hardening（Phase 92.2.3）**: `harness work --team` 経路で companion 起動直前に Phase 92.2.1 の runtime hard floor を通すよう配線しました。floor が止めた場合は companion を起動せず `RUNTIME_FLOOR:<category>:...` を載せた exit 2 envelope を返します。auto-approve（環境変数 `HARNESS_AUTO_APPROVE=on`）は `go/internal/autoapprove` で構造的 fail-safe 化し、`bin/harness wt fingerprint capture` が exit 0 で動かない限り **OFF に強制**されます（env だけでは ON にできない）。新 package `go/internal/orchestrationledger` が `scripts/lib/orchestration-ledger.sh` と互換な 8 フィールド JSONL を `subcommand="team-dispatch"` で append し、auto-approve 判定と floor stop を Lead が監査できるようにしました。
 
+- **Lead 集約 callable（Phase 92.3.1）**: cherry-pick FLOOR を prose 手順から callable 関数 `go/internal/integrate.Integrate(ctx, opts)` へ昇格しました。`rebase task onto trunk → cherry-pick --no-commit → floor.Gate → commit` を 1 関数で実行し、rerere 自動 replay を `using previous resolution` 文言と `.git/rr-cache` mtime 変化の 2 経路で検出します。floor.Gate 失敗時は cherry-pick を abort + working tree を巻き戻し、成功時は `orchestrationledger.EmitIntegration` が `subcommand="integration"` で task branch / commit SHA / `rere_resolved` / `floor_pass` を JSONL ledger に append-only 記録します。GitRunner / ScriptRunner / LedgerWriter は DI 化、e2e テストは temp git repo で 3 task 逐次統合と SHARED.md の rerere replay を実 git で検証（155 test PASS）。
+
 - **Fable 5 brain opt-in（`HARNESS_BRAIN_MODEL`）**: `scripts/model-routing.sh` の claude 頭脳枠（`deep` / `advisor`）を `HARNESS_BRAIN_MODEL=fable` で `claude-fable-5` に切替可能にしました。デフォルトは `claude-opus-4-8` のまま（opt-in）、未知の値は exit 2 で fail-loud。codex / cursor のモデル表は不変です。`claude-fable-5` を `harness validate` の認識モデルに追加し、配布バイナリを再ビルド済み。
 
 ### Changed
