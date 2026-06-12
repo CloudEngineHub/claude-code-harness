@@ -211,6 +211,25 @@ backend が `cursor` (または `codex`) のとき、Lead は Worker agent (`cla
 
 詳細: `skills/harness-work/SKILL.md` の「非 `claude` バックエンドのトポロジー」節を参照。
 
+## AppleScript ポリシー
+
+macOS 上で Cursor バックエンドや companion スクリプトが AppleScript / shell を使う場合、
+**許可する動詞は 2 つのみ**:
+
+1. AppleScript の **`activate`** — 対象アプリを前面化する
+2. shell の **`open -a`** — 対象アプリを起動する
+
+### 禁止事項
+
+- **`System Events` 経由の keystroke / click 注入** — UI イベント注入はユーザー入力と区別できず、
+  hook 層の deny も迂回するため禁止
+
+理由: `System Events` によるキーストローク・クリック注入は、Harness の PreToolUse / R01-R13
+ガードレールが「誰が操作したか」を判別できない経路になる。アプリの起動・前面化だけなら
+副作用が限定的で、hook deny とも衝突しない。
+
+再検討条件: `docs/research/applescript-decision-2026-06.md` の「再昇格 4 条件」を参照。
+
 ## 関連ルール
 
 - `.claude/rules/codex-cli-only.md` — Codex バックエンド (companion 経由統一の姉妹ルール)
