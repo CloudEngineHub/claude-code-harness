@@ -924,6 +924,47 @@ does not move or modify it. Live notice messaging is the CCH-owned layer above.
 The two are distinct: durable work-handoff = harness-mem signal; live notice
 messaging = CCH.
 
+### Risk Gate distribution contract (3-CLI parity)
+
+Five canonical floor categories are enumerated in
+`go/internal/runtimefloor` as a non-overridable runtime gate:
+
+- `money-billing`
+- `egress`
+- `secret-read`
+- `prod-deploy`
+- `worktree-escape`
+
+These five categories must fire identically across the three CLIs (Claude Code
+`PreToolUse`, Cursor `preToolUse`, Codex `PreToolUse` Bash) at hook exit code
+2 (`tests/test-3cli-hook-floor.sh` enforces 15 cases). Codex hooks observe
+Bash events only, so non-Bash tool actions (Read, Write, etc.) are not covered
+by Codex's hook surface; the gap is structurally complemented by Phase 92.2.2
+fingerprint containment, which detects worktree-external writes regardless of
+the originating tool.
+
+The canonical floor policy fragment exported by `harness gen hooks`
+(`go/internal/hostgen` `FloorPolicyFragment`) must be **byte-equal** across
+the three hosts' generated hooks config — the `floor_policy` block is the
+single source of truth, replicated unchanged into Claude / Codex / Cursor host
+hook documents. Drift in this block is a contract violation; the host-specific
+hook wrapper around the canonical fragment remains the only legitimate
+per-host variation.
+
+### auto-approve scope
+
+`HARNESS_AUTO_APPROVE=on` (strict literal `on` only; `true` / `1` / `ON` /
+`yes` are rejected) is the only opt-in switch for auto-approval. It applies
+**only inside the active worktree**: `autoapprove.AppliesTo(path,
+worktreeRoot)` returns false for any path outside the worktree root, so the
+5-category runtime floor and `wt fingerprint` containment continue to
+adjudicate worktree-external attempts and remain non-overridable by
+`HARNESS_AUTO_APPROVE`. The switch is gated on three prereqs being
+demonstrably done (Phase 92.1.1 parallel base hygiene, 92.2.3 team dispatch
+hardening, 96.1.2 3-CLI hook parity); if any prereq is missing the gate
+fail-safes to OFF regardless of the env value. The gate decision is recorded
+on every `harness work --team` dispatch through the orchestration ledger.
+
 ## Breezing Brief Contract
 
 `/breezing` may accept free-text input that does not match the existing
