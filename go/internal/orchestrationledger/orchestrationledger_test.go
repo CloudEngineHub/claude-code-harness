@@ -80,6 +80,48 @@ func TestEmitTeamDispatchLedger_FailOpen(t *testing.T) {
 	})
 }
 
+func TestEmitIntegration_WritesJsonl(t *testing.T) {
+	dir := t.TempDir()
+	ledger := filepath.Join(dir, "ledger.jsonl")
+	t.Setenv("HARNESS_ORCHESTRATION_LEDGER", ledger)
+
+	exit := 0
+	EmitIntegration(IntegrationOpts{
+		Backend:      "lead",
+		RepoRoot:     dir,
+		Write:        true,
+		ExitCode:     &exit,
+		DurationMs:   42,
+		Sequence:     2,
+		TaskBranch:   "task/92.3.1",
+		TrunkBranch:  "trunk",
+		CommitSHA:    "abc123",
+		RereResolved: true,
+		FloorPass:    true,
+	})
+
+	data, err := os.ReadFile(ledger)
+	if err != nil {
+		t.Fatalf("read ledger: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 1 {
+		t.Fatalf("got %d lines, want 1", len(lines))
+	}
+
+	var entry map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(lines[0]), &entry); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	var subcommand string
+	if err := json.Unmarshal(entry["subcommand"], &subcommand); err != nil {
+		t.Fatalf("subcommand: %v", err)
+	}
+	if subcommand != subcommandIntegration {
+		t.Fatalf("subcommand = %q, want %q", subcommand, subcommandIntegration)
+	}
+}
+
 func TestEmitTeamDispatchLedger_SchemaCompatibility(t *testing.T) {
 	// Required fields and nullability must match scripts/lib/orchestration-ledger.sh.
 	dir := t.TempDir()

@@ -13,6 +13,25 @@ import (
 )
 
 const subcommandTeamDispatch = "team-dispatch"
+const subcommandIntegration = "integration"
+
+// IntegrationOpts records Lead integration (task branch take-in) outcome.
+type IntegrationOpts struct {
+	Backend      string
+	RepoRoot     string
+	Write        bool
+	ExitCode     *int
+	DurationMs   int64
+	Sequence     int
+	TaskBranch   string
+	TrunkBranch  string
+	CommitSHA    string
+	RereResolved bool
+	FloorPass    bool
+}
+
+// EmitIntegration appends one integration ledger line. RED stub: no-op.
+func EmitIntegration(_ IntegrationOpts) {}
 
 // Entry is one orchestration-ledger.v1 line. Nullable fields use pointers so
 // JSON encodes them as null when unset, matching the shell helper.
