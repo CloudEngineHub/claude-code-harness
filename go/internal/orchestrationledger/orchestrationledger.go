@@ -15,6 +15,7 @@ import (
 const subcommandTeamDispatch = "team-dispatch"
 const subcommandCompanionResult = "companion-result"
 const subcommandIntegration = "integration"
+const subcommandDialogTurn = "dialog-turn"
 
 // IntegrationOpts records Lead integration (task branch take-in) outcome.
 type IntegrationOpts struct {
@@ -107,14 +108,14 @@ func emitIntegration(entry integrationEntry, repoRoot string) error {
 // Entry is one orchestration-ledger.v1 line. Nullable fields use pointers so
 // JSON encodes them as null when unset, matching the shell helper.
 type Entry struct {
-	TS          string `json:"ts"`
-	Backend     string `json:"backend"`
-	Subcommand  string `json:"subcommand"`
-	Write       bool   `json:"write"`
-	ExitCode    *int   `json:"exit_code"`
-	DurationMs  *int64 `json:"duration_ms"`
-	SessionID   string `json:"session_id"`
-	Counts      bool   `json:"counts"`
+	TS         string `json:"ts"`
+	Backend    string `json:"backend"`
+	Subcommand string `json:"subcommand"`
+	Write      bool   `json:"write"`
+	ExitCode   *int   `json:"exit_code"`
+	DurationMs *int64 `json:"duration_ms"`
+	SessionID  string `json:"session_id"`
+	Counts     bool   `json:"counts"`
 }
 
 // TeamDispatchOpts records team-side auto-approve gating or dispatch floor outcome.
@@ -177,6 +178,81 @@ func EmitTeamDispatch(opts TeamDispatchOpts) {
 		Counts:     opts.Enabled,
 	}
 	_ = emit(entry, opts.RepoRoot)
+}
+
+// DialogTurnOpts records one dialogloop turn (A↔B round-trip).
+type DialogTurnOpts struct {
+	Team      string
+	FromAgent string
+	ToAgent   string
+	Round     int
+	Reason    string
+	RepoRoot  string
+}
+
+// EmitDialogTurn appends one dialog-turn ledger line (fail-open).
+// SessionID is Team; counts.round holds the dialog round number.
+func EmitDialogTurn(opts DialogTurnOpts) {
+	team := strings.TrimSpace(opts.Team)
+	if team == "" {
+		return
+	}
+	entry := dialogTurnEntry{
+		TS:         nowUTC(),
+		Backend:    "dialog",
+		Subcommand: subcommandDialogTurn,
+		Write:      true,
+		SessionID:  team,
+		Counts: dialogTurnCounts{
+			Round:     opts.Round,
+			FromAgent: opts.FromAgent,
+			ToAgent:   opts.ToAgent,
+			Reason:    opts.Reason,
+		},
+	}
+	_ = emitDialogTurn(entry, opts.RepoRoot)
+}
+
+type dialogTurnCounts struct {
+	Round     int    `json:"round"`
+	FromAgent string `json:"from_agent,omitempty"`
+	ToAgent   string `json:"to_agent,omitempty"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+type dialogTurnEntry struct {
+	TS         string           `json:"ts"`
+	Backend    string           `json:"backend"`
+	Subcommand string           `json:"subcommand"`
+	Write      bool             `json:"write"`
+	ExitCode   *int             `json:"exit_code"`
+	DurationMs *int64           `json:"duration_ms"`
+	SessionID  string           `json:"session_id"`
+	Counts     dialogTurnCounts `json:"counts"`
+}
+
+func emitDialogTurn(entry dialogTurnEntry, repoRoot string) error {
+	path := ledgerPath(repoRoot)
+	if path == "" {
+		return nil
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	line, err := json.Marshal(entry)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		return err
+	}
+	return nil
 }
 
 func emit(entry Entry, repoRoot string) error {
