@@ -12,11 +12,13 @@ echo "==> go test ./internal/bridgedelivery/..."
 )
 
 echo "==> validate Cursor stop followup JSON fixture shape"
+export BRIDGE_DELIVERY_FIXTURE="${ROOT_DIR}/tests/fixtures/bridge-delivery/cursor-stop-followup.json"
 python3 - <<'PY'
 import json
+import os
 from pathlib import Path
 
-fixture = Path(__file__).resolve().parent / "fixtures" / "bridge-delivery" / "cursor-stop-followup.json"
+fixture = Path(os.environ["BRIDGE_DELIVERY_FIXTURE"])
 doc = json.loads(fixture.read_text())
 
 assert doc.get("type") == "stop", doc

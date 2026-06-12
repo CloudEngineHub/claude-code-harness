@@ -47,29 +47,28 @@ func sampleNotice() bridgedelivery.Notice {
 }
 
 func TestRegistry_DispatchesByTarget(t *testing.T) {
-	cc := &recordingDeliverer{target: bridgedelivery.TargetCC}
-	cursor := &recordingDeliverer{target: bridgedelivery.TargetCursor}
-	codex := &recordingDeliverer{target: bridgedelivery.TargetCodex}
-
-	reg := bridgedelivery.NewRegistry()
-	reg.Register(cc)
-	reg.Register(cursor)
-	reg.Register(codex)
-
 	ctx := context.Background()
 	n := sampleNotice()
 
 	cases := []struct {
 		target bridgedelivery.Target
-		del    *recordingDeliverer
 	}{
-		{bridgedelivery.TargetCC, cc},
-		{bridgedelivery.TargetCursor, cursor},
-		{bridgedelivery.TargetCodex, codex},
+		{bridgedelivery.TargetCC},
+		{bridgedelivery.TargetCursor},
+		{bridgedelivery.TargetCodex},
 	}
 
 	for _, tc := range cases {
 		t.Run(string(tc.target), func(t *testing.T) {
+			cc := &recordingDeliverer{target: bridgedelivery.TargetCC}
+			cursor := &recordingDeliverer{target: bridgedelivery.TargetCursor}
+			codex := &recordingDeliverer{target: bridgedelivery.TargetCodex}
+
+			reg := bridgedelivery.NewRegistry()
+			reg.Register(cc)
+			reg.Register(cursor)
+			reg.Register(codex)
+
 			res := reg.Deliver(ctx, tc.target, n, bridgedelivery.DeliverOpts{})
 			if !res.Delivered || res.Fallback {
 				t.Fatalf("Deliver(%s) = %+v, want delivered without fallback", tc.target, res)
@@ -78,7 +77,14 @@ func TestRegistry_DispatchesByTarget(t *testing.T) {
 				t.Fatalf("Target = %q, want %q", res.Target, tc.target)
 			}
 
-			called, got := tc.del.snapshot()
+			deliverers := map[bridgedelivery.Target]*recordingDeliverer{
+				bridgedelivery.TargetCC:     cc,
+				bridgedelivery.TargetCursor: cursor,
+				bridgedelivery.TargetCodex:  codex,
+			}
+			want := deliverers[tc.target]
+
+			called, got := want.snapshot()
 			if !called {
 				t.Fatal("expected deliverer to be called")
 			}
@@ -86,13 +92,13 @@ func TestRegistry_DispatchesByTarget(t *testing.T) {
 				t.Fatalf("notice = %+v, want %+v", got, n)
 			}
 
-			for _, other := range cases {
-				if other.del == tc.del {
+			for target, del := range deliverers {
+				if target == tc.target {
 					continue
 				}
-				otherCalled, _ := other.del.snapshot()
+				otherCalled, _ := del.snapshot()
 				if otherCalled {
-					t.Fatalf("deliverer %s should not have been called for target %s", other.target, tc.target)
+					t.Fatalf("deliverer %s should not have been called for target %s", target, tc.target)
 				}
 			}
 		})
