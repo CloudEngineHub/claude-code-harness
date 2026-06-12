@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/autoapprove"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/breezing"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/companionresult"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/floor"
@@ -464,8 +465,8 @@ func TestRunTeam_AutoApproveLedger_Disabled(t *testing.T) {
 	if e.Subcommand != "team-dispatch" {
 		t.Fatalf("subcommand = %q, want team-dispatch", e.Subcommand)
 	}
-	if e.SessionID != "HARNESS_AUTO_APPROVE not set" {
-		t.Fatalf("reason(session_id) = %q, want disabled reason", e.SessionID)
+	if e.SessionID != "auto-approve:disabled (env=off)" {
+		t.Fatalf("reason(session_id) = %q, want auto-approve:disabled (env=off)", e.SessionID)
 	}
 	if e.Counts {
 		t.Fatal("counts should be false when auto-approve disabled")
@@ -476,16 +477,11 @@ func TestRunTeam_AutoApproveLedger_Enabled(t *testing.T) {
 	passingFloorGate(t)
 	root := t.TempDir()
 	ledger := filepath.Join(root, "ledger.jsonl")
-	binDir := filepath.Join(root, "bin")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(binDir, "harness"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
 	t.Setenv("HARNESS_PROJECT_ROOT", root)
 	t.Setenv("HARNESS_ORCHESTRATION_LEDGER", ledger)
 	t.Setenv("HARNESS_AUTO_APPROVE", "on")
+	restorePrereq := autoapprove.SetPrereqChecker(func(name string) bool { return true })
+	defer restorePrereq()
 
 	orig := teamWorkerFactory
 	teamWorkerFactory = recordingFactory(map[string]int{"t1": 0}, &[]string{}, &sync.Mutex{})
@@ -500,8 +496,8 @@ func TestRunTeam_AutoApproveLedger_Enabled(t *testing.T) {
 		t.Fatalf("got %d ledger entries, want 1", len(entries))
 	}
 	e := entries[0]
-	if e.SessionID != "enabled" {
-		t.Fatalf("reason(session_id) = %q, want enabled", e.SessionID)
+	if e.SessionID != "auto-approve:enabled" {
+		t.Fatalf("reason(session_id) = %q, want auto-approve:enabled", e.SessionID)
 	}
 	if !e.Counts {
 		t.Fatal("counts should be true when auto-approve enabled")

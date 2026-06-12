@@ -1,63 +1,129 @@
-// Package autoapprove gates HARNESS_AUTO_APPROVE behind runtime safety primitives.
-// fail-safe: unset/off, or missing wt fingerprint probe → auto-approve OFF.
+// Package autoapprove gates HARNESS_AUTO_APPROVE behind phase prereqs and worktree scope.
+// fail-safe: default OFF; missing any prereq → auto-approve OFF (not overridable by env alone).
 package autoapprove
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
+	"sort"
 	"strings"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 )
 
-// fingerprintProbe verifies the harness wt fingerprint subcommand is callable.
-// Tests may replace this var; production never reassigns it outside tests.
-var fingerprintProbe = defaultFingerprintProbe
+const (
+	PrereqPhase92_1_1 = "92.1.1"
+	PrereqPhase92_2_3 = "92.2.3"
+	PrereqPhase96_1_2 = "96.1.2"
+)
 
-// AutoApproveEnabled returns true iff HARNESS_AUTO_APPROVE=on AND both safety
-// primitives (runtime floor import + wt fingerprint subcommand) are functional.
-// reason is an audit string explaining the decision.
+var requiredPrereqs = []string{
+	PrereqPhase92_1_1,
+	PrereqPhase92_2_3,
+	PrereqPhase96_1_2,
+}
+
+// PrereqChecker reports whether a named phase prereq is complete.
+// Production reads Plans.md / gate files via defaultPrereqChecker; tests inject fakes.
+type PrereqChecker func(name string) bool
+
+var prereqChecker PrereqChecker = defaultPrereqChecker
+
+// prereqRepoRoot is set for the duration of AutoApproveEnabled so defaultPrereqChecker
+// can locate Plans.md without widening the PrereqChecker signature.
+var prereqRepoRoot string
+
+// SetPrereqChecker replaces the prereq checker (tests only). The returned func restores it.
+func SetPrereqChecker(c PrereqChecker) func() {
+	prev := prereqChecker
+	prereqChecker = c
+	return func() { prereqChecker = prev }
+}
+
+// AutoApproveEnabled returns true only when all four conditions hold:
+//
+//  1. env HARNESS_AUTO_APPROVE=on (strict: only lowercase "on")
+//  2. PrereqPhase92_1_1 done
+//  3. PrereqPhase92_2_3 done
+//  4. PrereqPhase96_1_2 done
+//
+// Any missing condition yields fail-safe false; reason is forwarded to orchestration ledger.
 func AutoApproveEnabled(repoRoot string) (enabled bool, reason string) {
-	switch strings.TrimSpace(os.Getenv("HARNESS_AUTO_APPROVE")) {
-	case "":
-		return false, "HARNESS_AUTO_APPROVE not set"
-	case "on":
-		// continue
-	default:
-		return false, "HARNESS_AUTO_APPROVE not on"
-	}
-	if !fingerprintProbe(repoRoot) {
-		return false, "wt fingerprint subcommand unavailable"
-	}
-	return true, "enabled"
-}
+	prevRoot := prereqRepoRoot
+	prereqRepoRoot = repoRoot
+	defer func() { prereqRepoRoot = prevRoot }()
 
-func defaultFingerprintProbe(repoRoot string) bool {
-	bin := resolveHarnessBin(repoRoot)
-	if bin == "" {
-		return false
+	if os.Getenv("HARNESS_AUTO_APPROVE") != "on" {
+		return false, "auto-approve:disabled (env=off)"
 	}
-	devNull := "/dev/null"
-	if runtime.GOOS == "windows" {
-		devNull = "NUL"
-	}
-	cmd := exec.Command(bin, "wt", "fingerprint", "capture", "--output", devNull)
-	cmd.Env = os.Environ()
-	return cmd.Run() == nil
-}
 
-func resolveHarnessBin(repoRoot string) string {
-	if repoRoot != "" {
-		candidate := filepath.Join(repoRoot, "bin", "harness")
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return candidate
+	var missing []string
+	for _, name := range requiredPrereqs {
+		if !prereqChecker(name) {
+			missing = append(missing, name)
 		}
 	}
-	if path, err := exec.LookPath("harness"); err == nil {
-		return path
+	if len(missing) > 0 {
+		sort.Strings(missing)
+		return false, "auto-approve:disabled (prereq-missing:" + strings.Join(missing, ",") + ")"
 	}
-	if exe, err := os.Executable(); err == nil {
-		return exe
+	return true, "auto-approve:enabled"
+}
+
+// AppliesTo reports whether path is inside worktreeRoot. Callers use false to escalate
+// to human approval; worktree-escape hard-stop remains runtimefloor / wtfingerprint.
+func AppliesTo(path string, worktreeRoot string) bool {
+	if path == "" || worktreeRoot == "" {
+		return false
 	}
-	return ""
+	wtRoot, err := filepath.Abs(worktreeRoot)
+	if err != nil {
+		wtRoot = filepath.Clean(worktreeRoot)
+	}
+	target := path
+	if !filepath.IsAbs(path) {
+		target = filepath.Join(wtRoot, path)
+	}
+	absPath, err := filepath.Abs(target)
+	if err != nil {
+		absPath = filepath.Clean(target)
+	}
+	return pathUnderWorktree(absPath, wtRoot)
+}
+
+func defaultPrereqChecker(name string) bool {
+	root := prereqRepoRoot
+	if root == "" {
+		return false
+	}
+	if plansDone(root, name) {
+		return true
+	}
+	gate := filepath.Join(root, ".claude", "state", "phase-gates", name+".done")
+	if info, err := os.Stat(gate); err == nil && !info.IsDir() {
+		return true
+	}
+	return false
+}
+
+func plansDone(repoRoot, taskID string) bool {
+	plansPath := filepath.Join(repoRoot, "Plans.md")
+	tasks, err := plans.ParseFile(plansPath)
+	if err != nil {
+		return false
+	}
+	task := plans.Find(tasks, taskID)
+	if task == nil {
+		return false
+	}
+	return task.Tags.Done
+}
+
+func pathUnderWorktree(path, worktreeRoot string) bool {
+	cleanPath := filepath.Clean(path)
+	cleanRoot := filepath.Clean(worktreeRoot)
+	if cleanPath == cleanRoot {
+		return true
+	}
+	return strings.HasPrefix(cleanPath, cleanRoot+string(filepath.Separator))
 }
