@@ -80,11 +80,17 @@ trap cleanup EXIT
 write_fake_companion() {
   local exit_code="$1"
   local stdout_body="${2:-}"
+  local stdout_file="${TMP_DIR}/companion-stdout-${exit_code}.txt"
+  printf '%s' "$stdout_body" > "${stdout_file}"
   cat >"${FAKE_COMPANION}" <<EOF
 #!/usr/bin/env bash
-printf '%s\n' "\$*" > "${ARGS_FILE}"
-if [[ -n "${stdout_body}" ]]; then
-  printf '%s\n' "${stdout_body}"
+ARGS_FILE="${ARGS_FILE}"
+STDOUT_FILE="${stdout_file}"
+for arg in "\$@"; do
+  printf '%s\n' "\$arg"
+done > "\${ARGS_FILE}"
+if [ -s "\${STDOUT_FILE}" ]; then
+  cat "\${STDOUT_FILE}"
 fi
 exit ${exit_code}
 EOF
@@ -113,26 +119,29 @@ run_pre_review() {
 write_fake_model_router
 write_fake_companion 0 "Potential missing edge-case test for empty diff."
 
+# Use an empty diff so companion args are not polluted by this test file's source.
+EMPTY_BASE="HEAD"
+
 # ---- (a) companion invoked without --write ----
 
-rc="$(run_pre_review --base HEAD~1)"
+rc="$(run_pre_review --base "${EMPTY_BASE}")"
 assert_eq "(a) success path exits 0" "0" "$rc"
-assert_contains "(a) invokes cursor-companion task subcommand" "task" "$(cat "${ARGS_FILE}")"
-if grep -qE '(^|[[:space:]])--write([[:space:]]|$)' "${ARGS_FILE}"; then
-  fail "(a) must not pass --write to cursor-companion (args: $(cat "${ARGS_FILE}"))"
+assert_contains "(a) invokes cursor-companion task subcommand" "task" "$(head -n 1 "${ARGS_FILE}")"
+if head -n 20 "${ARGS_FILE}" | grep -qE '(^|[[:space:]])--write([[:space:]]|$)'; then
+  fail "(a) must not pass --write to cursor-companion (args: $(head -n 5 "${ARGS_FILE}"))"
 else
   pass "(a) cursor-companion called without --write"
 fi
-if grep -qE '(^|[[:space:]])--workspace([[:space:]]|$)' "${ARGS_FILE}"; then
-  fail "(a) must not pass --workspace to cursor-companion (args: $(cat "${ARGS_FILE}"))"
+if head -n 20 "${ARGS_FILE}" | grep -qE '(^|[[:space:]])--workspace([[:space:]]|$)'; then
+  fail "(a) must not pass --workspace to cursor-companion (args: $(head -n 5 "${ARGS_FILE}"))"
 else
   pass "(a) cursor-companion called without --workspace"
 fi
 
 # ---- (b) no --resume flags (fresh session contract) ----
 
-if grep -qE '(^|[[:space:]])--resume([[:space:]|=]|$)' "${ARGS_FILE}"; then
-  fail "(b) must not pass --resume to cursor-companion (args: $(cat "${ARGS_FILE}"))"
+if head -n 20 "${ARGS_FILE}" | grep -qE '(^|[[:space:]])--resume([[:space:]|=]|$)'; then
+  fail "(b) must not pass --resume to cursor-companion (args: $(head -n 5 "${ARGS_FILE}"))"
 else
   pass "(b) cursor-companion called without --resume"
 fi
@@ -147,7 +156,7 @@ assert_not_matches "(c) output excludes REQUEST_CHANGES verdict token" 'REQUEST_
 # ---- (d) fail-open when companion exits non-zero ----
 
 write_fake_companion 1 ""
-rc="$(run_pre_review --base HEAD~1)"
+rc="$(run_pre_review --base "${EMPTY_BASE}")"
 assert_eq "(d) companion failure exits 0 (fail-open)" "0" "$rc"
 OUT="$(cat "${OUTPUT_FILE}")"
 assert_contains "(d) companion failure emits PRE_REVIEW_SKIPPED" "PRE_REVIEW_SKIPPED:" "$OUT"
