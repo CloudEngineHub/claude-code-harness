@@ -1,0 +1,38 @@
+{
+  "goal": "API にレート制限を追加しテストで検証する",
+  "subtasks": [
+    {
+      "id": "1",
+      "title": "レート制限ミドルウェア設計",
+      "dod": "IP/ユーザー単位の制限ポリシーが文書化される"
+    },
+    {
+      "id": "2",
+      "title": "レート制限ミドルウェア実装",
+      "dod": "超過リクエストが 429 を返す"
+    },
+    {
+      "id": "3",
+      "title": "設定値とヘッダー出力",
+      "dod": "Retry-After と X-RateLimit-* ヘッダーが返る"
+    },
+    {
+      "id": "4",
+      "title": "レート制限の単体テスト",
+      "dod": "閾値前後のリクエスト挙動がテストで検証される"
+    },
+    {
+      "id": "5",
+      "title": "統合テスト追加",
+      "dod": "主要 API エンドポイントでレート制限が有効である"
+    }
+  ],
+  "scope_files": [
+    "src/middleware/rate-limit.ts",
+    "tests/middleware/rate-limit.test.ts"
+  ],
+  "risk_notes": [
+    "共有キャッシュ未導入環境ではインスタンス間で制限がずれる可能性がある"
+  ],
+  "confidence": "high"
+}
