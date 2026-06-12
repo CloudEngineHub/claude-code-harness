@@ -18,6 +18,7 @@ import (
 	"github.com/Chachamaru127/claude-code-harness/go/internal/floor"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/orchestrationledger"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/runtimefloor"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/sublead"
 )
 
 // floorGate is the FLOOR pre-merge backstop applied to a successful non-CC
@@ -148,10 +149,57 @@ func teamMaxParallel() int {
 // from the Orchestrator's result shape without widening breezing's types.
 const resultCarrierPrefix = "companion-result.v1:"
 
+// teamSubLeadPlanner builds the lane mini-plan planner. Tests inject a fake;
+// production uses the headless CLI planner.
+var teamSubLeadPlanner = func() sublead.Planner {
+	return sublead.NewHeadlessCLIPlanner(productionCommandRunner())
+}
+
+// teamSubWorkerFactory builds the per-subtask worker used inside Sub-Lead.
+// Tests may replace it; production delegates to productionCompanionWorker.
+var teamSubWorkerFactory = productionCompanionWorker
+
 // teamWorkerFactory builds the per-task worker. The production factory drives
-// the backend companion; tests inject a fake that does not shell out.
+// the backend companion (flat) or a Sub-Lead hierarchy when
+// HARNESS_TEAM_HIERARCHY=sublead; tests inject fakes that do not shell out.
 var teamWorkerFactory = func(backend string) breezing.WorkerFunc {
+	if teamHierarchySubLead() {
+		return sublead.NewSubLeadWorker(
+			teamSubLeadPlanner(),
+			teamSubWorkerFactory(backend),
+			backend,
+			teamMaxParallel(),
+		)
+	}
 	return productionCompanionWorker(backend)
+}
+
+// teamHierarchySubLead reports whether the Sub-Lead producer hierarchy is active.
+func teamHierarchySubLead() bool {
+	return strings.TrimSpace(os.Getenv("HARNESS_TEAM_HIERARCHY")) == "sublead"
+}
+
+// productionCommandRunner shells out for the headless CLI planner.
+func productionCommandRunner() sublead.CommandRunner {
+	return func(ctx context.Context, name string, args []string, stdin string) (string, int, error) {
+		cmd := exec.CommandContext(ctx, name, args...)
+		cmd.Dir = resolveRepoRoot()
+		if stdin != "" {
+			cmd.Stdin = strings.NewReader(stdin)
+		}
+		var stdout, stderr strings.Builder
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+		exitCode := 0
+		if err != nil {
+			if ee, ok := err.(*exec.ExitError); ok {
+				exitCode = ee.ExitCode()
+				err = nil
+			}
+		}
+		return stdout.String(), exitCode, err
+	}
 }
 
 // runTeam is the testable orchestration core. It drives breezing.Orchestrator
