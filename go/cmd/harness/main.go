@@ -102,6 +102,8 @@ func main() {
 		runMem(os.Args[2:])
 	case "inbox":
 		runInbox(os.Args[2:])
+	case "self-audit":
+		runSelfAudit(os.Args[2:])
 	case "wt":
 		runWt(os.Args[2:])
 	case "pre-compact":
@@ -152,6 +154,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  mem status|setup|update|doctor|off|purge|health  Manage harness-mem companion")
 	fmt.Fprintln(os.Stderr, "  inbox check --team <t> --agent <a> --db <path>  Read livemsg inbox (fail-open)")
 	fmt.Fprintln(os.Stderr, "  inbox monitor --team <t> --agent <a> --db <path>  Poll livemsg inbox stream (CC Monitor)")
+	fmt.Fprintln(os.Stderr, "  self-audit hooks --file <path>  Audit settings.local.json command hooks (CCH allowlist)")
 	fmt.Fprintln(os.Stderr, "  wt fingerprint capture --output <path>  Snapshot sensitive $HOME paths")
 	fmt.Fprintln(os.Stderr, "  wt fingerprint diff --before <p> --after <p>  Detect worktree-escape (exit 2 on change)")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")
