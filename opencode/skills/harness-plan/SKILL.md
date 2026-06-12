@@ -96,6 +96,44 @@ Security gate は秘密情報の実読取を要求しない。
 8. `$easy` 形式で、提案内容・理由・どうなるのかを報告する
 9. 採用する案だけを root `spec.md` / Plans.md / test task へ落とし込む
 
+### Lane Taxonomy + Stage Gate
+
+Fast / Gate / Release は **新 skill ではなく Plans metadata** として扱う。
+Plans.md の 5 column テンプレート（Task / 内容 / DoD / Depends / Status）は変更しない。
+lane / stage / TDD / unknown などの metadata は **内容（Content）または DoD の先頭** に埋め込む。
+
+**Lane Taxonomy** — 各 task の Content か DoD 先頭に、次のいずれか 1 つを付ける:
+
+| タグ | 用途 |
+|------|------|
+| `[lane:fast]` | low-risk local work（refactor / docs / typo） |
+| `[lane:gate]` | spec / workflow / mirror / guardrail を触る変更（大半の機能実装） |
+| `[lane:release]` | public artifact / version / tag / GitHub Release を出す変更 |
+
+**Stage gate** — planning output（`create` / product-impacting `add`）は、次の 5 段階で構造化する:
+
+1. **検証・調査** — research evidence を残し、unknown data を明示する
+2. **実装計画確定** — lane タグ + DoD を確定する
+3. **実装(TDD)** — `[tdd:required]` または `[tdd:skip:<reason>]` を各 task に付ける
+4. **レビュー** — review artifact（`harness-review` または companion review）を DoD に落とす
+5. **PR closeout** — evidence pack → PR body（release が必要なら別 `[lane:release]` gate へ）
+
+stage gate は planning セクションの見出しまたは task 群の前置きとして出力し、
+各 stage に対応する task を Plans.md 行として生成する。
+release closeout は `[lane:release]` task または `harness-release` へ委譲してよい。
+
+**Unknown data contract** — AI が見えていない data / failed search / missing fixture / API unavailable は
+`not_observed != absent` 原則で **`unknown`** と明示する。`absent` と断定しない。
+
+| 観測状態 | 出力 |
+|---------|------|
+| 確認済みで存在しない | `absent`（evidence 必須） |
+| 検索失敗・未読・API 不可・fixture 欠落 | `unknown` |
+| 確認できた事実 | 通常の evidence 記述 |
+
+`create` / `add` の出力契約には、調査段（stage 1）で `unknown` 一覧または
+`unknown_data: [...]` を残す。DoD に「未確認の前提を absent と書かない」を含めてよい。
+
 ### create — 計画作成
 
 See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)

@@ -2,6 +2,8 @@
 
 アイデア・要件をヒアリングし、実行可能な Plans.md を生成する。
 
+**Precedence**: root `spec.md` > sub-spec > Plans.md（product contract が task ledger より上位）。
+
 ## Step 0: 会話コンテキスト確認
 
 直前の会話から要件を抽出できる場合は確認する:
@@ -57,6 +59,60 @@ Product / Architecture / Security / QA / Skeptic は perspective 名であり ag
 Security gate は `.env` や secret の実読取を要求しない。
 
 小さな typo、format、README/CHANGELOG、marker 更新だけならこの step は軽く済ませてよい。
+
+## Lane taxonomy / stage gate / unknown data contract
+
+Fast / Gate / Release は新 skill ではなく **Plans metadata**（Content または DoD 先頭のタグ）。
+5 column テンプレートは不変。
+
+### Lane taxonomy
+
+| タグ | いつ使う |
+|------|---------|
+| `[lane:fast]` | low-risk local work（refactor / docs / typo） |
+| `[lane:gate]` | spec / workflow / mirror / guardrail / 機能実装の大半 |
+| `[lane:release]` | public artifact / version / tag / GitHub Release |
+
+### Stage gate
+
+planning output は次の 5 段階で構造化する:
+
+1. 検証・調査 — research evidence、`unknown` data 明示
+2. 実装計画確定 — lane タグ + DoD 確定
+3. 実装(TDD) — `[tdd:required]` / `[tdd:skip:<reason>]`
+4. レビュー — review artifact を DoD に
+5. PR closeout — evidence pack → PR body
+
+### Unknown data contract
+
+`not_observed != absent`。failed search / 未読 file / missing fixture / API unavailable は **`unknown`**。
+存在しないと断定するのは repo evidence で確認できた場合のみ。
+
+### Lane examples（最小サンプル）
+
+`[lane:fast]`:
+
+```markdown
+| 1.1 | `[Docs]` `[lane:fast]` `[tdd:skip:docs-only]` CHANGELOG typo 修正 | diff 確認、validate-plugin PASS | - | cc:TODO |
+| 1.2 | `[Refactor]` `[lane:fast]` `[tdd:skip:behavior-unchanged]` 関数名を rename（挙動不変） | 既存テスト全 PASS | - | cc:TODO |
+| 1.3 | `[Format]` `[lane:fast]` `[tdd:skip:style-only]` markdown 表の列揃え | git diff --check PASS | - | cc:TODO |
+```
+
+`[lane:gate]`:
+
+```markdown
+| 2.1 | `[Contract]` `[lane:gate]` `[tdd:skip:docs-contract]` spec.md に API 契約を追加 | spec.md に rule 記載、git diff --check PASS | - | cc:TODO |
+| 2.2 | `[Feature]` `[lane:gate]` `[tdd:required]` status marker writer 実装 | writer tests PASS、legacy read 互換 | 2.1 | cc:TODO |
+| 2.3 | `[Guardrail]` `[lane:gate]` `[tdd:required]` protected path policy 更新 | guardrail tests PASS | 2.1 | cc:TODO |
+```
+
+`[lane:release]`:
+
+```markdown
+| 3.1 | `[Version]` `[lane:release]` `[tdd:skip:release-prep]` VERSION / plugin.json 同期 | sync-version.sh --check PASS | 2.2, 2.3 | cc:TODO |
+| 3.2 | `[Release]` `[lane:release]` `[tdd:skip:release-automation]` tag + GitHub Release | harness-release 完了、Release URL 記録 | 3.1 | cc:TODO |
+| 3.3 | `[Dependency]` `[lane:release]` `[tdd:skip:dependency-bump]` Dependabot major merge + main CI green | merge commit + main validate-plugin PASS | - | cc:TODO |
+```
 
 ## Step 4: 技術調査（WebSearch）
 
