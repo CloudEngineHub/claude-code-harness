@@ -1141,6 +1141,20 @@ else
 fi
 
 echo ""
+echo "16. Phase 72 mirror + distribution + no-regression closeout"
+echo "----------------------------------------"
+
+if [ -x "$PLUGIN_ROOT/tests/test-phase-72-mirror-closeout.sh" ]; then
+    if HARNESS_CLOSEOUT_NESTED=1 bash "$PLUGIN_ROOT/tests/test-phase-72-mirror-closeout.sh" > /dev/null 2>&1; then
+        pass_test "Phase 72 mirror + distribution + no-regression closeout を満たします (test-phase-72-mirror-closeout.sh)"
+    else
+        fail_test "Phase 72 mirror closeout failed — 'bash tests/test-phase-72-mirror-closeout.sh' で詳細確認"
+    fi
+else
+    warn_test "tests/test-phase-72-mirror-closeout.sh が見つかりません（スキップ）"
+fi
+
+echo ""
 echo "=========================================="
 echo "テスト結果サマリー"
 echo "=========================================="
