@@ -259,10 +259,10 @@ fallback. A project or user can opt in to Cursor by setting
 `HARNESS_IMPL_BACKEND=cursor`; that default must affect all Cursor-capable
 surfaces, not only Breezing. Project scope overrides user scope.
 
-Backend resolution must go through `scripts/resolve-impl-backend.sh`. Skills
-and hosts must not infer the backend from `HARNESS_IMPL_BACKEND` alone, because
-env-only checks skip project `env.local`, user-scope defaults, and call-site
-defaults.
+**Resolver-only entry**: The sole canonical entry for choosing a backend is
+`scripts/resolve-impl-backend.sh`. Direct env reads in implementations or skill
+prose are forbidden; the resolver resolves precedence across env, per-run flags,
+project file, and user file in one pass.
 
 Backend is role-scoped: the implementation (worker) role uses the selected
 backend. The primary review and advisor roles stay on the brain (the `claude`
