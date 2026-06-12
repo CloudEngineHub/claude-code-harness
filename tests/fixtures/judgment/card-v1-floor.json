@@ -1,0 +1,20 @@
+{
+  "question": "floor 該当: egress 変更を続行するか？",
+  "options": [
+    {
+      "id": "abort",
+      "label": "変更を中止する",
+      "consequence": "作業は止まるが floor 違反を回避できる"
+    },
+    {
+      "id": "proceed",
+      "label": "変更を続行する",
+      "consequence": "floor 該当のため hard stop 対象"
+    }
+  ],
+  "recommendation": "abort",
+  "confidence": "high",
+  "impact": "外部通信経路とセキュリティ境界に影響",
+  "diff_summary": "infra/egress/ に outbound ルール変更が入る",
+  "impact_score": 100
+}

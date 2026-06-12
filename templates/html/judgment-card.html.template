@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Decision Card: {{QUESTION}}</title>
+<style>
+  /* Claude Harness Brand palette */
+  :root {
+    --harness-bg:     #FAFAFA;
+    --harness-fg:     #0F0F0F;
+    --harness-orange: #F58A4A;
+    --harness-muted:  #6B6B6B;
+    --harness-line:   #E5E5E5;
+    --harness-warn:   #C25030;
+    --harness-success:#2E7A4A;
+    --harness-info:   #3D6B9A;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 1280px;
+    height: 800px;
+    overflow: hidden;
+    background: var(--harness-bg);
+    color: var(--harness-fg);
+    font-family: "Inter", "Noto Sans JP", system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.5;
+    font-size: 14px;
+  }
+  main {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px 28px 16px;
+  }
+  header.jc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid var(--harness-orange);
+    flex-shrink: 0;
+  }
+  header.jc-header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .confidence-badge {
+    flex-shrink: 0;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 3px;
+    color: #fff;
+    font-weight: 600;
+  }
+  .confidence-badge.high   { background: var(--harness-success); }
+  .confidence-badge.medium { background: var(--harness-orange); }
+  .confidence-badge.low    { background: var(--harness-warn); }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+  }
+  .col-left, .col-right {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .col-left h2, .col-right h2 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--harness-muted);
+  }
+  .options {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .option {
+    background: #fff;
+    border: 1px solid var(--harness-line);
+    border-left: 3px solid var(--harness-info);
+    border-radius: 0 4px 4px 0;
+    padding: 10px 14px;
+  }
+  .option .id {
+    font-size: 11px;
+    color: var(--harness-info);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+  }
+  .option .label {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+  .option .consequence {
+    color: var(--harness-muted);
+    font-size: 13px;
+  }
+  .rec-block {
+    background: #fff;
+    border: 1px solid var(--harness-line);
+    border-left: 3px solid var(--harness-orange);
+    border-radius: 0 4px 4px 0;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+  .rec-block .rec-id {
+    font-weight: 600;
+    color: var(--harness-orange);
+    font-size: 15px;
+  }
+  .rec-block .rec-reason {
+    color: var(--harness-muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .meta-line {
+    color: var(--harness-muted);
+    font-size: 13px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meta-line strong {
+    color: var(--harness-fg);
+    font-weight: 600;
+  }
+  .impact-score-block {
+    flex-shrink: 0;
+    margin-bottom: 10px;
+  }
+  .impact-score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--harness-muted);
+    margin-bottom: 4px;
+  }
+  .impact-score-row .score-num {
+    font-weight: 600;
+    color: var(--harness-fg);
+    font-size: 14px;
+  }
+  .impact-bar {
+    height: 8px;
+    background: var(--harness-line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .impact-fill {
+    height: 100%;
+    width: {{IMPACT_SCORE}}%;
+    background: {{IMPACT_BAR_COLOR}};
+    border-radius: 4px;
+  }
+  .past-list {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  section.past {
+    background: #fff;
+    border: 1px solid var(--harness-line);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  section.past .past-summary {
+    font-weight: 600;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  section.past .past-detail {
+    color: var(--harness-muted);
+    line-height: 1.4;
+  }
+  section.past a {
+    color: var(--harness-info);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  footer.jc-footer {
+    flex-shrink: 0;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--harness-line);
+    color: var(--harness-muted);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="jc-header">
+    <h1>{{QUESTION}}</h1>
+    <span class="confidence-badge {{CONFIDENCE}}">{{CONFIDENCE}}</span>
+  </header>
+
+  <div class="layout">
+    <div class="col-left">
+      <h2>選択肢</h2>
+      <ul class="options">
+        <li class="option" {{OPTION_1_VISIBILITY}}>
+          <div class="id">{{OPTION_1_ID}}</div>
+          <div class="label">{{OPTION_1_LABEL}}</div>
+          <div class="consequence">{{OPTION_1_CONSEQUENCE}}</div>
+        </li>
+        <li class="option" {{OPTION_2_VISIBILITY}}>
+          <div class="id">{{OPTION_2_ID}}</div>
+          <div class="label">{{OPTION_2_LABEL}}</div>
+          <div class="consequence">{{OPTION_2_CONSEQUENCE}}</div>
+        </li>
+        <li class="option" {{OPTION_3_VISIBILITY}}>
+          <div class="id">{{OPTION_3_ID}}</div>
+          <div class="label">{{OPTION_3_LABEL}}</div>
+          <div class="consequence">{{OPTION_3_CONSEQUENCE}}</div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="col-right">
+      <h2>推奨・影響</h2>
+      <div class="rec-block">
+        <div class="rec-id">{{RECOMMENDATION_ID}}</div>
+        <div class="rec-reason">{{RECOMMENDATION_REASON}}</div>
+      </div>
+      <div class="meta-line"><strong>影響:</strong> {{IMPACT}}</div>
+      <div class="meta-line"><strong>diff:</strong> {{DIFF_SUMMARY}}</div>
+
+      <div class="impact-score-block">
+        <div class="impact-score-row">
+          <span>impact_score</span>
+          <span class="score-num">{{IMPACT_SCORE}}</span>
+        </div>
+        <div class="impact-bar">
+          <div class="impact-fill"></div>
+        </div>
+      </div>
+
+      <h2>類似過去判断</h2>
+      <div class="past-list">
+        <section class="past" {{PAST_1_VISIBILITY}} data-empty="{{PAST_1_EMPTY}}">
+          <div class="past-summary">{{PAST_1_SUMMARY}}</div>
+          <div class="past-detail">
+            decision: {{PAST_1_DECISION}} &middot; outcome: {{PAST_1_OUTCOME}} &middot; {{PAST_1_DECIDED_AT}}
+            &middot; <a href="mem://{{PAST_1_MEM_ID}}">{{PAST_1_MEM_ID}}</a>
+          </div>
+        </section>
+        <section class="past" {{PAST_2_VISIBILITY}} data-empty="{{PAST_2_EMPTY}}">
+          <div class="past-summary">{{PAST_2_SUMMARY}}</div>
+          <div class="past-detail">
+            decision: {{PAST_2_DECISION}} &middot; outcome: {{PAST_2_OUTCOME}} &middot; {{PAST_2_DECIDED_AT}}
+            &middot; <a href="mem://{{PAST_2_MEM_ID}}">{{PAST_2_MEM_ID}}</a>
+          </div>
+        </section>
+        <section class="past" {{PAST_3_VISIBILITY}} data-empty="{{PAST_3_EMPTY}}">
+          <div class="past-summary">{{PAST_3_SUMMARY}}</div>
+          <div class="past-detail">
+            decision: {{PAST_3_DECISION}} &middot; outcome: {{PAST_3_OUTCOME}} &middot; {{PAST_3_DECIDED_AT}}
+            &middot; <a href="mem://{{PAST_3_MEM_ID}}">{{PAST_3_MEM_ID}}</a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="jc-footer">
+    回答を <code>bash scripts/judgment-card.sh record-answer ...</code> で記録
+  </footer>
+</main>
+</body>
+</html>
