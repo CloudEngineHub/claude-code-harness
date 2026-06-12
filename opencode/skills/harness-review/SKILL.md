@@ -41,13 +41,13 @@ commit / push / release は既定では行わない。
 | `/harness-review --quick` | `quick` | 小さな dirty change を軽く closeout |
 | `/harness-review --codex-closeout` | `codex-closeout` | Codex 助言 + focused tests で closeout |
 | `/harness-review --dual` | `dual` | Claude + Codex second opinion |
-| `/harness-review --cursor` | `code+cursor-second-opinion` | core review gates に cursor (composer-2.5-fast) second-opinion を加算 (read = lean、Opus reviewer 必須併走) |
-| `HARNESS_IMPL_BACKEND=cursor harness-review` | `code+cursor-second-opinion` | default ON 時も core review gates に cursor second-opinion を自動加算。primary verdict は Opus/brain 固定 |
+| `--pre-review cursor` | `code+pre-review` | fresh-context composer advisory pre-review before brain verdict（read-only） |
+| `/harness-review --cursor` | `code+cursor-second-opinion` | core review gates + cursor second-opinion（brain 一次レビュー必須） |
+| `HARNESS_IMPL_BACKEND=cursor harness-review` | `code+cursor-second-opinion` | default ON 時も core review gates に cursor second-opinion を自動加算。primary verdict は brain 固定 |
 | `/harness-review --team-debate` | `team-debate` | TeamAgent Debate を強制 |
 | `/harness-review --security` | `security` | security 専用 review |
 | `/harness-review plan` | `plan` | `Plans.md` の計画 review |
 | `/harness-review scope` | `scope` | scope creep / 漏れ review |
-
 ## Mode Decision
 
 引数から実行 mode を決定し、必要な `references/` を選択ロードする。
@@ -79,8 +79,10 @@ HARNESS_PLUGIN_ROOT="${HARNESS_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}"; if [ -z "
 if [ -x "${HARNESS_PLUGIN_ROOT:-}/scripts/resolve-impl-backend.sh" ]; then resolved_backend="$(bash "${HARNESS_PLUGIN_ROOT}/scripts/resolve-impl-backend.sh" --role reviewer)"; else resolved_backend="claude"; fi
 ```
 
-no-arg / `code` review で結果が `cursor` の場合は `--cursor` と同じ `cursor-second-opinion` を追加するが、core review gates (`references/code-review.md`, `references/governance.md`) は必ず先に読み、Cursor reference は additive にだけ扱う。primary verdict は Opus/brain 側で維持し、cursor は `dual_review.cursor_verdict` の advisory に限る。`plan` / `scope` など明示 mode word は resolver result より優先し、cursor default によって plan/scope references も code/governance references も置き換えない。
-結果が `claude` / `codex` の場合は従来どおりで、review の primary 判定面は変えない。
+no-arg / `code` review で結果が `cursor` の場合は `--cursor` と同じ `cursor-second-opinion` を追加するが、core review gates (`references/code-review.md`, `references/governance.md`) は必ず先に読み、Cursor reference は additive にだけ扱う。primary verdict は brain 側で維持し、cursor は `dual_review.cursor_verdict` の advisory に限る。`plan` / `scope` など明示 mode word は resolver result より優先し、cursor default によって plan/scope references も code/governance references も置き換えない。結果が `claude` / `codex` の場合は従来どおりで、review の primary 判定面は変えない。
+
+## Pre-Review Cursor (`--pre-review cursor`)
+`/harness-review --pre-review cursor` は `bash scripts/pre-review-cursor.sh [--base ref]` で read-only fresh-context composer pre-review（`model-routing.sh --host cursor --tier review` → `cursor-companion.sh task`、`--write` / `--workspace` / `--resume` なし）を 1 回実行し、`PRE_REVIEW_FINDINGS:` を brain 一次レビュー入力へ添付。companion 失敗は `PRE_REVIEW_SKIPPED` + exit 0（fail-open）。**verdict は brain のみ**（self-review scope 契約）。
 
 ## Review Target Detection
 
@@ -319,15 +321,13 @@ Details:
 
 ## Codex Environment
 
-Codex 環境では使える tool が異なる。
-それでも、合格ライン、仕様正本、`Plans.md`、デグレ、修正後再レビュー、AskUserQuestion / `decision_needed.v1` の契約は同じ。
+Codex 環境では使える tool が異なるが、合格ライン、仕様正本、`Plans.md`、デグレ、修正後再レビュー、AskUserQuestion / `decision_needed.v1` の契約は同じ。
 
 | 通常環境 | Codex fallback |
 |---|---|
 | Task tool の TeamAgent Debate | reviewer subagent / `codex-companion.sh review` / manual-pass |
 | AskUserQuestion | 使えない場合は `decision_needed.v1` を stdout に出し、推測で進めない |
 | TaskList | `Plans.md` を直接読む |
-
 ## Related Skills
 
 - `harness-work`: `REQUEST_CHANGES` 後の修正実行
