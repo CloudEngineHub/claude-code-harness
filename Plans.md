@@ -401,3 +401,94 @@ Purpose: Phase 92.2.1 の 5 カテゴリ runtime hard floor を 3 CLI hook へ *
 | 96.1.4 | `[Self-Audit Hardening]` `[lane:gate]` `[tdd:required]` `[Risk Gate]` deny-list self-audit baseline hash + 改ざん検知強化: `.claude-plugin/settings.json` の deny エントリ baseline を hash で固定し、減少時に起動拒否（Phase 91.6 の `policy/` baseline と統合）。`.claude/settings.local.json` の hook 注入を Read で検知（self-audit.md の項目を Go 実装に昇格）。CCH 生成 hook は allowlist で誤検知回避（92.6.4 契約延長）。 | (a) baseline hash で deny エントリ減少時に起動拒否 test、(b) settings.local.json hook 注入検知 test（既知 / 未知の 2 ケース）、(c) CCH 生成 hook が allowlist で誤検知ゼロ test、(d) **改ざん検知 3 ケース個別 test: (d1) deny エントリ削除で起動拒否、(d2) settings.local.json への未知 command 型 hook 追記で検知、(d3) 既存 hook の command 文字列改変で検知**、(e) `bash tests/validate-plugin.sh` PASS | 92.6.4 | cc:done [50835494] |
 | 96.1.5 | `[stage b 完成判定]` `[lane:release]` `[tdd:skip:integration-verification]` Phase 93 + Phase 95 + Phase 96.1.1-96.1.4 完了で **stage b 達成**。実 3 タスク `/breezing all --cursor --auto-approve`（93.3.6 MVP e2e と同じ launch contract に auto-approve を加えた拡張形）で完走確認 + (a) 5 カテゴリ floor が 3 CLI で同時発火、(b) Decision Card 本格版が運用される、(c) Bridge Daemon + delivery が動作、(d) auto-approve ON で worktree 外破壊試行が hard-stop、を evidence 付きで確認。**stage a (Phase 4-7) 移行 gate**: user 判断ポイント inventory（退役スキルエイリアス永続 / Night Watch Report / Client Mirror / Channels wake / Judgment Ledger / Failure Codifier の 6 領域の優先順 + Plan B 詳細 §7 Phase 4-7 タイムライン）を harness-mem に保存し、user の GO を待つ（stage a への移行は 96.1.5 完了後の独立判断 gate）。**Evidence (2026-06-13)**: (a) 3 CLI hook floor parity 15/15 PASS ✓ / (b) judgment-card-render 12 + floor-no-card 5 PASS ✓ / (c) bridge + bridgedelivery unit PASS ✓ / (d) autoapprove 6 test PASS（DefaultOff / OnButPrereqMissing / OnAndAllPrereqsDone / EnvValueStrictness 6-sub / NoEnvOverridesFloor）+ runtimefloor WorktreeEscape PASS ✓ / (e) stage a inventory `obs_00mqb4toyea80fa689397ca66e` mem 保存（推奨順: 退役 alias > Judgment Ledger > Night Watch > Client Mirror > Failure Codifier > Channels wake、user GO via `/harness-plan` for Phase 4-7 structuring） ✓ / (f) validate-plugin PASS ✓ / (g) check-consistency PASS ✓ / (h) README Advanced に「auto-approve (experimental)」行追加 ✓ | (a)-(d) evidence 本行 Status 追記、(e) stage a 移行用 inventory が mem に保存（mem_id 記録）、(f) `bash tests/validate-plugin.sh` PASS、(g) `bash scripts/ci/check-consistency.sh` PASS、(h) README に「auto-approve experimental（HARNESS_AUTO_APPROVE=on opt-in）」表記追加（公開 claim 更新） | 95.5.1, 96.1.3, 96.1.4 | cc:done [8ca7d40a] |
 | 96.1.6 | `[Spec sync]` `[lane:fast]` `[tdd:skip:docs-only]` spec.md「Tri-Tool Parallel Collaboration Contract」に Risk Gate 3 CLI 配布契約（5 カテゴリ enum + 3 CLI 同時発火 + Codex Bash 制限と fingerprint 封じ込めの補完関係 + canonical floor policy fragment が host 間で byte-equal の境界）と auto-approve scope（worktree 内のみ、92.1+92.2+96.1.2 完了 gate、`HARNESS_AUTO_APPROVE` opt-in）を追記。`.claude/rules/versioning.md` に「stage b 完成 = minor リリース候補（Release Train v1 trigger は Phase 94 配下）」運用記載。**Evidence (2026-06-13)**: (a) spec.md「Risk Gate distribution contract (3-CLI parity)」+「auto-approve scope」節新設、5 カテゴリ enum 9 grep / 3 CLI parity 1 / HARNESS_AUTO_APPROVE 2 / byte-equal canonical fragment 2 ✓ / (b) versioning.md「Plan B Stage B Release Trigger」節追加、stage b 5 grep ✓ / (c) check-consistency PASS ✓ / (d) Phase 94 との関係 1 行明記 ✓ | (a) spec.md に 5 カテゴリ enum 名 + 3 CLI 同時発火契約 + auto-approve worktree-scope 明記 + canonical fragment 境界記述、(b) versioning rule に stage b 運用追加、(c) `bash scripts/ci/check-consistency.sh` PASS、(d) Phase 94 release train との関係を 1 行で記述 | 96.1.5 | cc:done [890c0554] |
+
+## Phase 97: Plan B stage a warm-up — Retired Alias Registry [P1]
+
+**Purpose**: 退役 alias の永続レジストリと CI 検出ゲートを Go selfaudit 層に新設し、Phase 91.7 で撤去された deleted-concepts.yaml + check-residue.sh 機能を最小スコープで再導入。stage a warm-up。Worktree group 1 (solo). Plans.md / CHANGELOG.md owner = retired-alias.
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 97.1.1 | `[lane:fast]` `[tdd:required]` retired-alias.v1 schema + registry YAML 初期 entry | (a) `templates/schemas/retired-alias.v1.json` の `$id` に `retired-alias.v1`, (b) `templates/registry/retired-aliases.v1.yaml` に `^- id:` ≥ 1 | — | cc:todo |
+| 97.1.2 | `[lane:fast]` `[tdd:required]` `go/internal/retiredalias/` pkg (loader + scanner) | (a) `registry.go` / `scanner.go` 存在, (b) `go test ./go/internal/retiredalias/...` PASS | 97.1.1 | cc:todo |
+| 97.1.3 | `[lane:gate]` `[tdd:required]` RED 4 件: `TestRetiredAlias_RegistrySchemaValid` / `_ResidueDetected` / `_AllowlistRespected` / `_HeadZeroHits` | (a) 4 関数 grep, (b) 全 PASS, (c) `tests/fixtures/retired-alias/` | 97.1.2 | cc:todo |
+| 97.1.4 | `[lane:fast]` `[tdd:required]` `bin/harness retired-alias scan` subcommand | (a) `go/cmd/harness/retiredalias.go` に `retired-alias`, (b) `TestRunRetiredAlias_*` PASS | 97.1.2 | cc:todo |
+| 97.1.5 | `[lane:gate]` `[tdd:skip:ci-config]` `scripts/ci/check-consistency.sh` に retired-alias section | (a) `grep retired-alias scripts/ci/check-consistency.sh`, (b) consistency PASS | 97.1.4 | cc:todo |
+| 97.1.6 | `[lane:release]` `[tdd:skip:docs-only]` `.claude/rules/retired-alias-policy.md` SSOT | (a) ファイル存在, (b) `^## ` 見出し ≥ 3 | 97.1.5 | cc:todo |
+| 97.1.7 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] + Plans.md cc:done 統合 | (a) `grep retired-alias CHANGELOG.md`, (b) 97.1.* 全 cc:done | 97.1.6 | cc:todo |
+
+---
+
+## Phase 98: Judgment Ledger + Channels-Wake — learning ledger + 通信回復層 [P1]
+
+**Purpose**: stage b の judgment-card.v1 を append-only ledger 化し過去判断を検索可能に、同時に Bridge Daemon 通信チャネル (live-messaging / delivery / inbox hooks) の自動復旧層を追加。auto-approve 既定 OFF・5-category floor 不変。Worktree group 2. CHANGELOG.md = judgment-ledger, spec.md = channels-wake, Plans.md = Lead 統合.
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 98.1.1 | `[lane:gate]` `[tdd:required]` `judgment-ledger.v1` JSONL schema (`additionalProperties:false`) + `TestJudgmentLedger_SchemaReject` RED | (a) `$id` grep, (b) `tests/schema/test-judgment-ledger-schema.sh` PASS | 97.1.7 | cc:todo |
+| 98.1.2 | `[lane:gate]` `[tdd:required]` `go/internal/judgmentledger/` pkg + 4 tests (`_Append` / `_SchemaReject` / `_FailOpen` / `_ProjectScope`) | (a) 4 関数 grep, (b) pkg test PASS | 98.1.1 | cc:todo |
+| 98.1.3 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/judgment-ledger.sh append/search/recall` (fail-open on write) | (a) 3 subcommand grep, (b) bats test PASS | 98.1.2 | cc:todo |
+| 98.1.4 | `[lane:fast]` `[tdd:required]` `scripts/judgment-card.sh record-answer` → ledger append 配線 | (a) `grep 'judgment-ledger.sh append' scripts/judgment-card.sh` ≥ 1, (b) wiring test PASS | 98.1.3 | cc:todo |
+| 98.1.5 | `[lane:fast]` `[tdd:required]` ledger search index (file-based, project-scoped) max 3 件 `TestJudgmentLedgerIndex_Top3` / `_ProjectScopeIsolation` / `_EmptyCorpus` | (a) 3 PASS, (b) `index.go` 存在 | 98.1.3 | cc:todo |
+| 98.1.6 | `[lane:fast]` `[tdd:required]` `judgment-card.v1.similar_past_decisions` を recall layer で最大 3 件埋める | (a) `similar_past_decisions` grep ≥ 2 ファイル, (b) recall_test PASS | 98.1.5 | cc:todo |
+| 98.1.7 | `[lane:release]` `[tdd:skip:docs-only]` `docs/judgment-ledger.md` SSOT (Schema/Append/Search/Recall/Project Scope/Fail-Open) | (a) 6 見出しのうち ≥ 5 章 | 98.1.6 | cc:todo |
+| 98.1.8 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] "Judgment Ledger v1" (VERSION bump 無し) | (a) `grep 'Judgment Ledger' CHANGELOG.md` ≥ 1 | 98.1.7 | cc:todo |
+| 98.2.1 | `[lane:gate]` `[tdd:required]` channelswake 4 状態 RED (`_NotConfigured` / `_Unreachable` / `_Healthy` / `_Corrupted`) | (a) 4 関数 grep | 97.1.7 | cc:todo |
+| 98.2.2 | `[lane:fast]` `[tdd:skip:green]` `channelswake.Check()` 実装 (bridge socket probe + mailbox stale check, reason enum literal) | (a) 3 reason 文字列 grep, (b) 98.2.1 全 PASS | 98.2.1 | cc:todo |
+| 98.2.3 | `[lane:gate]` `[tdd:required]` `channel-wake-event.v1` schema + `TestChannelWakeEventSchema_AdditionalPropertiesFalse` | (a) `additionalProperties: false` grep, (b) schema test PASS | 97.1.7 | cc:todo |
+| 98.2.4 | `[lane:fast]` `[tdd:required]` `bin/harness channels-wake check` CLI (exit 0 healthy/not-configured, 1 unreachable/corrupted) | (a) `TestRunChannelsWakeCheck_*` PASS | 98.2.2 | cc:todo |
+| 98.2.5 | `[lane:fast]` `[tdd:required]` Session Monitor 統合 + `TestMonitorHandler_ChannelsWakeNotConfigured` 警告抑止契約 | (a) 該当テスト存在, (b) 警告非出力 assert | 98.2.2, 98.2.4 | cc:todo |
+| 98.2.6 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/channels-wake-probe.sh` + auto-approve OFF 既定 + opt-in wake trigger | (a) `AUTO_APPROVE_DEFAULT=false` grep, (b) probe test PASS | 98.2.4 | cc:todo |
+| 98.2.7 | `[lane:gate]` `[tdd:required]` Risk Gate 5-category floor 不変テスト (money/egress/secret/prod-deploy/worktree-escape) | (a) 5 カテゴリ全 grep ヒット | 98.2.6 | cc:todo |
+| 98.2.8 | `[lane:release]` `[tdd:skip:docs-only]` `spec.md` Channels-Wake 章 + check-consistency PASS | (a) `grep Channels-Wake spec.md`, (b) consistency PASS | 98.2.5, 98.2.6, 98.2.7 | cc:todo |
+
+---
+
+## Phase 99: Night Watch + Client Mirror — 監視層 [P1]
+
+**Purpose**: 未解決ループ/停滞タスク/古い open decision を夜間バッチで巡回する Night Watch と、`skills/` SSOT と 3 mirror root の drift を hook で検出する Client Mirror を並列実装。両者とも D40 tri-state health (NotConfigured/Unreachable/Healthy/Corrupted) 踏襲、auto-approve 既定 OFF + opt-in。Worktree group 3. CHANGELOG.md = night-watch, `.claude/rules/skill-editing.md` = client-mirror, check-consistency.sh は night-watch → client-mirror の順.
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 99.1.1 | `[lane:gate]` `[tdd:required]` `night-watch-report.v1` schema + 4 状態 RED + schema 検証 2 件 | (a) 6 関数 grep, (b) `additionalProperties:false` | 98.1.8 | cc:todo |
+| 99.1.2 | `[lane:fast]` `[tdd:required]` `go/internal/nightwatch/` health (tri-state reason: `not-configured`/`daemon-unreachable`/`corrupted`) | (a) 3 reason 文字列 grep, (b) 99.1.1 PASS | 99.1.1 | cc:todo |
+| 99.1.3 | `[lane:fast]` `[tdd:required]` stale 検出 (task `last_updated>72h` / open_decision age `>168h`) literal in `templates/night-watch-config.yaml` | (a) `stale_task_hours: 72` / `open_decision_hours: 168` grep, (b) stale_test PASS | 99.1.2 | cc:todo |
+| 99.1.4 | `[lane:fast]` `[tdd:required]` `scripts/night-watch-report.sh --dry-run` (schema 準拠 JSON stdout, bridge mailbox から unresolved loop 取得) | (a) `--dry-run` exit 0 + jq 構文 PASS | 99.1.2 | cc:todo |
+| 99.1.5 | `[lane:fast]` `[tdd:required]` Session Monitor 統合 `TestMonitorHandler_NightWatch*` 全 PASS | (a) 4 関数 grep, (b) `not-configured` で警告非出力 | 99.1.2 | cc:todo |
+| 99.1.6 | `[lane:fast]` `[tdd:required]` cron template + opt-in install (default OFF, 実 `~/.claude/settings.json` 不変, fixture/tempdir で検証) | (a) `NIGHT_WATCH_ENABLED=false` grep, (b) install test PASS | 99.1.4 | cc:todo |
+| 99.1.7 | `[lane:release]` `[tdd:skip:ci-config]` CI gate + validate-plugin section + CHANGELOG | (a) `night-watch-report` grep 3 ファイル | 99.1.1-99.1.6 | cc:todo |
+| 99.2.1 | `[lane:gate]` `[tdd:required]` `mirror-state.v1` schema + ajv RED (`TestMirrorStateSchema_ValidFingerprint` / `_RejectExtraProperty`) | (a) `$id` grep, (b) 2 PASS | 97.1.7 | cc:todo |
+| 99.2.2 | `[lane:gate]` `[tdd:required]` clientmirror RED (`TestClientMirror_InSync` / `_Drift` / `_MissingMirrorRoot`) | (a) 3 関数 grep | 99.2.1 | cc:todo |
+| 99.2.3 | `[lane:fast]` `[tdd:skip:green]` clientmirror GREEN: Scan/Diff/Fingerprint (`skills/` SSOT + codex/opencode/.agents 3 mirror) | (a) 3 func grep, (b) 99.2.2 全 PASS | 99.2.2 | cc:todo |
+| 99.2.4 | `[lane:fast]` `[tdd:skip:cli]` `bin/harness mirror status/verify` (mirror-state.v1 JSON 出力) | (a) `mirror status\|mirror verify` grep, (b) mirror_test PASS | 99.2.3 | cc:todo |
+| 99.2.5 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/sync-skill-mirrors.sh --check` を `harness mirror verify --json` に委譲 | (a) `harness mirror verify` grep, (b) parity test PASS | 99.2.4 | cc:todo |
+| 99.2.6 | `[lane:gate]` `[tdd:required]` PostToolUse hook on `Edit/Write` under `skills/` で drift 警告 (fixture/tempdir only) `TestSkillMirrorDriftHook_DetectsUnsyncedEdit` PASS | (a) `mirror-state.v1` grep, (b) hook test PASS | 99.2.4 | cc:todo |
+| 99.2.7 | `[lane:fast]` `[tdd:skip:ci-config]` check-consistency.sh mirror section + 0-drift gate on HEAD | (a) `mirror-state.v1` grep, (b) gate PASS | 99.2.5, 99.1.7 | cc:todo |
+| 99.2.8 | `[lane:release]` `[tdd:skip:docs-only]` `.claude/rules/skill-editing.md` に Client Mirror 契約節 + CHANGELOG 統合 | (a) `Client Mirror\|mirror-state.v1` grep | 99.2.7 | cc:todo |
+
+---
+
+## Phase 100: Failure Codifier — self-learning loop core (human-approval gated) [P1]
+
+**Purpose**: breezing logs + Judgment Ledger から再現失敗パターンを抽出し `failure-rule.v1` 候補を confidence score 付きで生成。`.claude/memory/patterns.md`/`decisions.md` への昇格は必ず human 承認ゲート経由 — 自動昇格禁止。stage a self-learning loop の中核。Worktree group 4 (solo, depends judgment-ledger). CHANGELOG.md / Plans.md owner = failure-codifier.
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 100.1.1 | `[lane:gate]` `[tdd:required]` `failure-rule.v1` schema + `TestSchema_FailureRuleV1_RejectsMissingRuleId` RED→GREEN | (a) `rule_id\|confidence\|evidence_refs\|proposed_ssot_target` grep ≥ 4 | 98.1.8 | cc:todo |
+| 100.1.2 | `[lane:fast]` `[tdd:required]` Codifier core: Judgment Ledger + breezing logs read-only 抽出 (`TestCodifier_ExtractFromLedger_EmptyCorpusReturnsNoRules` PASS) | (a) `go test ./go/internal/failurecodifier/...` PASS | 100.1.1 | cc:todo |
+| 100.1.3 | `[lane:gate]` `[tdd:required]` Confidence scoring (count≥3 medium, ≥5 high) `TestConfidence_ThreeOccurrencesMedium` / `_FiveOccurrencesHigh` | (a) 2 PASS, (b) `confidence.go` に 3/5 literal | 100.1.2 | cc:todo |
+| 100.1.4 | `[lane:gate]` `[tdd:required]` Human-approval gate (auto-promotion 禁止, dry-run only) `TestCodifier_PromotionRequiresApproval` PASS | (a) test PASS, (b) `promote.go` で auto-promote が return error | 100.1.3 | cc:todo |
+| 100.1.5 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/failure-codifier-propose.sh --dry-run` | (a) `test -x` PASS, (b) stdout が `[` or `{` で始まる JSON | 100.1.4 | cc:todo |
+| 100.1.6 | `[lane:fast]` `[tdd:skip:docs-only]` `skills/failure-codifier/SKILL.md` + `references/promotion-workflow.md` (`human-approval-required` marker + 閾値 3/5 literal) | (a) `human-approval-required` grep ≥ 1 | 100.1.5 | cc:todo |
+| 100.1.7 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] "Failure Codifier" + Plans.md cc:done 統合 | (a) `[Unreleased]` 内 `Failure Codifier` grep | 100.1.6 | cc:todo |
+
+---
+
+### Breezing 自律完走契約 reminder (Phase 97-100)
+
+autonomous_stop_points (Lead 判断を要する箇所):
+- **98.1.5** ledger search ranking 方式 (string-match 採用済だが Lead 再考の余地)
+- **98.2.4** Channels-Wake の wake trigger 実装範囲 (hook 再注入 vs daemon restart 提案)
+- **99.1.3** Night Watch stale 閾値 (72h/168h) の運用妥当性
+- **100.1.4** Failure Codifier 昇格対象 (patterns.md vs decisions.md heuristic)
+
+それ以外は契約 4 不変則 (スコープ 2 分割 / 質問禁止 + 既定値分岐 / Risk Gate 3 条件 / 共有ファイル lane) のもと続行。
