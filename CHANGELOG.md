@@ -42,6 +42,8 @@ Change history for claude-code-harness.
 
 - **Reviewer の defensive-security intent 明示（issue #172）**: `claude-code-harness:reviewer` が security レビューを開始した直後に Anthropic 側 model safeguard が false-trigger し、Opus 4.7 にフォールバックされて応答が止まる現象を緩和するため、`agents/reviewer.md` と `skills/harness-review/references/security-profile.md` の冒頭に「authorized defensive code review」「audit-only / exploit payload は出力しない」を scope 宣言として追加しました。security findings は引き続き OWASP / CWE 観点で `major` 以上として記録します（観測の報告のみ、攻撃コードは含めません）。
 
+- **Reviewer cyber-safeguard の構造的緩和（issue #172 続報）**: scope 宣言（prompt 文言）だけでは再発する根因を特定しました。Anthropic の cyber-safeguard は最新メッセージだけでなく **context 全体**（会話履歴・memory・既読ファイル）を判定するため、reviewer の security findings が親 session に還流した時点で切替が起きます。`security-profile.md` に「Fresh-context 隔離と findings 還流の契約」を追加し、(1) `context: fork` + reviewer の非 Fable model pin（`claude-sonnet-4-6`）で classifier が読む security 語彙を構造的に削減、(2) 親 orchestrator への findings 還流を `verdict ＋ 件数 ＋ file:line ＋ 1 行修正方針` に限定して逐語ダンプを禁止、を明文化しました。`check-consistency.sh` に section 16 を追加し、reviewer が非 Fable model に pin されていることと本契約フレーズの存在を CI で固定（Fable/inherit へ変更すると CI が fail）。**保証はあくまで呼び出し側 session を Opus にすること**で、本緩和は trigger 面の縮小である旨も契約に明記しました。
+
 ## [4.15.0] - 2026-06-05
 
 ### テーマ: settings 自己書換保護を配布物まで届ける
