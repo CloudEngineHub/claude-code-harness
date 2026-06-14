@@ -408,13 +408,15 @@ Purpose: Phase 92.2.1 の 5 カテゴリ runtime hard floor を 3 CLI hook へ *
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 97.1.1 | `[lane:fast]` `[tdd:required]` retired-alias.v1 schema + registry YAML 初期 entry | (a) `templates/schemas/retired-alias.v1.json` の `$id` に `retired-alias.v1`, (b) `templates/registry/retired-aliases.v1.yaml` に `^- id:` ≥ 1 | — | cc:todo |
-| 97.1.2 | `[lane:fast]` `[tdd:required]` `go/internal/retiredalias/` pkg (loader + scanner) | (a) `registry.go` / `scanner.go` 存在, (b) `go test ./go/internal/retiredalias/...` PASS | 97.1.1 | cc:todo |
-| 97.1.3 | `[lane:gate]` `[tdd:required]` RED 4 件: `TestRetiredAlias_RegistrySchemaValid` / `_ResidueDetected` / `_AllowlistRespected` / `_HeadZeroHits` | (a) 4 関数 grep, (b) 全 PASS, (c) `tests/fixtures/retired-alias/` | 97.1.2 | cc:todo |
-| 97.1.4 | `[lane:fast]` `[tdd:required]` `bin/harness retired-alias scan` subcommand | (a) `go/cmd/harness/retiredalias.go` に `retired-alias`, (b) `TestRunRetiredAlias_*` PASS | 97.1.2 | cc:todo |
-| 97.1.5 | `[lane:gate]` `[tdd:skip:ci-config]` `scripts/ci/check-consistency.sh` に retired-alias section | (a) `grep retired-alias scripts/ci/check-consistency.sh`, (b) consistency PASS | 97.1.4 | cc:todo |
-| 97.1.6 | `[lane:release]` `[tdd:skip:docs-only]` `.claude/rules/retired-alias-policy.md` SSOT | (a) ファイル存在, (b) `^## ` 見出し ≥ 3 | 97.1.5 | cc:todo |
-| 97.1.7 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] + Plans.md cc:done 統合 | (a) `grep retired-alias CHANGELOG.md`, (b) 97.1.* 全 cc:done | 97.1.6 | cc:todo |
+| 97.1.1 | `[lane:fast]` `[tdd:required]` retired-alias.v1 schema + registry YAML 初期 entry | (a) `templates/schemas/retired-alias.v1.json` の `$id` に `retired-alias.v1`, (b) `templates/registry/retired-aliases.v1.yaml` に `^- id:` ≥ 1 | — | cc:done [56143ee2] |
+| 97.1.2 | `[lane:fast]` `[tdd:required]` `go/internal/retiredalias/` pkg (loader + scanner) | (a) `registry.go` / `scanner.go` 存在, (b) `go test ./go/internal/retiredalias/...` PASS | 97.1.1 | cc:done [56143ee2] |
+| 97.1.3 | `[lane:gate]` `[tdd:required]` RED 4 件: `TestRetiredAlias_RegistrySchemaValid` / `_ResidueDetected` / `_AllowlistRespected` / `_HeadZeroHits` | (a) 4 関数 grep, (b) 全 PASS, (c) `tests/fixtures/retired-alias/` | 97.1.2 | cc:done [56143ee2] |
+| 97.1.4 | `[lane:fast]` `[tdd:required]` `bin/harness retired-alias scan` subcommand | (a) `go/cmd/harness/retiredalias.go` に `retired-alias`, (b) `TestRunRetiredAlias_*` PASS | 97.1.2 | cc:done [56143ee2] |
+| 97.1.5 | `[lane:gate]` `[tdd:skip:ci-config]` `scripts/ci/check-consistency.sh` に retired-alias section | (a) `grep retired-alias scripts/ci/check-consistency.sh`, (b) consistency PASS | 97.1.4 | cc:done [56143ee2] |
+| 97.1.6 | `[lane:release]` `[tdd:skip:docs-only]` `.claude/rules/retired-alias-policy.md` SSOT | (a) ファイル存在, (b) `^## ` 見出し ≥ 3 | 97.1.5 | cc:done [56143ee2] |
+| 97.1.7 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] + Plans.md cc:done 統合 | (a) `grep retired-alias CHANGELOG.md`, (b) 97.1.* 全 cc:done | 97.1.6 | cc:done [56143ee2] |
+
+**Phase 97 Evidence (2026-06-14)**: feat `56143ee2` + fix `a1a6cf3c` (scanner が `.harness-worktrees/` nested worktree に降りて 119 hit する trunk 限定バグを Lead 検証で捕捉、回帰テスト `TestRetiredAlias_SkipsNestedWorktreeRoot` 追加) + chore(gen) `b83ab1ef` (4 platform バイナリ regen)。`go test ./internal/retiredalias/... ./cmd/harness/...` 全 PASS / `bin/harness retired-alias scan` = 0 hits exit 0 / check-consistency section 17 配線確認 (full run は無関係の `test-setup-language-rendering.sh:783` でハング、既存問題)。**逸脱メモ (97.1.1b)**: registry は参照実装 `deleted-concepts.yaml` の versioned-envelope 規約 (`version:` + `entries:` 配下に `  - id:` 3 件) を踏襲。DoD の `^- id:` リテラル grep は flat-list 想定で前例に反するため「≥1 entry」意図充足として扱う。**依存追加**: `gopkg.in/yaml.v3` (registry parse、repo 初の YAML パーサ) + `santhosh-tekuri/jsonschema/v6` (schema 検証)、本番バイナリに含まれる。
 
 ---
 
