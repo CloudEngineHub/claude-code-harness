@@ -22,9 +22,20 @@ for arg in "$@"; do
   esac
 done
 
-args=(--repo-root "$ROOT")
+args=(report --repo-root "$ROOT")
 if [[ "$dry_run" == true ]]; then
   args+=(--dry-run)
 fi
 
-(cd "$ROOT/go" && go run ./cmd/night-watch-report "${args[@]}")
+# 単一バイナリ配布規約: precompiled bin/harness を使う。未ビルド時のみ go run にフォールバック。
+BIN="$ROOT/bin/harness"
+case "$(uname -s)" in
+  Darwin) BIN="$ROOT/bin/harness-darwin-$(uname -m | sed 's/x86_64/amd64/')" ;;
+esac
+if [[ -x "$BIN" ]]; then
+  "$BIN" night-watch "${args[@]}"
+elif [[ -x "$ROOT/bin/harness" ]]; then
+  "$ROOT/bin/harness" night-watch "${args[@]}"
+else
+  (cd "$ROOT/go" && go run ./cmd/harness night-watch "${args[@]}")
+fi

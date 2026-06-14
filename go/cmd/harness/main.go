@@ -108,6 +108,8 @@ func main() {
 		runSelfAudit(os.Args[2:])
 	case "retired-alias":
 		runRetiredAlias(os.Args[2:])
+	case "night-watch":
+		runNightWatch(os.Args[2:])
 	case "mirror":
 		runMirror(os.Args[2:])
 	case "wt":
@@ -164,6 +166,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  self-audit hooks --file <path>  Audit settings.local.json command hooks (CCH allowlist)")
 	fmt.Fprintln(os.Stderr, "  self-audit baseline --settings <path> --baseline <path>  Verify deny entries did not regress")
 	fmt.Fprintln(os.Stderr, "  retired-alias scan [root]  Scan repo for retired alias residue (exit 1 if hits)")
+	fmt.Fprintln(os.Stderr, "  night-watch report [--dry-run]  Emit night-watch patrol report (schema-valid JSON)")
 	fmt.Fprintln(os.Stderr, "  mirror status|verify [--json] [root]  Report skills/ mirror drift (mirror-state.v1 JSON with --json or verify)")
 	fmt.Fprintln(os.Stderr, "  wt fingerprint capture --output <path>  Snapshot sensitive $HOME paths")
 	fmt.Fprintln(os.Stderr, "  wt fingerprint diff --before <p> --after <p>  Detect worktree-escape (exit 2 on change)")
