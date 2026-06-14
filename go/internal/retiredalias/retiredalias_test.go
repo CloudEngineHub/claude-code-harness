@@ -100,6 +100,36 @@ func TestRetiredAlias_AllowlistRespected(t *testing.T) {
 	}
 }
 
+func TestRetiredAlias_SkipsNestedWorktreeRoot(t *testing.T) {
+	// 並列実行用 worktree root (.harness-worktrees/) は本体ソースの一部ではなく、
+	// 各 task worktree の完全コピー (意図的な fixture 残骸を含む) が入る。
+	// scanner はここに降りてはならない (regression: trunk で ScanClean が 119 hit した事故)。
+	tmp := t.TempDir()
+	nested := filepath.Join(tmp, ".harness-worktrees", "task-99", "tests")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatalf("mkdir nested worktree: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(nested, "residue.txt"),
+		[]byte("references core/src/guardrails/rules.ts here\n"), 0o644); err != nil {
+		t.Fatalf("write residue: %v", err)
+	}
+
+	reg := &Registry{
+		Version: 1,
+		Entries: []Entry{
+			{ID: "fixture-path", Kind: KindPath, Pattern: "core/src/guardrails/rules.ts"},
+		},
+	}
+
+	hits, err := Scan(tmp, reg, ScanOptions{})
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	if len(hits) != 0 {
+		t.Fatalf("expected 0 hits (nested worktree must be skipped), got %d: %+v", len(hits), hits)
+	}
+}
+
 func TestRetiredAlias_HeadZeroHits(t *testing.T) {
 	root := testRepoRoot(t)
 	registryPath := DefaultRegistryPath(root)

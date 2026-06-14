@@ -17,9 +17,10 @@ type ScanOptions struct {
 const defaultMaxFileBytes = 2 << 20
 
 var skipDirNames = map[string]bool{
-	".git":         true,
-	"node_modules": true,
-	"vendor":       true,
+	".git":               true,
+	"node_modules":       true,
+	"vendor":             true,
+	".harness-worktrees": true,
 }
 
 // Scan walks repoRoot and returns non-allowlisted pattern matches.
