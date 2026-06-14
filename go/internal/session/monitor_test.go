@@ -416,6 +416,45 @@ func TestMonitorHandler_HarnessMemNotConfigured(t *testing.T) {
 	}
 }
 
+func TestMonitorHandler_ChannelsWakeNotConfigured(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		ChannelsWakeCommand: func(_ context.Context) (bool, string, error) {
+			return true, "not-configured", nil
+		},
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if strings.Contains(s, "channels-wake unhealthy") {
+		t.Errorf("not-configured must NOT emit channels-wake warning, got:\n%s", s)
+	}
+
+	sessionFile := filepath.Join(stateDir, "session.json")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("session.json not created: %v", err)
+	}
+	var sess sessionStateJSON
+	if err := json.Unmarshal(data, &sess); err != nil {
+		t.Fatalf("invalid session.json: %v", err)
+	}
+	if !sess.ChannelsWake.Healthy {
+		t.Errorf("expected channels_wake.healthy=true (monitor exclusion), got false")
+	}
+	if sess.ChannelsWake.LastError != "" {
+		t.Errorf("expected channels_wake.last_error=\"\" when healthy, got %q", sess.ChannelsWake.LastError)
+	}
+}
+
 func TestMonitorHandler_HarnessMemTimeout(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")

@@ -100,6 +100,8 @@ func main() {
 		runCodexLoop(os.Args[2:])
 	case "mem":
 		runMem(os.Args[2:])
+	case "channels-wake":
+		runChannelsWake(os.Args[2:])
 	case "inbox":
 		runInbox(os.Args[2:])
 	case "self-audit":
@@ -154,6 +156,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [--migration-report] [root]  Health check plus migration status/report")
 	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
 	fmt.Fprintln(os.Stderr, "  mem status|setup|update|doctor|off|purge|health  Manage harness-mem companion")
+	fmt.Fprintln(os.Stderr, "  channels-wake check  Bridge channel health (exit 0=healthy/not-configured)")
 	fmt.Fprintln(os.Stderr, "  inbox check --team <t> --agent <a> --db <path>  Read livemsg inbox (fail-open)")
 	fmt.Fprintln(os.Stderr, "  inbox monitor --team <t> --agent <a> --db <path>  Poll livemsg inbox stream (CC Monitor)")
 	fmt.Fprintln(os.Stderr, "  self-audit hooks --file <path>  Audit settings.local.json command hooks (CCH allowlist)")

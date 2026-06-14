@@ -1168,6 +1168,43 @@ Contract:
 Configured means `~/.harness-mem` or legacy `~/.claude-mem` exists (see
 `go/internal/breezingmem` `configured()`). HTTP timeout is 1s.
 
+### Channels-Wake
+
+Phase 98.2 adds an opt-in recovery layer for Bridge Daemon communication
+channels (live-messaging / delivery / inbox hooks). It monitors channel health
+and may **propose** hook re-injection when unhealthy; it does **not** restart
+daemons or auto-approve actions.
+
+Configuration lives at `~/.harness-bridge/channels.json` (override with
+`HARNESS_BRIDGE_HOME`). Required keys when enabled:
+
+| Key | Purpose |
+|-----|---------|
+| `socket_path` | Unix domain socket for Bridge Daemon probe |
+| `mailbox_db` | SQLite WAL mailbox store (`bridge_events`) |
+| `stale_after_seconds` | Max age of newest mailbox event before `corrupted` |
+
+Tri-state health (active-watching-test-policy, D40):
+
+| State | `reason` | `healthy` | CLI exit | Session Monitor warning |
+|-------|----------|-----------|----------|-------------------------|
+| Opt-in not used | `not-configured` | true | 0 | **none** |
+| Daemon down / socket unreachable | `daemon-unreachable` | false | 1 | yes |
+| Invalid config / stale mailbox | `corrupted` | false | 1 | yes |
+| OK | `""` | true | 0 | none |
+
+CLI: `harness channels-wake check` emits JSON `{healthy, reason}`.
+Implementation: `go/internal/channelswake.Check()`.
+
+Wake trigger scope (Lead decision, Phase 98.2): **hook re-injection proposal
+only**, opt-in via `HARNESS_CHANNELS_WAKE_OPT_IN=1` in
+`scripts/channels-wake-probe.sh`. `AUTO_APPROVE_DEFAULT=false` is preserved.
+Risk Gate 5-category runtime floor (`money-billing`, `egress`, `secret-read`,
+`prod-deploy`, `worktree-escape`) remains non-overridable.
+
+Event schema: `templates/schemas/channel-wake-event.v1.json`
+(`channel-wake-event.v1`, `additionalProperties: false`).
+
 ### workgraph signal boundary
 
 Bridge Daemon, mailbox ingest, and breezing mem lifecycle **must not** call

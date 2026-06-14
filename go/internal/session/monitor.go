@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/channelswake"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
@@ -36,6 +37,9 @@ type MonitorHandler struct {
 	// MemHealthCommand は harness-mem ヘルスチェック関数（テスト注入用）。
 	// nil の場合は本番デフォルト実装（bin/harness mem health）を使う。
 	MemHealthCommand func(ctx context.Context) (healthy bool, reason string, err error)
+	// ChannelsWakeCommand は bridge channels ヘルスチェック関数（テスト注入用）。
+	// nil の場合は channelswake.Check() を使う。
+	ChannelsWakeCommand func(ctx context.Context) (healthy bool, reason string, err error)
 }
 
 // monitorInput は SessionStart フックの stdin JSON。
@@ -63,7 +67,15 @@ type sessionStateJSON struct {
 	Git                gitStateJSON      `json:"git"`
 	Plans              plansStateJSON    `json:"plans"`
 	HarnessMem         harnessMemJSON    `json:"harness_mem"`
+	ChannelsWake       channelsWakeJSON  `json:"channels_wake"`
 	ChangesThisSession []interface{}     `json:"changes_this_session"`
+}
+
+// channelsWakeJSON は session.json の channels_wake フィールドのスキーマ。
+type channelsWakeJSON struct {
+	Healthy     bool   `json:"healthy"`
+	LastChecked string `json:"last_checked"`
+	LastError   string `json:"last_error"`
 }
 
 // harnessMemJSON は session.json の harness_mem フィールドのスキーマ。
@@ -184,9 +196,20 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 		memState.LastError = ""
 	}
 
+	// Phase 98.2: channels-wake health check
+	cwHealthy, cwReason, _ := h.checkChannelsWakeHealth(projectRoot)
+	cwState := channelsWakeJSON{
+		Healthy:     cwHealthy,
+		LastChecked: nowStr,
+		LastError:   cwReason,
+	}
+	if cwHealthy {
+		cwState.LastError = ""
+	}
+
 	// session.json を生成（resume/新規を判定）
 	sessionFile := filepath.Join(stateDir, "session.json")
-	h.generateSessionFile(sessionFile, projectRoot, projectName, nowStr, gitState, plansState, memState)
+	h.generateSessionFile(sessionFile, projectRoot, projectName, nowStr, gitState, plansState, memState, cwState)
 
 	// tooling-policy.json を生成
 	policyFile := filepath.Join(stateDir, "tooling-policy.json")
@@ -202,6 +225,15 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 			reason = "unknown"
 		}
 		fmt.Fprintf(w, "⚠️ harness-mem unhealthy: %s\n", reason)
+	}
+
+	// Phase 98.2: channels-wake unhealthy 警告 (not-configured は healthy=true で抑止)
+	if !cwHealthy {
+		reason := cwReason
+		if reason == "" {
+			reason = "unknown"
+		}
+		fmt.Fprintf(w, "⚠️ channels-wake unhealthy: %s\n", reason)
 	}
 
 	// 48.1.2: advisor/reviewer drift 検知
@@ -301,6 +333,7 @@ func (h *MonitorHandler) generateSessionFile(
 	git gitStateJSON,
 	plans plansStateJSON,
 	mem harnessMemJSON,
+	cw channelsWakeJSON,
 ) {
 	if isSymlink(sessionFile) {
 		return
@@ -335,6 +368,7 @@ func (h *MonitorHandler) generateSessionFile(
 		existing.Git = git
 		existing.Plans = plans
 		existing.HarnessMem = mem
+		existing.ChannelsWake = cw
 		existing.StateVersion = 1
 		sess = existing
 	} else {
@@ -367,6 +401,7 @@ func (h *MonitorHandler) generateSessionFile(
 			Git:                git,
 			Plans:              plans,
 			HarnessMem:         mem,
+			ChannelsWake:       cw,
 			ChangesThisSession: []interface{}{},
 		}
 	}
@@ -545,6 +580,17 @@ func (h *MonitorHandler) defaultMemHealthCheck(_ string) (healthy bool, reason s
 	if jsonErr := json.Unmarshal(output, &result); jsonErr != nil {
 		return true, "", nil // パース失敗は楽観的に healthy 扱い
 	}
+	return result.Healthy, result.Reason, nil
+}
+
+// checkChannelsWakeHealth は bridge channels のヘルスを検査する。
+func (h *MonitorHandler) checkChannelsWakeHealth(_ string) (healthy bool, reason string, err error) {
+	if h.ChannelsWakeCommand != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		return h.ChannelsWakeCommand(ctx)
+	}
+	result := channelswake.Check()
 	return result.Healthy, result.Reason, nil
 }
 

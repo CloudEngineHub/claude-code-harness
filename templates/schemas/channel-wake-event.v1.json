@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-harness.local/schemas/channel-wake-event.v1.json",
+  "title": "channel-wake-event.v1",
+  "description": "Health/wake proposal event emitted by channels-wake probe and CLI check.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "healthy",
+    "reason",
+    "ts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "channel-wake-event.v1"
+    },
+    "healthy": {
+      "type": "boolean"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "",
+        "not-configured",
+        "daemon-unreachable",
+        "corrupted"
+      ]
+    },
+    "ts": {
+      "type": "integer"
+    },
+    "wake_proposed": {
+      "type": "boolean"
+    }
+  }
+}
