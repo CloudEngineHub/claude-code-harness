@@ -873,6 +873,28 @@ else
 fi
 
 # ================================
+# 17. Retired alias residue gate
+# ================================
+echo ""
+echo "🧹 [17/17] Retired alias residue gate..."
+
+HARNESS_BIN="$PLUGIN_ROOT/bin/harness"
+if [ ! -x "$HARNESS_BIN" ]; then
+  echo "  ❌ bin/harness が見つかりません（Lead 統合後に trunk で再生成）"
+  ERRORS=$((ERRORS + 1))
+else
+  RETIRED_ALIAS_LOG="$(mktemp "${TMPDIR:-/tmp}/harness-retired-alias.XXXXXX")"
+  if (cd "$PLUGIN_ROOT" && "$HARNESS_BIN" retired-alias scan) >"$RETIRED_ALIAS_LOG" 2>&1; then
+    echo "  ✅ retired-alias scan: 0 hits"
+  else
+    echo "  ❌ retired-alias scan detected residue"
+    sed 's/^/      /' "$RETIRED_ALIAS_LOG" | tail -40
+    ERRORS=$((ERRORS + 1))
+  fi
+  rm -f "$RETIRED_ALIAS_LOG"
+fi
+
+# ================================
 # 結果サマリー
 # ================================
 echo ""

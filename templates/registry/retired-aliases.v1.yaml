@@ -1,0 +1,44 @@
+# retired-aliases.v1.yaml — Retired alias registry (Phase 97)
+#
+# SSOT for exclusion-based migration residue scanning.
+# Schema: templates/schemas/retired-alias.v1.json
+# Scanner: bin/harness retired-alias scan
+
+version: 1
+
+entries:
+  - id: core-guardrails-path
+    kind: path
+    pattern: "core/src/guardrails"
+    removed_in: "v4.0.0"
+    reason: "TypeScript guardrail engine を Go-native に移植 (Hokage migration)。TS エンジンごと core/ を廃止"
+    allowlist:
+      - "go/"
+      - "Plans.md"
+      - "docs/social/"
+      - "skills/claude-codex-upstream-update/"
+
+  - id: guardrails-rules-ts
+    kind: path
+    pattern: "core/src/guardrails/rules.ts"
+    removed_in: "v4.0.0"
+    reason: "TypeScript guardrail rules file; replaced by go/internal/guardrail/rules.go"
+    allowlist:
+      - "go/"
+
+  - id: ts-guardrail-engine-concept
+    kind: concept
+    pattern: "TypeScript guardrail engine"
+    removed_in: "v4.0.0"
+    reason: "Hokage migration で TS→Go 移植完了。TS エンジンへの言及は旧版の記述"
+    allowlist:
+      - "docs/CLAUDE_CODE_COMPATIBILITY.md"
+      - "docs/github-harness-plugin-benchmark.md"
+      - "docs/MIGRATION-v4.md"
+      - "docs/social/"
+      - "docs/claims-audit.md"
+      - "docs/distribution-scope.md"
+      - "docs/private/"
+      - "docs/positioning-notes.md"
+      - "docs/release-copy-phase21.md"
+      - "Plans.md"

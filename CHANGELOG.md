@@ -8,6 +8,16 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **Retired Alias Registry（Phase 97）**: 退役 alias の永続レジストリ + CI 検出ゲートを Go 層に再導入しました。`templates/schemas/retired-alias.v1.json` / `templates/registry/retired-aliases.v1.yaml` / `go/internal/retiredalias` / `bin/harness retired-alias scan` / `scripts/ci/check-consistency.sh` retired-alias section / `.claude/rules/retired-alias-policy.md` がセットです。
+
+#### Before/After（Retired Alias Registry）
+
+| Before | After |
+|--------|-------|
+| Phase 91.7 で `deleted-concepts.yaml` + `scripts/check-residue.sh` が撤去され、削除済みパス・概念の exclusion-based 検証がない | `retired-alias.v1` schema 駆動の registry + Go scanner + CLI + CI gate で最小スコープ再導入 |
+| 残骸検出は bash/python ワンオフ | `bin/harness retired-alias scan`（ヒット 0 = exit 0、1 件以上 = exit 1） |
+| 運用 SSOT が分散 | `.claude/rules/retired-alias-policy.md` + `templates/registry/retired-aliases.v1.yaml` |
+
 - **Plan B stage a planning（Phase 97-100）**: stage a (self-learning layer) を 6 領域 / 45 task / 4 worktree group に分解し Plans.md に追加。Phase 97 Retired Alias Registry（warm-up）、Phase 98 Judgment Ledger + Channels-Wake、Phase 99 Night Watch + Client Mirror、Phase 100 Failure Codifier（human-approval gate 必須）。34 named TDD RED test、active-watching 3-state pattern（NotConfigured / Unreachable / Healthy / Corrupted）、5-category floor 不変、auto-approve 既定 OFF を全 task で保持。autonomous_run_confidence: medium、4 stop points（98.1.5 / 98.2.4 / 99.1.3 / 100.1.4）で Lead 判断介入。Phase 94 (Release Train Proposal) との関係は stage a 完成後の独立 trigger。
 
 - **Parallel worktree spawn（Phase 92.1.1）**: `scripts/spawn-parallel.sh` で `git fetch origin` + 単一 base SHA から `.harness-worktrees/task-<name>` / `task/<name>` を idempotent に作成。`rerere.enabled` を project config に設定。`spec.md` Worktree Root Discipline で `.harness-worktrees/` と `.claude/worktrees/` の責務分離を明文化。

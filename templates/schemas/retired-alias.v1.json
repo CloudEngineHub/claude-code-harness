@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-harness.local/schemas/retired-alias.v1.json",
+  "title": "retired-alias.v1",
+  "description": "Retired alias registry — exclusion-based migration residue catalog.",
+  "type": "object",
+  "required": ["version", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "pattern"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["path", "concept", "command", "skill"]
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1
+          },
+          "removed_in": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "allowlist": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
