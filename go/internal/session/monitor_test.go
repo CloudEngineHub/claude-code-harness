@@ -455,6 +455,137 @@ func TestMonitorHandler_ChannelsWakeNotConfigured(t *testing.T) {
 	}
 }
 
+func TestMonitorHandler_NightWatchHealthy(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		NightWatchCommand: func(_ context.Context) (bool, string, error) {
+			return true, "", nil
+		},
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.Contains(out.String(), "night-watch unhealthy") {
+		t.Errorf("expected no night-watch warning for healthy state")
+	}
+
+	sessionFile := filepath.Join(stateDir, "session.json")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("session.json not created: %v", err)
+	}
+	var sess sessionStateJSON
+	if err := json.Unmarshal(data, &sess); err != nil {
+		t.Fatalf("invalid session.json: %v", err)
+	}
+	if !sess.NightWatch.Healthy {
+		t.Errorf("expected night_watch.healthy=true")
+	}
+}
+
+func TestMonitorHandler_NightWatchUnhealthy(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		NightWatchCommand: func(_ context.Context) (bool, string, error) {
+			return false, "daemon-unreachable", nil
+		},
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	s := out.String()
+	if !strings.Contains(s, "night-watch unhealthy: daemon-unreachable") {
+		t.Errorf("expected unhealthy warning, got:\n%s", s)
+	}
+
+	sessionFile := filepath.Join(stateDir, "session.json")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("session.json not created: %v", err)
+	}
+	var sess sessionStateJSON
+	if err := json.Unmarshal(data, &sess); err != nil {
+		t.Fatalf("invalid session.json: %v", err)
+	}
+	if sess.NightWatch.Healthy {
+		t.Errorf("expected night_watch.healthy=false")
+	}
+	if sess.NightWatch.LastError != "daemon-unreachable" {
+		t.Errorf("expected last_error=daemon-unreachable, got %q", sess.NightWatch.LastError)
+	}
+}
+
+func TestMonitorHandler_NightWatchNotConfigured(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		NightWatchCommand: func(_ context.Context) (bool, string, error) {
+			return true, "not-configured", nil
+		},
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	s := out.String()
+	if strings.Contains(s, "night-watch unhealthy") {
+		t.Errorf("not-configured must NOT emit night-watch warning, got:\n%s", s)
+	}
+
+	sessionFile := filepath.Join(stateDir, "session.json")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("session.json not created: %v", err)
+	}
+	var sess sessionStateJSON
+	if err := json.Unmarshal(data, &sess); err != nil {
+		t.Fatalf("invalid session.json: %v", err)
+	}
+	if !sess.NightWatch.Healthy {
+		t.Errorf("expected night_watch.healthy=true (monitor exclusion), got false")
+	}
+	if sess.NightWatch.LastError != "" {
+		t.Errorf("expected night_watch.last_error=\"\" when healthy, got %q", sess.NightWatch.LastError)
+	}
+}
+
+func TestMonitorHandler_NightWatchCorrupted(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		NightWatchCommand: func(_ context.Context) (bool, string, error) {
+			return false, "corrupted", nil
+		},
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), "night-watch unhealthy: corrupted") {
+		t.Errorf("expected corrupted warning")
+	}
+}
+
 func TestMonitorHandler_HarnessMemTimeout(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")

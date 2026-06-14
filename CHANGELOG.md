@@ -8,6 +8,8 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **Night Watch patrol layer（Phase 99.1）**: 未解決ループ / 停滞タスク / 古い open decision を夜間バッチで巡回する Night Watch 監視層を追加しました。D40 tri-state health（`not-configured` / `daemon-unreachable` / `corrupted` / healthy）を踏襲し、`NIGHT_WATCH_ENABLED=false` 既定 OFF + opt-in install です。`templates/schemas/night-watch-report.v1.json` / `templates/night-watch-config.yaml`（`stale_task_hours: 72` / `open_decision_hours: 168`）/ `go/internal/nightwatch` / `scripts/night-watch-report.sh --dry-run` / Session Monitor `night_watch` 統合 / `templates/night-watch-cron.template` + `scripts/night-watch-install.sh`（fixture/tempdir のみ）/ CI gate（`check-consistency.sh` section 18）がセットです。Plans.md 停滞判定は file mtime 代理、open decision は `**Status**: Open` マーカー + 見出し日付を使用（Lead 既定）。
+
 - **Judgment Ledger v1（Phase 98.1）**: stage b の `judgment-card.v1` 回答を append-only JSONL ledger 化し、project スコープの search/recall で過去判断を Decision Card の `similar_past_decisions`（最大 3 件）へ再利用できるようにしました。`templates/schemas/judgment-ledger.v1.json` / `go/internal/judgmentledger` / `scripts/judgment-ledger.sh`（append・search・recall）/ `scripts/judgment-card.sh` record-answer 配線 + `recall` subcommand / `docs/judgment-ledger.md` がセットです。search ranking は string-match 方式（Lead 既定）。
 
 #### Before/After（Judgment Ledger v1）

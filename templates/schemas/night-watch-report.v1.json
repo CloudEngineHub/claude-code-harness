@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-harness.local/schemas/night-watch-report.v1.json",
+  "title": "night-watch-report.v1",
+  "description": "Nightly patrol report for unresolved loops, stale tasks, and open decisions (Phase 99.1).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "health",
+    "unresolved_loops",
+    "stale_tasks",
+    "open_decisions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "night-watch-report.v1"
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "health": {
+      "type": "object",
+      "required": ["healthy", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "healthy": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "unresolved_loops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["event_id", "event_type", "source", "age_hours"],
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "age_hours": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "stale_tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "status", "age_hours"],
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "age_hours": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "open_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["decision_id", "title", "age_hours"],
+        "additionalProperties": false,
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "age_hours": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

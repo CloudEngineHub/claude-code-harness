@@ -895,6 +895,84 @@ else
 fi
 
 # ================================
+# 18. Night Watch patrol gate
+# ================================
+echo ""
+echo "🌙 [18/18] Night Watch patrol gate..."
+
+NIGHT_WATCH_SCHEMA="$PLUGIN_ROOT/templates/schemas/night-watch-report.v1.json"
+NIGHT_WATCH_CONFIG="$PLUGIN_ROOT/templates/night-watch-config.yaml"
+NIGHT_WATCH_REPORT="$PLUGIN_ROOT/scripts/night-watch-report.sh"
+NIGHT_WATCH_INSTALL="$PLUGIN_ROOT/scripts/night-watch-install.sh"
+
+for required in \
+  "$NIGHT_WATCH_SCHEMA" \
+  "$NIGHT_WATCH_CONFIG" \
+  "$NIGHT_WATCH_REPORT" \
+  "$NIGHT_WATCH_INSTALL" \
+  "$PLUGIN_ROOT/templates/night-watch-cron.template"
+do
+  if [ ! -f "$required" ]; then
+    echo "  ❌ 不足: ${required#$PLUGIN_ROOT/}"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
+if [ -f "$NIGHT_WATCH_CONFIG" ]; then
+  if ! grep -q 'stale_task_hours: 72' "$NIGHT_WATCH_CONFIG"; then
+    echo "  ❌ night-watch-config.yaml missing stale_task_hours: 72"
+    ERRORS=$((ERRORS + 1))
+  fi
+  if ! grep -q 'open_decision_hours: 168' "$NIGHT_WATCH_CONFIG"; then
+    echo "  ❌ night-watch-config.yaml missing open_decision_hours: 168"
+    ERRORS=$((ERRORS + 1))
+  fi
+  if ! grep -q 'NIGHT_WATCH_ENABLED: false' "$NIGHT_WATCH_CONFIG"; then
+    echo "  ❌ night-watch-config.yaml missing default OFF marker"
+    ERRORS=$((ERRORS + 1))
+  fi
+fi
+
+if [ -x "$NIGHT_WATCH_REPORT" ] || [ -f "$NIGHT_WATCH_REPORT" ]; then
+  NW_LOG="$(mktemp "${TMPDIR:-/tmp}/night-watch-report.XXXXXX")"
+  if bash "$NIGHT_WATCH_REPORT" --dry-run >"$NW_LOG" 2>&1; then
+    if command -v jq >/dev/null 2>&1; then
+      if jq -e '.schema_version == "night-watch-report.v1"' "$NW_LOG" >/dev/null 2>&1; then
+        echo "  ✅ night-watch-report --dry-run schema OK"
+      else
+        echo "  ❌ night-watch-report --dry-run JSON invalid"
+        sed 's/^/      /' "$NW_LOG" | tail -20
+        ERRORS=$((ERRORS + 1))
+      fi
+    else
+      echo "  ⚠️ jq not found; skipping night-watch-report JSON assert"
+    fi
+  else
+    echo "  ❌ night-watch-report --dry-run failed"
+    sed 's/^/      /' "$NW_LOG" | tail -40
+    ERRORS=$((ERRORS + 1))
+  fi
+  rm -f "$NW_LOG"
+else
+  echo "  ❌ scripts/night-watch-report.sh missing"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-night-watch-install.sh" >/dev/null 2>&1; then
+  echo "  ✅ night-watch opt-in install fixture test PASS"
+else
+  echo "  ❌ night-watch install fixture test failed"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if (cd "$PLUGIN_ROOT/go" && go test ./internal/nightwatch/... -count=1 >/dev/null 2>&1); then
+  echo "  ✅ go test ./internal/nightwatch/... PASS"
+else
+  echo "  ❌ go test ./internal/nightwatch/... failed"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# ================================
 # 結果サマリー
 # ================================
 echo ""

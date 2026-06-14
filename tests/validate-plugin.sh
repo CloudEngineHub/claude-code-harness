@@ -976,6 +976,36 @@ else
 fi
 
 echo ""
+echo "11b. Night Watch patrol (Phase 99.1)"
+echo "----------------------------------------"
+
+if [ -f "$PLUGIN_ROOT/templates/schemas/night-watch-report.v1.json" ] &&
+    grep -q '"additionalProperties": false' "$PLUGIN_ROOT/templates/schemas/night-watch-report.v1.json" &&
+    grep -q 'night-watch-report.v1' "$PLUGIN_ROOT/templates/schemas/night-watch-report.v1.json"; then
+    pass_test "night-watch-report.v1 schema exists with additionalProperties:false"
+else
+    fail_test "templates/schemas/night-watch-report.v1.json missing or malformed"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-night-watch-report.sh" > /dev/null 2>&1; then
+    pass_test "Phase 99.1 night-watch-report --dry-run emits schema-valid JSON (test-night-watch-report.sh)"
+else
+    fail_test "night-watch-report dry-run test failed — 'bash tests/test-night-watch-report.sh'"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-night-watch-install.sh" > /dev/null 2>&1; then
+    pass_test "Phase 99.1 opt-in install keeps real ~/.claude/settings.json untouched (test-night-watch-install.sh)"
+else
+    fail_test "night-watch install test failed — 'bash tests/test-night-watch-install.sh'"
+fi
+
+if (cd "$PLUGIN_ROOT/go" && go test ./internal/nightwatch/... ./internal/session/... -run 'NightWatch|TestNightWatch' -count=1 > /dev/null 2>&1); then
+    pass_test "Phase 99.1 nightwatch + Session Monitor NightWatch tests PASS"
+else
+    fail_test "nightwatch/monitor tests failed — 'cd go && go test ./internal/nightwatch/... ./internal/session/... -run NightWatch -count=1'"
+fi
+
+echo ""
 echo "12. TDD compliance check (local trial)"
 echo "----------------------------------------"
 

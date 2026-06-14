@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/channelswake"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/nightwatch"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
@@ -40,6 +41,9 @@ type MonitorHandler struct {
 	// ChannelsWakeCommand は bridge channels ヘルスチェック関数（テスト注入用）。
 	// nil の場合は channelswake.Check() を使う。
 	ChannelsWakeCommand func(ctx context.Context) (healthy bool, reason string, err error)
+	// NightWatchCommand は Night Watch ヘルスチェック関数（テスト注入用）。
+	// nil の場合は nightwatch.Check() を使う。
+	NightWatchCommand func(ctx context.Context) (healthy bool, reason string, err error)
 }
 
 // monitorInput は SessionStart フックの stdin JSON。
@@ -68,11 +72,19 @@ type sessionStateJSON struct {
 	Plans              plansStateJSON    `json:"plans"`
 	HarnessMem         harnessMemJSON    `json:"harness_mem"`
 	ChannelsWake       channelsWakeJSON  `json:"channels_wake"`
+	NightWatch         nightWatchJSON    `json:"night_watch"`
 	ChangesThisSession []interface{}     `json:"changes_this_session"`
 }
 
 // channelsWakeJSON は session.json の channels_wake フィールドのスキーマ。
 type channelsWakeJSON struct {
+	Healthy     bool   `json:"healthy"`
+	LastChecked string `json:"last_checked"`
+	LastError   string `json:"last_error"`
+}
+
+// nightWatchJSON は session.json の night_watch フィールドのスキーマ。
+type nightWatchJSON struct {
 	Healthy     bool   `json:"healthy"`
 	LastChecked string `json:"last_checked"`
 	LastError   string `json:"last_error"`
@@ -207,9 +219,20 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 		cwState.LastError = ""
 	}
 
+	// Phase 99.1: night-watch health check
+	nwHealthy, nwReason, _ := h.checkNightWatchHealth(projectRoot)
+	nwState := nightWatchJSON{
+		Healthy:     nwHealthy,
+		LastChecked: nowStr,
+		LastError:   nwReason,
+	}
+	if nwHealthy {
+		nwState.LastError = ""
+	}
+
 	// session.json を生成（resume/新規を判定）
 	sessionFile := filepath.Join(stateDir, "session.json")
-	h.generateSessionFile(sessionFile, projectRoot, projectName, nowStr, gitState, plansState, memState, cwState)
+	h.generateSessionFile(sessionFile, projectRoot, projectName, nowStr, gitState, plansState, memState, cwState, nwState)
 
 	// tooling-policy.json を生成
 	policyFile := filepath.Join(stateDir, "tooling-policy.json")
@@ -234,6 +257,15 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 			reason = "unknown"
 		}
 		fmt.Fprintf(w, "⚠️ channels-wake unhealthy: %s\n", reason)
+	}
+
+	// Phase 99.1: night-watch unhealthy 警告 (not-configured は healthy=true で抑止)
+	if !nwHealthy {
+		reason := nwReason
+		if reason == "" {
+			reason = "unknown"
+		}
+		fmt.Fprintf(w, "⚠️ night-watch unhealthy: %s\n", reason)
 	}
 
 	// 48.1.2: advisor/reviewer drift 検知
@@ -334,6 +366,7 @@ func (h *MonitorHandler) generateSessionFile(
 	plans plansStateJSON,
 	mem harnessMemJSON,
 	cw channelsWakeJSON,
+	nw nightWatchJSON,
 ) {
 	if isSymlink(sessionFile) {
 		return
@@ -369,6 +402,7 @@ func (h *MonitorHandler) generateSessionFile(
 		existing.Plans = plans
 		existing.HarnessMem = mem
 		existing.ChannelsWake = cw
+		existing.NightWatch = nw
 		existing.StateVersion = 1
 		sess = existing
 	} else {
@@ -402,6 +436,7 @@ func (h *MonitorHandler) generateSessionFile(
 			Plans:              plans,
 			HarnessMem:         mem,
 			ChannelsWake:       cw,
+			NightWatch:         nw,
 			ChangesThisSession: []interface{}{},
 		}
 	}
@@ -591,6 +626,17 @@ func (h *MonitorHandler) checkChannelsWakeHealth(_ string) (healthy bool, reason
 		return h.ChannelsWakeCommand(ctx)
 	}
 	result := channelswake.Check()
+	return result.Healthy, result.Reason, nil
+}
+
+// checkNightWatchHealth は Night Watch patrol のヘルスを検査する。
+func (h *MonitorHandler) checkNightWatchHealth(_ string) (healthy bool, reason string, err error) {
+	if h.NightWatchCommand != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		return h.NightWatchCommand(ctx)
+	}
+	result := nightwatch.Check()
 	return result.Healthy, result.Reason, nil
 }
 
