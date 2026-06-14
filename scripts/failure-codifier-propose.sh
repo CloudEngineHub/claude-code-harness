@@ -30,4 +30,15 @@ if [[ "$dry_run" != true ]]; then
   exit 2
 fi
 
-(cd "$ROOT/go" && go run ./cmd/failure-codifier-propose --dry-run --repo-root "$ROOT")
+# 単一バイナリ配布規約: precompiled bin/harness を使う。未ビルド時のみ go run にフォールバック。
+BIN="$ROOT/bin/harness"
+case "$(uname -s)" in
+  Darwin) BIN="$ROOT/bin/harness-darwin-$(uname -m | sed 's/x86_64/amd64/')" ;;
+esac
+if [[ -x "$BIN" ]]; then
+  "$BIN" failure-codifier propose --dry-run --repo-root "$ROOT"
+elif [[ -x "$ROOT/bin/harness" ]]; then
+  "$ROOT/bin/harness" failure-codifier propose --dry-run --repo-root "$ROOT"
+else
+  (cd "$ROOT/go" && go run ./cmd/harness failure-codifier propose --dry-run --repo-root "$ROOT")
+fi
