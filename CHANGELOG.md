@@ -8,6 +8,16 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **Failure Codifier（Phase 100）**: breezing orchestration ledger + Judgment Ledger から再現失敗パターンを read-only 抽出し、`failure-rule.v1` 候補を confidence score 付きで提案する self-learning loop 中核を追加しました。`templates/schemas/failure-rule.v1.json` / `go/internal/failurecodifier`（Extract / Confidence count≥3 medium・count≥5 high / human-approval gate で auto-promotion 構造的禁止）/ `scripts/failure-codifier-propose.sh --dry-run` / `skills/failure-codifier/SKILL.md` + `references/promotion-workflow.md`（`human-approval-required`）がセットです。`patterns.md` / `decisions.md` への昇格は dry-run 提案のみ — codifier は SSOT を一切書き込みません。
+
+#### Before/After（Failure Codifier）
+
+| Before | After |
+|--------|-------|
+| breezing / judgment 失敗が ledger に散在、再現パターンの体系化なし | orchestration + judgment ledger から failure-rule.v1 候補を read-only 抽出 |
+| SSOT 昇格は ad-hoc 手動のみ | confidence 閾値（3/5）+ `proposed_ssot_target` heuristic 付き JSON 提案 |
+| 自動昇格リスクの明示的ガードなし | `promote.go` が auto-promote を return error で構造的禁止（human 承認必須） |
+
 - **Client Mirror drift detection（Phase 99.2）**: `skills/` SSOT と mirror root（`codex/.codex/skills` / `opencode/skills`、`.agents` は未構成許容）の drift を検出する層を追加しました。`templates/schemas/mirror-state.v1.json` / `go/internal/clientmirror`（Scan/Diff/Fingerprint、`in-sync` / `drift` / `not-configured` の tri-state）/ `bin/harness mirror status`・`verify`（`mirror-state.v1` JSON）/ `scripts/sync-skill-mirrors.sh --check` の `harness mirror verify --json` 委譲 / `skills/` 配下の Edit/Write で警告する PostToolUse drift hook / `.claude/rules/skill-editing.md` Client Mirror 契約節 / CI gate（`check-consistency.sh` section 19）がセットです。auto-sync は既定 OFF、mirror 更新は sync script で意図的に行います。
 
 - **Night Watch patrol layer（Phase 99.1）**: 未解決ループ / 停滞タスク / 古い open decision を夜間バッチで巡回する Night Watch 監視層を追加しました。D40 tri-state health（`not-configured` / `daemon-unreachable` / `corrupted` / healthy）を踏襲し、`NIGHT_WATCH_ENABLED=false` 既定 OFF + opt-in install です。`templates/schemas/night-watch-report.v1.json` / `templates/night-watch-config.yaml`（`stale_task_hours: 72` / `open_decision_hours: 168`）/ `go/internal/nightwatch` / `scripts/night-watch-report.sh --dry-run` / Session Monitor `night_watch` 統合 / `templates/night-watch-cron.template` + `scripts/night-watch-install.sh`（fixture/tempdir のみ）/ CI gate（`check-consistency.sh` section 18）がセットです。Plans.md 停滞判定は file mtime 代理、open decision は `**Status**: Open` マーカー + 見出し日付を使用（Lead 既定）。
