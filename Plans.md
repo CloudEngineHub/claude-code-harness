@@ -479,13 +479,15 @@ Purpose: Phase 92.2.1 の 5 カテゴリ runtime hard floor を 3 CLI hook へ *
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 100.1.1 | `[lane:gate]` `[tdd:required]` `failure-rule.v1` schema + `TestSchema_FailureRuleV1_RejectsMissingRuleId` RED→GREEN | (a) `rule_id\|confidence\|evidence_refs\|proposed_ssot_target` grep ≥ 4 | 98.1.8 | cc:todo |
-| 100.1.2 | `[lane:fast]` `[tdd:required]` Codifier core: Judgment Ledger + breezing logs read-only 抽出 (`TestCodifier_ExtractFromLedger_EmptyCorpusReturnsNoRules` PASS) | (a) `go test ./go/internal/failurecodifier/...` PASS | 100.1.1 | cc:todo |
-| 100.1.3 | `[lane:gate]` `[tdd:required]` Confidence scoring (count≥3 medium, ≥5 high) `TestConfidence_ThreeOccurrencesMedium` / `_FiveOccurrencesHigh` | (a) 2 PASS, (b) `confidence.go` に 3/5 literal | 100.1.2 | cc:todo |
-| 100.1.4 | `[lane:gate]` `[tdd:required]` Human-approval gate (auto-promotion 禁止, dry-run only) `TestCodifier_PromotionRequiresApproval` PASS | (a) test PASS, (b) `promote.go` で auto-promote が return error | 100.1.3 | cc:todo |
-| 100.1.5 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/failure-codifier-propose.sh --dry-run` | (a) `test -x` PASS, (b) stdout が `[` or `{` で始まる JSON | 100.1.4 | cc:todo |
-| 100.1.6 | `[lane:fast]` `[tdd:skip:docs-only]` `skills/failure-codifier/SKILL.md` + `references/promotion-workflow.md` (`human-approval-required` marker + 閾値 3/5 literal) | (a) `human-approval-required` grep ≥ 1 | 100.1.5 | cc:todo |
-| 100.1.7 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] "Failure Codifier" + Plans.md cc:done 統合 | (a) `[Unreleased]` 内 `Failure Codifier` grep | 100.1.6 | cc:todo |
+| 100.1.1 | `[lane:gate]` `[tdd:required]` `failure-rule.v1` schema + `TestSchema_FailureRuleV1_RejectsMissingRuleId` RED→GREEN | (a) `rule_id\|confidence\|evidence_refs\|proposed_ssot_target` grep ≥ 4 | 98.1.8 | cc:done [1166ff8e] |
+| 100.1.2 | `[lane:fast]` `[tdd:required]` Codifier core: Judgment Ledger + breezing logs read-only 抽出 (`TestCodifier_ExtractFromLedger_EmptyCorpusReturnsNoRules` PASS) | (a) `go test ./go/internal/failurecodifier/...` PASS | 100.1.1 | cc:done [1166ff8e] |
+| 100.1.3 | `[lane:gate]` `[tdd:required]` Confidence scoring (count≥3 medium, ≥5 high) `TestConfidence_ThreeOccurrencesMedium` / `_FiveOccurrencesHigh` | (a) 2 PASS, (b) `confidence.go` に 3/5 literal | 100.1.2 | cc:done [1166ff8e] |
+| 100.1.4 | `[lane:gate]` `[tdd:required]` Human-approval gate (auto-promotion 禁止, dry-run only) `TestCodifier_PromotionRequiresApproval` PASS | (a) test PASS, (b) `promote.go` で auto-promote が return error | 100.1.3 | cc:done [1166ff8e] |
+| 100.1.5 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/failure-codifier-propose.sh --dry-run` | (a) `test -x` PASS, (b) stdout が `[` or `{` で始まる JSON | 100.1.4 | cc:done [1166ff8e] |
+| 100.1.6 | `[lane:fast]` `[tdd:skip:docs-only]` `skills/failure-codifier/SKILL.md` + `references/promotion-workflow.md` (`human-approval-required` marker + 閾値 3/5 literal) | (a) `human-approval-required` grep ≥ 1 | 100.1.5 | cc:done [1166ff8e] |
+| 100.1.7 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] "Failure Codifier" + Plans.md cc:done 統合 | (a) `[Unreleased]` 内 `Failure Codifier` grep | 100.1.6 | cc:done [1166ff8e] |
+
+**Phase 100 Evidence (2026-06-14)**: failure-codifier `1166ff8e` を 1 cursor session (solo chain) で実装、Lead 統合 refactor `a0224f07` (subcommand 化) + gen `61d0c115` (catalog + mirror + bin)。trunk 検証: `go test ./cmd/harness/... ./internal/failurecodifier/...` 全 PASS / `failure-codifier propose --dry-run` exit 0 (実 breezing orchestration-ledger から失敗パターン抽出を確認) / **`failure-codifier propose` (--dry-run なし) exit 2** (human-approval gate 強制) / `mirror verify`=0 (新スキル sync 後) / ビルド再現性 OK。**human-approval gate 検証 (核心)**: `promote.go` の `ErrAutoPromotionForbidden` が human_approved=false / dry_run=true 双方で error 返却、`.claude/memory/{patterns,decisions}.md` は無改変 (git status 確認)。**Lead 補正 3 件**: (1) standalone cmd → subcommand (night-watch と同型の go run 規約違反是正)、(2) 新スキル追加で `docs/CLAUDE-skill-catalog.md` gen docs 再生成 + mirror sync (自作 client-mirror gate に追従)、(3) `ProposeOpts.Stdout` 不在を `ProposeDryRun` 経由に修正。stop_point 100.1.4 既定: 運用失敗→patterns.md / 判断拒否→decisions.md を提案 field で示すのみ。
 
 ---
 
