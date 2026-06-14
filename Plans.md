@@ -426,22 +426,24 @@ Purpose: Phase 92.2.1 の 5 カテゴリ runtime hard floor を 3 CLI hook へ *
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 98.1.1 | `[lane:gate]` `[tdd:required]` `judgment-ledger.v1` JSONL schema (`additionalProperties:false`) + `TestJudgmentLedger_SchemaReject` RED | (a) `$id` grep, (b) `tests/schema/test-judgment-ledger-schema.sh` PASS | 97.1.7 | cc:todo |
-| 98.1.2 | `[lane:gate]` `[tdd:required]` `go/internal/judgmentledger/` pkg + 4 tests (`_Append` / `_SchemaReject` / `_FailOpen` / `_ProjectScope`) | (a) 4 関数 grep, (b) pkg test PASS | 98.1.1 | cc:todo |
-| 98.1.3 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/judgment-ledger.sh append/search/recall` (fail-open on write) | (a) 3 subcommand grep, (b) bats test PASS | 98.1.2 | cc:todo |
-| 98.1.4 | `[lane:fast]` `[tdd:required]` `scripts/judgment-card.sh record-answer` → ledger append 配線 | (a) `grep 'judgment-ledger.sh append' scripts/judgment-card.sh` ≥ 1, (b) wiring test PASS | 98.1.3 | cc:todo |
-| 98.1.5 | `[lane:fast]` `[tdd:required]` ledger search index (file-based, project-scoped) max 3 件 `TestJudgmentLedgerIndex_Top3` / `_ProjectScopeIsolation` / `_EmptyCorpus` | (a) 3 PASS, (b) `index.go` 存在 | 98.1.3 | cc:todo |
-| 98.1.6 | `[lane:fast]` `[tdd:required]` `judgment-card.v1.similar_past_decisions` を recall layer で最大 3 件埋める | (a) `similar_past_decisions` grep ≥ 2 ファイル, (b) recall_test PASS | 98.1.5 | cc:todo |
-| 98.1.7 | `[lane:release]` `[tdd:skip:docs-only]` `docs/judgment-ledger.md` SSOT (Schema/Append/Search/Recall/Project Scope/Fail-Open) | (a) 6 見出しのうち ≥ 5 章 | 98.1.6 | cc:todo |
-| 98.1.8 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] "Judgment Ledger v1" (VERSION bump 無し) | (a) `grep 'Judgment Ledger' CHANGELOG.md` ≥ 1 | 98.1.7 | cc:todo |
-| 98.2.1 | `[lane:gate]` `[tdd:required]` channelswake 4 状態 RED (`_NotConfigured` / `_Unreachable` / `_Healthy` / `_Corrupted`) | (a) 4 関数 grep | 97.1.7 | cc:todo |
-| 98.2.2 | `[lane:fast]` `[tdd:skip:green]` `channelswake.Check()` 実装 (bridge socket probe + mailbox stale check, reason enum literal) | (a) 3 reason 文字列 grep, (b) 98.2.1 全 PASS | 98.2.1 | cc:todo |
-| 98.2.3 | `[lane:gate]` `[tdd:required]` `channel-wake-event.v1` schema + `TestChannelWakeEventSchema_AdditionalPropertiesFalse` | (a) `additionalProperties: false` grep, (b) schema test PASS | 97.1.7 | cc:todo |
-| 98.2.4 | `[lane:fast]` `[tdd:required]` `bin/harness channels-wake check` CLI (exit 0 healthy/not-configured, 1 unreachable/corrupted) | (a) `TestRunChannelsWakeCheck_*` PASS | 98.2.2 | cc:todo |
-| 98.2.5 | `[lane:fast]` `[tdd:required]` Session Monitor 統合 + `TestMonitorHandler_ChannelsWakeNotConfigured` 警告抑止契約 | (a) 該当テスト存在, (b) 警告非出力 assert | 98.2.2, 98.2.4 | cc:todo |
-| 98.2.6 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/channels-wake-probe.sh` + auto-approve OFF 既定 + opt-in wake trigger | (a) `AUTO_APPROVE_DEFAULT=false` grep, (b) probe test PASS | 98.2.4 | cc:todo |
-| 98.2.7 | `[lane:gate]` `[tdd:required]` Risk Gate 5-category floor 不変テスト (money/egress/secret/prod-deploy/worktree-escape) | (a) 5 カテゴリ全 grep ヒット | 98.2.6 | cc:todo |
-| 98.2.8 | `[lane:release]` `[tdd:skip:docs-only]` `spec.md` Channels-Wake 章 + check-consistency PASS | (a) `grep Channels-Wake spec.md`, (b) consistency PASS | 98.2.5, 98.2.6, 98.2.7 | cc:todo |
+| 98.1.1 | `[lane:gate]` `[tdd:required]` `judgment-ledger.v1` JSONL schema (`additionalProperties:false`) + `TestJudgmentLedger_SchemaReject` RED | (a) `$id` grep, (b) `tests/schema/test-judgment-ledger-schema.sh` PASS | 97.1.7 | cc:done [22440a49] |
+| 98.1.2 | `[lane:gate]` `[tdd:required]` `go/internal/judgmentledger/` pkg + 4 tests (`_Append` / `_SchemaReject` / `_FailOpen` / `_ProjectScope`) | (a) 4 関数 grep, (b) pkg test PASS | 98.1.1 | cc:done [22440a49] |
+| 98.1.3 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/judgment-ledger.sh append/search/recall` (fail-open on write) | (a) 3 subcommand grep, (b) bats test PASS | 98.1.2 | cc:done [22440a49] |
+| 98.1.4 | `[lane:fast]` `[tdd:required]` `scripts/judgment-card.sh record-answer` → ledger append 配線 | (a) `grep 'judgment-ledger.sh append' scripts/judgment-card.sh` ≥ 1, (b) wiring test PASS | 98.1.3 | cc:done [22440a49] |
+| 98.1.5 | `[lane:fast]` `[tdd:required]` ledger search index (file-based, project-scoped) max 3 件 `TestJudgmentLedgerIndex_Top3` / `_ProjectScopeIsolation` / `_EmptyCorpus` | (a) 3 PASS, (b) `index.go` 存在 | 98.1.3 | cc:done [22440a49] |
+| 98.1.6 | `[lane:fast]` `[tdd:required]` `judgment-card.v1.similar_past_decisions` を recall layer で最大 3 件埋める | (a) `similar_past_decisions` grep ≥ 2 ファイル, (b) recall_test PASS | 98.1.5 | cc:done [22440a49] |
+| 98.1.7 | `[lane:release]` `[tdd:skip:docs-only]` `docs/judgment-ledger.md` SSOT (Schema/Append/Search/Recall/Project Scope/Fail-Open) | (a) 6 見出しのうち ≥ 5 章 | 98.1.6 | cc:done [22440a49] |
+| 98.1.8 | `[lane:release]` `[tdd:skip:docs-only]` CHANGELOG [Unreleased] "Judgment Ledger v1" (VERSION bump 無し) | (a) `grep 'Judgment Ledger' CHANGELOG.md` ≥ 1 | 98.1.7 | cc:done [22440a49] |
+| 98.2.1 | `[lane:gate]` `[tdd:required]` channelswake 4 状態 RED (`_NotConfigured` / `_Unreachable` / `_Healthy` / `_Corrupted`) | (a) 4 関数 grep | 97.1.7 | cc:done [dbf71f39] |
+| 98.2.2 | `[lane:fast]` `[tdd:skip:green]` `channelswake.Check()` 実装 (bridge socket probe + mailbox stale check, reason enum literal) | (a) 3 reason 文字列 grep, (b) 98.2.1 全 PASS | 98.2.1 | cc:done [dbf71f39] |
+| 98.2.3 | `[lane:gate]` `[tdd:required]` `channel-wake-event.v1` schema + `TestChannelWakeEventSchema_AdditionalPropertiesFalse` | (a) `additionalProperties: false` grep, (b) schema test PASS | 97.1.7 | cc:done [dbf71f39] |
+| 98.2.4 | `[lane:fast]` `[tdd:required]` `bin/harness channels-wake check` CLI (exit 0 healthy/not-configured, 1 unreachable/corrupted) | (a) `TestRunChannelsWakeCheck_*` PASS | 98.2.2 | cc:done [dbf71f39] |
+| 98.2.5 | `[lane:fast]` `[tdd:required]` Session Monitor 統合 + `TestMonitorHandler_ChannelsWakeNotConfigured` 警告抑止契約 | (a) 該当テスト存在, (b) 警告非出力 assert | 98.2.2, 98.2.4 | cc:done [dbf71f39] |
+| 98.2.6 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/channels-wake-probe.sh` + auto-approve OFF 既定 + opt-in wake trigger | (a) `AUTO_APPROVE_DEFAULT=false` grep, (b) probe test PASS | 98.2.4 | cc:done [dbf71f39] |
+| 98.2.7 | `[lane:gate]` `[tdd:required]` Risk Gate 5-category floor 不変テスト (money/egress/secret/prod-deploy/worktree-escape) | (a) 5 カテゴリ全 grep ヒット | 98.2.6 | cc:done [dbf71f39] |
+| 98.2.8 | `[lane:release]` `[tdd:skip:docs-only]` `spec.md` Channels-Wake 章 + check-consistency PASS | (a) `grep Channels-Wake spec.md`, (b) consistency PASS | 98.2.5, 98.2.6, 98.2.7 | cc:done [dbf71f39] |
+
+**Phase 98 Evidence (2026-06-14)**: 98.1 judgment-ledger `22440a49` + 98.2 channels-wake `dbf71f39` を 2 並列 cursor で実装 (共有ファイル非衝突: CHANGELOG=98.1 / spec.md+main.go+monitor.go=98.2)、bin regen `次 commit`。trunk 統合検証: `go test ./internal/judgmentledger/... ./internal/channelswake/... ./internal/session/... ./cmd/harness/...` 全 PASS / `retired-alias scan` = 0 hits 維持 / `channels-wake check` = `{"healthy":true,"reason":"not-configured"}` exit 0 (tri-state 正常)。stop_point 決定: 98.1.5 ledger ranking = string-match (substring 優先→token 一致数)、98.2.4 wake trigger = hook 再注入提案のみ (daemon restart 自動実行なし、opt-in 既定 OFF)。auto-approve 既定 OFF・Risk Gate 5-category floor 不変を維持。
 
 ---
 
