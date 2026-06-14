@@ -898,7 +898,7 @@ fi
 # 18. Night Watch patrol gate
 # ================================
 echo ""
-echo "🌙 [18/18] Night Watch patrol gate..."
+echo "🌙 [18/19] Night Watch patrol gate..."
 
 NIGHT_WATCH_SCHEMA="$PLUGIN_ROOT/templates/schemas/night-watch-report.v1.json"
 NIGHT_WATCH_CONFIG="$PLUGIN_ROOT/templates/night-watch-config.yaml"
@@ -969,6 +969,49 @@ if (cd "$PLUGIN_ROOT/go" && go test ./internal/nightwatch/... -count=1 >/dev/nul
   echo "  ✅ go test ./internal/nightwatch/... PASS"
 else
   echo "  ❌ go test ./internal/nightwatch/... failed"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# ================================
+# 19. Client Mirror drift gate
+# ================================
+echo ""
+echo "🪞 [19/19] Client Mirror drift gate..."
+
+MIRROR_SCHEMA="$PLUGIN_ROOT/templates/schemas/mirror-state.v1.json"
+MIRROR_HOOK="$PLUGIN_ROOT/scripts/hook-handlers/skill-mirror-drift.sh"
+
+for required in "$MIRROR_SCHEMA" "$MIRROR_HOOK"; do
+  if [ ! -f "$required" ]; then
+    echo "  ❌ 不足: ${required#$PLUGIN_ROOT/}"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
+MIRROR_BIN="$PLUGIN_ROOT/bin/harness"
+case "$(uname -s)" in
+  Darwin) MIRROR_BIN="$PLUGIN_ROOT/bin/harness-darwin-$(uname -m | sed 's/x86_64/amd64/')" ;;
+esac
+[ -x "$MIRROR_BIN" ] || MIRROR_BIN="$PLUGIN_ROOT/bin/harness"
+
+if [ -x "$MIRROR_BIN" ]; then
+  MIRROR_LOG="$(mktemp "${TMPDIR:-/tmp}/mirror-verify.XXXXXX")"
+  if (cd "$PLUGIN_ROOT" && "$MIRROR_BIN" mirror verify) >"$MIRROR_LOG" 2>&1; then
+    echo "  ✅ mirror verify: 0 drift (in-sync)"
+  else
+    echo "  ❌ mirror verify detected drift"
+    sed 's/^/      /' "$MIRROR_LOG" | tail -20
+    ERRORS=$((ERRORS + 1))
+  fi
+  rm -f "$MIRROR_LOG"
+else
+  echo "  ⚠️ bin/harness missing; skipping mirror verify (build first)"
+fi
+
+if (cd "$PLUGIN_ROOT/go" && go test ./internal/clientmirror/... -count=1 >/dev/null 2>&1); then
+  echo "  ✅ go test ./internal/clientmirror/... PASS"
+else
+  echo "  ❌ go test ./internal/clientmirror/... failed"
   ERRORS=$((ERRORS + 1))
 fi
 
