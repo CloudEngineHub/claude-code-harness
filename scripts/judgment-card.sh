@@ -5,11 +5,13 @@
 #   should-issue --reason <reason> [--floor-category <cat>]
 #   validate <card.json>
 #   record-answer <card.json> --answer <option-id> --why "<text>" --project <p> --session <s>
+#   recall <card.json> --project <p>   (fill similar_past_decisions from ledger, max 3)
 #   compute-impact --files-changed N --lines-changed M [--floor-category CAT]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEMA="${ROOT}/templates/schemas/judgment-card.v1.json"
+LEDGER_SCRIPT="${ROOT}/scripts/judgment-ledger.sh"
 
 ISSUE_REASONS=(
   dod-ambiguous
@@ -23,6 +25,7 @@ Usage:
   judgment-card.sh should-issue --reason <reason> [--floor-category <cat>]
   judgment-card.sh validate <card.json>
   judgment-card.sh record-answer <card.json> --answer <option-id> --why "<text>" --project <p> --session <s>
+  judgment-card.sh recall <card.json> --project <p>
   judgment-card.sh compute-impact --files-changed N --lines-changed M [--floor-category CAT]
 EOF
 }
@@ -361,6 +364,95 @@ except (urllib.error.URLError, TimeoutError, OSError):
 
 raise SystemExit(0)
 PY
+
+  if [[ -x "$LEDGER_SCRIPT" ]]; then
+    card_question="$(python3 - <<'PY' "$card_path"
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    print(json.load(f)["question"])
+PY
+)"
+    # judgment-ledger.sh append (fail-open)
+    HARNESS_JUDGMENT_LEDGER="${HARNESS_JUDGMENT_LEDGER:-${ROOT}/.claude/state/judgment-ledger.jsonl}" \
+      bash "${ROOT}/scripts/judgment-ledger.sh" append \
+        --project "$project" \
+        --question "$card_question" \
+        --answer "$answer" \
+        --rationale "$why" \
+        --card-ref "$card_path" \
+        --tags "judgment-card" \
+      || true
+  fi
+}
+
+cmd_recall() {
+  local card_path="${1:-}"
+  shift || true
+
+  local project=""
+
+  if [[ -z "$card_path" || ! -f "$card_path" ]]; then
+    echo "recall: file not found: ${card_path:-<missing>}" >&2
+    exit 1
+  fi
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project)
+        project="${2:-}"
+        shift 2
+        ;;
+      *)
+        echo "recall: unknown argument: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$project" ]]; then
+    echo "recall: --project is required" >&2
+    exit 1
+  fi
+
+  if ! cmd_validate "$card_path" >/dev/null 2>&1; then
+    echo "recall: invalid card" >&2
+    exit 1
+  fi
+
+  if [[ ! -x "$LEDGER_SCRIPT" ]]; then
+    python3 - "$card_path" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    card = json.load(f)
+card["similar_past_decisions"] = []
+print(json.dumps(card, ensure_ascii=False, indent=2))
+PY
+    return
+  fi
+
+  python3 - "$card_path" "$project" "$LEDGER_SCRIPT" <<'PY'
+import json
+import subprocess
+import sys
+
+card_path, project, ledger_script = sys.argv[1:4]
+with open(card_path, encoding="utf-8") as f:
+    card = json.load(f)
+
+question = card.get("question", "")
+proc = subprocess.run(
+    [ledger_script, "recall", "--project", project, "--question", question],
+    capture_output=True,
+    text=True,
+    check=False,
+)
+similar_past_decisions = []
+if proc.returncode == 0 and proc.stdout.strip():
+    similar_past_decisions = json.loads(proc.stdout)
+
+card["similar_past_decisions"] = similar_past_decisions[:3]
+print(json.dumps(card, ensure_ascii=False, indent=2))
+PY
 }
 
 main() {
@@ -376,6 +468,9 @@ main() {
       ;;
     record-answer)
       cmd_record_answer "$@"
+      ;;
+    recall)
+      cmd_recall "$@"
       ;;
     compute-impact)
       cmd_compute_impact "$@"

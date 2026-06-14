@@ -8,6 +8,16 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **Judgment Ledger v1（Phase 98.1）**: stage b の `judgment-card.v1` 回答を append-only JSONL ledger 化し、project スコープの search/recall で過去判断を Decision Card の `similar_past_decisions`（最大 3 件）へ再利用できるようにしました。`templates/schemas/judgment-ledger.v1.json` / `go/internal/judgmentledger` / `scripts/judgment-ledger.sh`（append・search・recall）/ `scripts/judgment-card.sh` record-answer 配線 + `recall` subcommand / `docs/judgment-ledger.md` がセットです。search ranking は string-match 方式（Lead 既定）。
+
+#### Before/After（Judgment Ledger v1）
+
+| Before | After |
+|--------|-------|
+| `record-answer` は harness-mem checkpoint のみ（ローカル監査 JSONL なし） | `.claude/state/judgment-ledger.jsonl` へ schema 検証済み append（fail-open） |
+| Decision Card に過去判断の自動 recall なし | ledger search → `similar_past_decisions` 最大 3 件を card recall layer で注入 |
+| project 横断の判断履歴参照なし | project フィールドで分離された file-based index（max 3 件返却） |
+
 - **Retired Alias Registry（Phase 97）**: 退役 alias の永続レジストリ + CI 検出ゲートを Go 層に再導入しました。`templates/schemas/retired-alias.v1.json` / `templates/registry/retired-aliases.v1.yaml` / `go/internal/retiredalias` / `bin/harness retired-alias scan` / `scripts/ci/check-consistency.sh` retired-alias section / `.claude/rules/retired-alias-policy.md` がセットです。
 
 #### Before/After（Retired Alias Registry）
