@@ -453,21 +453,23 @@ Purpose: Phase 92.2.1 の 5 カテゴリ runtime hard floor を 3 CLI hook へ *
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 99.1.1 | `[lane:gate]` `[tdd:required]` `night-watch-report.v1` schema + 4 状態 RED + schema 検証 2 件 | (a) 6 関数 grep, (b) `additionalProperties:false` | 98.1.8 | cc:todo |
-| 99.1.2 | `[lane:fast]` `[tdd:required]` `go/internal/nightwatch/` health (tri-state reason: `not-configured`/`daemon-unreachable`/`corrupted`) | (a) 3 reason 文字列 grep, (b) 99.1.1 PASS | 99.1.1 | cc:todo |
-| 99.1.3 | `[lane:fast]` `[tdd:required]` stale 検出 (task `last_updated>72h` / open_decision age `>168h`) literal in `templates/night-watch-config.yaml` | (a) `stale_task_hours: 72` / `open_decision_hours: 168` grep, (b) stale_test PASS | 99.1.2 | cc:todo |
-| 99.1.4 | `[lane:fast]` `[tdd:required]` `scripts/night-watch-report.sh --dry-run` (schema 準拠 JSON stdout, bridge mailbox から unresolved loop 取得) | (a) `--dry-run` exit 0 + jq 構文 PASS | 99.1.2 | cc:todo |
-| 99.1.5 | `[lane:fast]` `[tdd:required]` Session Monitor 統合 `TestMonitorHandler_NightWatch*` 全 PASS | (a) 4 関数 grep, (b) `not-configured` で警告非出力 | 99.1.2 | cc:todo |
-| 99.1.6 | `[lane:fast]` `[tdd:required]` cron template + opt-in install (default OFF, 実 `~/.claude/settings.json` 不変, fixture/tempdir で検証) | (a) `NIGHT_WATCH_ENABLED=false` grep, (b) install test PASS | 99.1.4 | cc:todo |
-| 99.1.7 | `[lane:release]` `[tdd:skip:ci-config]` CI gate + validate-plugin section + CHANGELOG | (a) `night-watch-report` grep 3 ファイル | 99.1.1-99.1.6 | cc:todo |
-| 99.2.1 | `[lane:gate]` `[tdd:required]` `mirror-state.v1` schema + ajv RED (`TestMirrorStateSchema_ValidFingerprint` / `_RejectExtraProperty`) | (a) `$id` grep, (b) 2 PASS | 97.1.7 | cc:todo |
-| 99.2.2 | `[lane:gate]` `[tdd:required]` clientmirror RED (`TestClientMirror_InSync` / `_Drift` / `_MissingMirrorRoot`) | (a) 3 関数 grep | 99.2.1 | cc:todo |
-| 99.2.3 | `[lane:fast]` `[tdd:skip:green]` clientmirror GREEN: Scan/Diff/Fingerprint (`skills/` SSOT + codex/opencode/.agents 3 mirror) | (a) 3 func grep, (b) 99.2.2 全 PASS | 99.2.2 | cc:todo |
-| 99.2.4 | `[lane:fast]` `[tdd:skip:cli]` `bin/harness mirror status/verify` (mirror-state.v1 JSON 出力) | (a) `mirror status\|mirror verify` grep, (b) mirror_test PASS | 99.2.3 | cc:todo |
-| 99.2.5 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/sync-skill-mirrors.sh --check` を `harness mirror verify --json` に委譲 | (a) `harness mirror verify` grep, (b) parity test PASS | 99.2.4 | cc:todo |
-| 99.2.6 | `[lane:gate]` `[tdd:required]` PostToolUse hook on `Edit/Write` under `skills/` で drift 警告 (fixture/tempdir only) `TestSkillMirrorDriftHook_DetectsUnsyncedEdit` PASS | (a) `mirror-state.v1` grep, (b) hook test PASS | 99.2.4 | cc:todo |
-| 99.2.7 | `[lane:fast]` `[tdd:skip:ci-config]` check-consistency.sh mirror section + 0-drift gate on HEAD | (a) `mirror-state.v1` grep, (b) gate PASS | 99.2.5, 99.1.7 | cc:todo |
-| 99.2.8 | `[lane:release]` `[tdd:skip:docs-only]` `.claude/rules/skill-editing.md` に Client Mirror 契約節 + CHANGELOG 統合 | (a) `Client Mirror\|mirror-state.v1` grep | 99.2.7 | cc:todo |
+| 99.1.1 | `[lane:gate]` `[tdd:required]` `night-watch-report.v1` schema + 4 状態 RED + schema 検証 2 件 | (a) 6 関数 grep, (b) `additionalProperties:false` | 98.1.8 | cc:done [f66390d5] |
+| 99.1.2 | `[lane:fast]` `[tdd:required]` `go/internal/nightwatch/` health (tri-state reason: `not-configured`/`daemon-unreachable`/`corrupted`) | (a) 3 reason 文字列 grep, (b) 99.1.1 PASS | 99.1.1 | cc:done [f66390d5] |
+| 99.1.3 | `[lane:fast]` `[tdd:required]` stale 検出 (task `last_updated>72h` / open_decision age `>168h`) literal in `templates/night-watch-config.yaml` | (a) `stale_task_hours: 72` / `open_decision_hours: 168` grep, (b) stale_test PASS | 99.1.2 | cc:done [f66390d5] |
+| 99.1.4 | `[lane:fast]` `[tdd:required]` `scripts/night-watch-report.sh --dry-run` (schema 準拠 JSON stdout, bridge mailbox から unresolved loop 取得) | (a) `--dry-run` exit 0 + jq 構文 PASS | 99.1.2 | cc:done [f66390d5] |
+| 99.1.5 | `[lane:fast]` `[tdd:required]` Session Monitor 統合 `TestMonitorHandler_NightWatch*` 全 PASS | (a) 4 関数 grep, (b) `not-configured` で警告非出力 | 99.1.2 | cc:done [f66390d5] |
+| 99.1.6 | `[lane:fast]` `[tdd:required]` cron template + opt-in install (default OFF, 実 `~/.claude/settings.json` 不変, fixture/tempdir で検証) | (a) `NIGHT_WATCH_ENABLED=false` grep, (b) install test PASS | 99.1.4 | cc:done [f66390d5] |
+| 99.1.7 | `[lane:release]` `[tdd:skip:ci-config]` CI gate + validate-plugin section + CHANGELOG | (a) `night-watch-report` grep 3 ファイル | 99.1.1-99.1.6 | cc:done [f66390d5] |
+| 99.2.1 | `[lane:gate]` `[tdd:required]` `mirror-state.v1` schema + ajv RED (`TestMirrorStateSchema_ValidFingerprint` / `_RejectExtraProperty`) | (a) `$id` grep, (b) 2 PASS | 97.1.7 | cc:done [281fd8f0] |
+| 99.2.2 | `[lane:gate]` `[tdd:required]` clientmirror RED (`TestClientMirror_InSync` / `_Drift` / `_MissingMirrorRoot`) | (a) 3 関数 grep | 99.2.1 | cc:done [281fd8f0] |
+| 99.2.3 | `[lane:fast]` `[tdd:skip:green]` clientmirror GREEN: Scan/Diff/Fingerprint (`skills/` SSOT + codex/opencode/.agents 3 mirror) | (a) 3 func grep, (b) 99.2.2 全 PASS | 99.2.2 | cc:done [281fd8f0] |
+| 99.2.4 | `[lane:fast]` `[tdd:skip:cli]` `bin/harness mirror status/verify` (mirror-state.v1 JSON 出力) | (a) `mirror status\|mirror verify` grep, (b) mirror_test PASS | 99.2.3 | cc:done [281fd8f0] |
+| 99.2.5 | `[lane:fast]` `[tdd:skip:wrapper]` `scripts/sync-skill-mirrors.sh --check` を `harness mirror verify --json` に委譲 | (a) `harness mirror verify` grep, (b) parity test PASS | 99.2.4 | cc:done [281fd8f0] |
+| 99.2.6 | `[lane:gate]` `[tdd:required]` PostToolUse hook on `Edit/Write` under `skills/` で drift 警告 (fixture/tempdir only) `TestSkillMirrorDriftHook_DetectsUnsyncedEdit` PASS | (a) `mirror-state.v1` grep, (b) hook test PASS | 99.2.4 | cc:done [281fd8f0] |
+| 99.2.7 | `[lane:fast]` `[tdd:skip:ci-config]` check-consistency.sh mirror section + 0-drift gate on HEAD | (a) `mirror-state.v1` grep, (b) gate PASS | 99.2.5, 99.1.7 | cc:done [9852cb3d] |
+| 99.2.8 | `[lane:release]` `[tdd:skip:docs-only]` `.claude/rules/skill-editing.md` に Client Mirror 契約節 + CHANGELOG 統合 | (a) `Client Mirror\|mirror-state.v1` grep | 99.2.7 | cc:done [281fd8f0] |
+
+**Phase 99 Evidence (2026-06-14)**: night-watch `f66390d5` + client-mirror `281fd8f0` を 2 並列 cursor 実装、Lead 統合で refactor `9cbba99a`+`<fix commit>` (night-watch を `bin/harness night-watch` subcommand 化、`go run` 配布規約違反を是正) + 99.2.7 `9852cb3d` (check-consistency section 19 mirror gate + client-mirror CHANGELOG) + bin regen `a793d784`。trunk 統合検証: `go test ./internal/nightwatch/... ./internal/clientmirror/... ./internal/channelswake/... ./internal/judgmentledger/... ./cmd/harness/...` 全 PASS / `retired-alias scan`=0 / `mirror verify`=0 drift exit 0 (codex+opencode in-sync, .agents not-configured) / `night-watch report --dry-run` schema-valid exit 0 / ビルド再現性 (HEAD source 再ビルドで binary 差分ゼロ)。**Lead 補正 2 件**: (1) night-watch standalone cmd → subcommand (単一バイナリ配布規約)、(2) git add pathspec エラーで未コミットだった refactor 実体を fix commit で整合。共有ファイル分担: check-consistency.sh/CHANGELOG=night-watch owner、client-mirror 分は Lead 統合追記。
 
 ---
 
