@@ -49,6 +49,11 @@ elif [ -n "${1:-}" ]; then
   exit 2
 fi
 
+if [ "$MODE" = "check" ]; then
+  # check mode: harness mirror verify --json
+  exec "$PLUGIN_ROOT/bin/harness" mirror verify --json
+fi
+
 sync_skill() {
   local skill="$1"
   local mirror_root="$2"

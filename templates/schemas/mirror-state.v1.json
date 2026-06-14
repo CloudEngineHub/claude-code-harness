@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-harness.local/schemas/mirror-state.v1.json",
+  "title": "mirror-state.v1",
+  "description": "Client mirror drift state between skills/ SSOT and host skill mirrors.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "fingerprint",
+    "healthy",
+    "reason",
+    "mirrors"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "mirror-state.v1"
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "healthy": {
+      "type": "boolean"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "",
+        "not-configured",
+        "in-sync",
+        "drift"
+      ]
+    },
+    "mirrors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "root",
+          "status",
+          "drift_count"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "root": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in-sync",
+              "drift",
+              "not-configured"
+            ]
+          },
+          "drift_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "drifts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "ts": {
+      "type": "integer"
+    }
+  }
+}

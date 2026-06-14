@@ -108,6 +108,8 @@ func main() {
 		runSelfAudit(os.Args[2:])
 	case "retired-alias":
 		runRetiredAlias(os.Args[2:])
+	case "mirror":
+		runMirror(os.Args[2:])
 	case "wt":
 		runWt(os.Args[2:])
 	case "pre-compact":
@@ -162,6 +164,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  self-audit hooks --file <path>  Audit settings.local.json command hooks (CCH allowlist)")
 	fmt.Fprintln(os.Stderr, "  self-audit baseline --settings <path> --baseline <path>  Verify deny entries did not regress")
 	fmt.Fprintln(os.Stderr, "  retired-alias scan [root]  Scan repo for retired alias residue (exit 1 if hits)")
+	fmt.Fprintln(os.Stderr, "  mirror status|verify [--json] [root]  Report skills/ mirror drift (mirror-state.v1 JSON with --json or verify)")
 	fmt.Fprintln(os.Stderr, "  wt fingerprint capture --output <path>  Snapshot sensitive $HOME paths")
 	fmt.Fprintln(os.Stderr, "  wt fingerprint diff --before <p> --after <p>  Detect worktree-escape (exit 2 on change)")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")
@@ -424,6 +427,10 @@ func runHook(hookType string, args []string) {
 	case "tdd-check":
 		if err := hookhandler.HandleTDDOrderCheck(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "tdd-check handler error: %v\n", err)
+		}
+	case "skill-mirror-drift":
+		if err := hookhandler.HandleSkillMirrorDrift(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "skill-mirror-drift handler error: %v\n", err)
 		}
 	case "elicitation":
 		h := &hookhandler.ElicitationHandler{}
