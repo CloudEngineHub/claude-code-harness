@@ -5,6 +5,18 @@
 
 ---
 
+## North Star（3 層の野望）
+
+この task ledger 全体が目指す到達点。古い順（土台 → てっぺん）。詳細契約は `spec.md` を正本とし、ここは参照ブロック。
+
+- **L1 判断専念**: AI が plan / 実装 / 比較 / 検証 evidence を準備し、operator（人間）は最終判断のみ行う（`spec.md` Purpose / Users And Workflows）。
+- **L2 ツール非依存（tool-agnostic）**: 同一 Harness（R01-R13 guardrails + plan/work/review/release）が Claude / Codex / Cursor の「どれからでも」効く。1 つの policy engine が 3 host を native hook 経由で adjudicate する（複製でなく routing）。2 つの向きを対等にサポート — #1 harness が駆動（Lead が他ツールを engine として spawn）/ #2 host から使う（Codex/Cursor「から」harness を使う）（`spec.md` Execution Backend Contract / Host Adapter）。
+- **L3 協調（collaboration, 将来の本丸）**: 複数ツールが同一プロジェクトを、人間をコピペ係にせず協調する。Mode 1 = 完全自律オーケストレーション（v1 は Lead=Claude 固定、Codex/Cursor は外向き spawn API 無し）。Mode 2 = 人間在席の peer co-drive（live notice messaging）。フル peer-Lead 協調は段階導入で後回し（Phase 92 Purpose / `spec.md` Mode 1/Mode 2）。
+
+> 既知 follow-up（未スケジュール・メモのみ、新規 cc:todo は作らない）: **delivery hook gen 未配線** — `go/internal/hostgen` の `GenerateDeliveryHooksJSON` は実装 + unit test 済みだが harness gen に未接続で、生成される Codex/Cursor の hooks.json に inbox-check（Mode 2 turn 境界 delivery）が入らない。配線すれば Mode 2 の郵便配達が Codex/Cursor にも届く（turn-based、live ではない。live monitor は Claude 専用）= L3 協調の実体化の一歩。Lead が後で正式 task 化を判断する。
+
+---
+
 ## 📦 アーカイブ
 
 完了済み Phase は以下のファイルへ切り出し済み（git history にも残存）:

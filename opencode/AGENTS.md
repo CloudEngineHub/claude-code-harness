@@ -155,4 +155,21 @@ Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md) / [.clau
 - Active watching test policy: [.claude/rules/active-watching-test-policy.md](.claude/rules/active-watching-test-policy.md) - 外部 daemon / opt-in ファイル監視機能の 3 状態テスト規約 (Phase 50 で導入、D40 / P29 運用ルール化)
 - Cross-repo handoff: [.claude/rules/cross-repo-handoff.md](.claude/rules/cross-repo-handoff.md) - claude-code-harness ↔ harness-mem 責任境界 + 2 経路 handoff workflow (Phase 65 で codify、D42 の shareable policy 部分)
 
+## North Star
+
+Harness が目指す 3 層の野望 (土台 → てっぺん)。詳細は [spec.md](spec.md) (Purpose / Execution Backend Contract / Mode 1・Mode 2)。
+
+- **L1 判断専念**: AI が plan / 実装 / 比較 / 検証 evidence を準備し、operator (人間) は最終判断のみ行う。
+- **L2 ツール非依存 (tool-agnostic)**: 同一 Harness (R01-R13 + plan/work/review/release) が Claude / Codex / Cursor の「どれからでも」効く。1 つの policy engine が 3 host を native hook 経由で adjudicate する (複製でなく routing)。harness が駆動する向きと、host「から」使う向きの両方を対等にサポート。
+- **L3 協調 (collaboration, 将来の本丸)**: 複数ツールが同一プロジェクトを、人間をコピペ係にせず協調する。Mode 1 = 完全自律オーケストレーション (v1 は Lead=Claude 固定)、Mode 2 = 人間在席の peer co-drive (live notice messaging)。フル peer-Lead 協調は段階導入。
+
+## Codex / Cursor hook 誤解防止
+
+Codex / Cursor の hook について繰り返し起きた誤解を固定する。詳細は [spec.md](spec.md) (Host Adapter / Host Distribution Contract / hosts.toml)。
+
+- **FACT-1 (generated, not inline)**: Codex / Cursor は一級の hook ホスト。hook は config.toml に inline で書かれず、`harness gen` が生成する `.codex/hooks.json` / `.cursor/hooks.json` (gitignore された build artifact) に入る。すべて `bin/harness hook pre-tool --host <h>` を呼ぶ。
+- **FACT-2 (no inline != no hooks)**: 「config.toml に inline hooks が無い」は「config の中に書かない」の意味であって「hook が無い」ではない。この 2 つを混同しない。
+- **FACT-3 (enforcement wired / delivery undeployed)**: hook は 2 層。(a) enforcement (PreToolUse → R01-R13 policy engine) は 3 host 対称に配線済みで `harness gen` で生成される。(b) Mode 2 delivery (inbox-check / monitor 受信) は生成関数 `GenerateDeliveryHooksJSON` が実装・unit test 済みだが本番 caller がゼロ (harness gen 未接続)。よって生成 hook に inbox-check は入らず、Codex/Cursor の delivery hook は未 deploy。Claude の inbox-check のみ `.claude-plugin/hooks.json` に手書きで存在。配線すれば Codex/Cursor にも turn 境界 delivery が届く (live ではない)。
+- **FACT-4 (materialize して確認)**: あるホストが capability を欠くと結論する前に、必ず `harness gen` 出力を実際に materialize して中身を確認する。config コメントだけで「無い」と断定しない。not_observed != absent。
+
 <!-- harness-integrity: last-audit=2026-05-18 -->

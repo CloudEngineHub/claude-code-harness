@@ -757,3 +757,20 @@ biome.json          # lint ルールを無効化しない
 <!-- 全文: .claude/rules/versioning.md -->
 
 <!-- sync-rules-to-agents: end -->
+
+## North Star (3 層の野望)
+
+- **L1 判断専念**: AI が plan / 実装 / 比較 / 検証を準備し、人間は最終判断のみ。
+- **L2 ツール非依存**: 同一 Harness が Claude / Codex / Cursor のどれからでも効く。1 つの policy engine が 3 host を native hook で routing。2 つの向きを対等にサポート（#1 harness が駆動 / #2 host から使う）。
+- **L3 協調（将来の本丸）**: 複数ツールが同一プロジェクトを、人間をコピペ係にせず協調。Mode 1 完全自律（v1 は Lead=Claude 固定）/ Mode 2 人間在席 peer co-drive。
+
+正本: spec.md（Purpose / Execution Backend Contract / Mode 1・Mode 2）。
+
+## Codex / Cursor hook の事実（誤解防止）
+
+- **FACT-1**: Codex / Cursor は一級の hook ホスト。hook は config.toml に inline せず、`harness gen` が生成する `.codex/hooks.json` / `.cursor/hooks.json`（gitignore された build artifact）に入り、すべて `bin/harness hook pre-tool --host <h>` を呼ぶ。
+- **FACT-2**: 「config.toml ships no inline hooks」≠「hook が無い」。混同しない。
+- **FACT-3**: hook は 2 層。(a) enforcement（PreToolUse → R01-R13）は 3 host 対称に配線済み・生成可能。(b) Mode 2 delivery（inbox-check）は生成関数 `go/internal/hostgen.GenerateDeliveryHooksJSON` が実装+test 済みだが本番未配線（生成 hook に inbox-check は入らない）。Codex delivery は turn 境界（Stop）受信で、live monitor は Claude 専用。
+- **FACT-4**: ホストが capability を欠くと断定する前に `harness gen` 出力を materialize して中身を確認する。not_observed != absent。
+
+正本: spec.md「Codex/Cursor hook = generated, not inline (2-layer)」/ decisions.md D52 / patterns.md P36。
