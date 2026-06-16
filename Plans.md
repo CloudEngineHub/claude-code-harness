@@ -512,3 +512,31 @@ autonomous_stop_points (Lead 判断を要する箇所):
 - **100.1.4** Failure Codifier 昇格対象 (patterns.md vs decisions.md heuristic)
 
 それ以外は契約 4 不変則 (スコープ 2 分割 / 質問禁止 + 既定値分岐 / Risk Gate 3 条件 / 共有ファイル lane) のもと続行。
+
+---
+
+## Phase 101: HOTL Governance — 検証フェーズ（verification-first / 実装計画は検証後に確定）
+
+**Purpose**: HITL→HOTL（個人ハーネス。組織級統治は ContextHarness V2、CCH は憲法を継承し「私のループ」だけを治める）の前提を、実装計画を引く**前に** spike で潰す。段階導入ラダーは出さない（autonomy は proven harness の出力）。三権分立の大半は既存の枯れた規格（policy-as-code / RTM / in-toto）の re-labeling と判明したので**再発明せず採用可否を検証**する。新規性は「自己参照統治（自分のハーネスを編集し自分の採点を gaming しうるエージェント）」のみ。Spec delta: `spec.md` §HOTL Governance Contract（不変条件 6 を契約化）。
+
+**team_validation_mode**: `subagent`（統治アーキ / provenance エンジニア / リスク懐疑派 3 体 + Cursor 敵対レビュー + workflow research 6 agent、2026-06-16 実行）。**Codex**: `unavailable`（usage-limit、16:00 以降に第5の声として再投下可）。
+
+**unknown_data**（`not_observed != absent`）: U0 in-run leash の自動推論実現性 / U1 土台のブランチ実在 / U2 R06 改ざん検知 / U3 地図 gate 化の道具選定 / U4 LLM verdict の現権威所在 / U5 blast-radius 機械検知。
+
+**最大発見（敵対レビュー）**: 「終端レビューで drift を捕まえる」は私とユーザー両者の共有盲点。task drift / silent failure はエラーを出さず run 途中で蓄積し最終 diff に現れない → **in-run scope leash (U0) を検証筆頭に格上げ**。**人間負荷ゼロ制約**: U0 のスコープは plan から自動推論し、人間にファイル一覧を手宣言させない（手宣言は新たな HITL ボトルネック＝本末転倒）。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 101.1 | `[lane:gate]` `[tdd:required]` **U0 in-run scope leash spike**。declared-scope を plan（タスク対象ファイル + RTM）から**自動推論**し、PreToolUse で圏外 Edit/Write を検知。**人間のスコープ手宣言ゼロ**が必須要件。`TestScopeLeash_AutoInferredFromPlan` / `_OutOfScopeWriteAlarms` / `_DroppedScopeFlagged` | (a) scope が plan から自動導出され**人手入力不要**であることを test で固定、(b) 圏外 Edit/Write で警報（fixture/tempdir）、(c) 宣言済み未着手（dropped scope）検知、(d) 決定性（path 照合のみ、LLM 非依存）、(e) 圏外時は「即停止」でなく escalation に渡せる（3軸ゲート連動の余地） | - | cc:todo |
+| 101.2 | `[lane:fast]` `[tdd:skip:investigation]` **U1 土台のブランチ実在確認**。`main` と dev（plan/zero-base-redesign）で selfaudit / deny-baseline / retired-alias / mirror を materialize 確認 | (a) 各 subcommand と baseline の存在をブランチ別に evidence 化、(b)「土台ゼロ」か「main 未マージ」かを `absent` でなく確定（not_observed != absent） | - | cc:todo |
+| 101.3 | `[lane:gate]` `[tdd:required]` **U2 1ルール改ざん検知（R06）**。CLAUDE.md 一文 ↔ `rules.go` R06 ↔ test を `@enforces R06` grep タグで機械リンク。弱め改変（matcher 窄化 / `--no-verify` 追加）で CI exit 1 | (a) red-team fixture 投入で CI が落ちる、(b) `@enforces` タグ除去で CI が落ちる、(c)「書いた→効く→改ざんできない」の最小 E2E 証明 | 101.2 | cc:todo |
+| 101.4 | `[lane:gate]` `[tdd:required]` **U3 地図 gate 化の道具選定 PoC**。rule↔check を OPA/Conftest or 自前 scanner で「孤立 check / 効かないルール」exit 1。RTM-as-data の実現性も | (a) 既存 14 ルール中ゲート未接続（現状 4/14）を 1 回で全列挙、(b) 枯れた道具（OPA/Conftest）採用 or 自前の判断を evidence 付きで提示、(c) 地図は `derived` 印 + gitignore で SSOT 分離 | 101.3 | cc:todo |
+| 101.5 | `[lane:fast]` `[tdd:skip:investigation]` **U4 LLM 助言縛りの確認**。既存レビュー経路（review-result.v1 / harness-review）が LLM verdict で gate していないか。決定性 veto 構造への差分 | (a) 現状の verdict 権威所在を evidence 化、(b) advisory-only（LLM は決定性層を上書き不可）への最小差分を特定 | - | cc:todo |
+| 101.6 | `[lane:gate]` `[tdd:required]` **U5 3軸ゲート機械化 spike**。blast-radius（触ファイル数 / 削除 / cross-repo / 不可逆）を PreToolUse で検知。R05/R06/R11 を escalation 面に配線 | (a) blast-radius 閾値超で escalation（fixture）、(b) 意味判定（spec/UX）に頼らず機械検知だけで外側の砦になる、(c) 既存 deny gate を HOTL escalation トリガーに二重利用 | 101.1 | cc:todo |
+
+**autonomous_stop_points（Lead 判断を要する箇所）**:
+- **101.1** scope 自動推論の粒度（ファイル単位 vs ディレクトリ単位）— 人間負荷ゼロを崩さない範囲で
+- **101.4** OPA/Conftest 採用 vs 自前 scanner（依存追加 vs 配布単純さのトレードオフ）
+- **101.6** blast-radius 閾値（N ファイル）の初期値
+
+**注**: Phase 101 は検証のみ。実装計画（Phase 102+）は U0–U5 の evidence が出てから `/harness-plan create` で確定する。VERSION / plugin.json / harness.toml は触らない（通常 planning）。

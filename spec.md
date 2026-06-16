@@ -43,6 +43,64 @@ The ambition stacks oldest-foundation-first; each layer is the ground for the ne
   outward spawn API yet). Mode 2 = human-present peer co-drive via live notice
   messaging. Full peer-Lead collaboration is staged in later.
 
+## HOTL Governance Contract
+
+This contract makes North Star **L3** concrete for the **personal harness** (this
+repo). Organization-scope governance (shared constitution, team standards) lives
+in **ContextHarness V2**; CCH inherits that constitution and governs only one
+operator's autonomous loop. The goal is **Human-on-the-Loop**: the operator
+supervises from outside the loop instead of approving every gate (HITL).
+
+Status: **verification-first**. No autonomy rollout — and no phased adoption
+ladder — until the prerequisites in `Plans.md` Phase 101 (U0-U5) are proven with
+evidence. Autonomy is the *output* of a proven harness, not the starting point.
+
+Invariants (each must become machine-checkable before the matching autonomy is
+enabled):
+
+1. **Deterministic-first judiciary.** Deterministic checks (tests, R01-R14, RTM
+   coverage) hold the binding verdict (veto). LLM semantic review is advisory
+   only and can never raise a gate above the deterministic layer. A unanimous
+   cross-model APPROVE is corroborating advice, not proof (judge errors are
+   correlated; verdicts are non-deterministic even at temperature 0).
+2. **SSOT vs derived separation.** Human-approved sources (rules, spec, tests)
+   are the only judgment basis. Derived artifacts (provenance maps, graphs,
+   generated HTML, summaries) are navigation only, carry a `derived` marker, are
+   git-ignored where generated, and must never feed back into the executor's
+   decisions.
+3. **Three-axis escalation.** The loop escalates to the human on (a) final
+   spec/UX change, (b) security risk, OR (c) blast-radius / irreversibility
+   (deletes, file/dir count over threshold, cross-repo, non-revertible ops).
+   Axis (c) is machine-detectable and is the outer backstop, because (a)/(b) are
+   semantic and an agent self-classifies them unreliably.
+4. **In-run scope leash (zero human-load).** During execution every tool-use is
+   checked against the task's declared scope. The scope is **auto-inferred** from
+   the plan (task target files + RTM) — the operator never hand-declares a file
+   allowlist. Out-of-scope writes raise an alarm/escalation; declared-but-
+   untouched scope (dropped work) is flagged. This catches task drift and silent
+   failures that a terminal review structurally cannot see.
+5. **Bounded, externally-anchored review.** The OK-until-clean loop is capped
+   (e.g. 3 rounds) with human escalation on repeated same-cause failure. Severity
+   is a fixed taxonomy: security / data-loss / correctness findings always block
+   and are never eligible for "stop nitpicking, move on"; only style/preference
+   may be suppressed. Cross-family review (Claude-Lead reviewed by Codex and vice
+   versa, plus fresh-context) is required; when the cross-family leg is
+   unavailable it is a named reduced-autonomy state, not a silent same-family
+   fallback.
+6. **Constitution and self-modification protection.** Rule definitions
+   (`rules.go`), `deny-baseline`, settings files, and `self-audit` policy are an
+   untouchable class: no AI path may modify them; human-only. The audit trail of
+   autonomous decisions is derived mechanically from an immutable event log, not
+   from agent self-narration. A kill switch (`~/.harness/HALT`) denies all tool
+   use ahead of any LLM judgment.
+
+Reuse over reinvention: rule↔check and feature→requirement→proof traceability is
+the mature discipline of policy-as-code (OPA/Conftest) and Requirements
+Traceability Matrices (DO-178C / ISO 26262); tamper-evidence is in-toto / SLSA.
+CCH adopts these rather than rebuilding them. The genuinely novel scope is
+**self-referential governance**: an agent that edits its own harness and could
+game its own grader.
+
 ## Users And Workflows
 
 Primary user:
