@@ -475,3 +475,108 @@ func isProtectedReviewPath(filePath string) bool {
 	}
 	return false
 }
+
+// ---------------------------------------------------------------------------
+// Secret file staging detection (R15)
+// ---------------------------------------------------------------------------
+
+// gitSubcmdSeparator splits a compound shell command into its individual
+// sub-commands. Listing the longer operators first (&&, ||) keeps Go's
+// leftmost-first alternation from splitting them into single `&`/`|` tokens,
+// so `git add .env&&git commit` (no surrounding spaces) is still separated.
+var gitSubcmdSeparator = regexp.MustCompile(`&&|\|\||;|\||&`)
+
+// r15SecretStagingPatterns is a staging-focused superset of the R09 read-warn
+// patterns. It deliberately targets credential-bearing files (dotenv variants,
+// private keys, cloud/SSH credential stores) and NOT tracked config such as
+// settings.json or .github/workflows, which are legitimately committed.
+var r15SecretStagingPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?:^|/)\.env(?:\.[^/]+)?$`), // .env, .env.local, .env.production
+	regexp.MustCompile(`(?:^|/)id_rsa(?:\.[^/]+)?$`),
+	regexp.MustCompile(`(?:^|/)id_ed25519(?:\.[^/]+)?$`),
+	regexp.MustCompile(`\.pem$`),
+	regexp.MustCompile(`\.key$`),
+	regexp.MustCompile(`\.p12$`),
+	regexp.MustCompile(`\.pfx$`),
+	regexp.MustCompile(`(?:^|/)\.npmrc$`),
+	regexp.MustCompile(`(?:^|/)\.pypirc$`),
+	regexp.MustCompile(`(?:^|/)credentials$`),
+	regexp.MustCompile(`(?:^|/)secrets?/`),
+	regexp.MustCompile(`(?:^|/)\.aws/`),
+	regexp.MustCompile(`(?:^|/)\.ssh/`),
+}
+
+// gitAddPathspecs returns the pathspec arguments of a `git add`/`git stage`
+// invocation, skipping flags. `git add` takes no message option, so every
+// non-flag token is a pathspec.
+func gitAddPathspecs(args []string) []string {
+	var out []string
+	for _, t := range args {
+		tok := stripShellTokenQuotes(t)
+		if tok == "" || tok == "--" || strings.HasPrefix(tok, "-") {
+			continue
+		}
+		out = append(out, tok)
+	}
+	return out
+}
+
+// gitCommitPathspecs returns the pathspec arguments of a `git commit`
+// invocation. Only tokens after the `--` separator are treated as pathspecs.
+// This avoids misreading a `-m "fix .env loading"` commit message as a path.
+func gitCommitPathspecs(args []string) []string {
+	var out []string
+	sawSep := false
+	for _, t := range args {
+		if t == "--" {
+			sawSep = true
+			continue
+		}
+		if !sawSep {
+			continue
+		}
+		tok := stripShellTokenQuotes(t)
+		if tok == "" || strings.HasPrefix(tok, "-") {
+			continue
+		}
+		out = append(out, tok)
+	}
+	return out
+}
+
+// extractGitStagedPaths returns every path that a command would add to the git
+// index via `git add`/`git stage`/`git commit <pathspec>`. Each sub-command is
+// inspected independently so chained commands are all covered.
+func extractGitStagedPaths(command string) []string {
+	normalized := normalizeCommand(command)
+	var paths []string
+	for _, part := range gitSubcmdSeparator.Split(normalized, -1) {
+		tokens := strings.Fields(part)
+		for i := 0; i+1 < len(tokens); i++ {
+			if normalizeGitToken(tokens[i]) != "git" {
+				continue
+			}
+			switch normalizeGitToken(tokens[i+1]) {
+			case "add", "stage":
+				paths = append(paths, gitAddPathspecs(tokens[i+2:])...)
+			case "commit":
+				paths = append(paths, gitCommitPathspecs(tokens[i+2:])...)
+			}
+			break // at most one git invocation per sub-command segment
+		}
+	}
+	return paths
+}
+
+// secretFileStaging reports the first staged path that looks like a secret
+// file, if any. It is the detection backing guard rule R15.
+func secretFileStaging(command string) (string, bool) {
+	for _, path := range extractGitStagedPaths(command) {
+		for _, p := range r15SecretStagingPatterns {
+			if p.MatchString(path) {
+				return path, true
+			}
+		}
+	}
+	return "", false
+}

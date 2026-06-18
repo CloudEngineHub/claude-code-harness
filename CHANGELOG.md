@@ -6,6 +6,28 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### テーマ: 非エンジニアレビュー由来の安全性・分かりやすさ改善
+
+**「秘密のコミット」事故を防ぐガードレールと、生成物の専門用語を読み解くための用語集を追加。**
+
+---
+
+#### 1. 秘密ファイルの誤コミット防止（ガードレール R15）
+
+**今まで**: `git add .env` や `git commit -- .env` のように秘密ファイルを git に載せる操作には deny/ask が無く、R09 は秘密ファイルの**読み取り警告のみ**でした。非エンジニアが「コミットして」に yes と答えると、`.env` や鍵ファイルが履歴に入り込む可能性がありました（push 取消は force-push 必須＝R06 で拒否されるため事実上不可逆）。
+
+**今後**: 新ガードレール **R15** が `git add` / `git stage` / `git commit <pathspec>` の引数を解析し、秘密ファイル（`.env`/`.env.local`/`.env.production`、`*.pem`/`*.key`/`*.p12`/`*.pfx`、`id_rsa`/`id_ed25519`、`secrets/`、`.ssh/`、`.aws/`、`.npmrc`/`.pypirc`/`credentials`）の staging を **deny** します。
+
+- コミットメッセージ内の `.env`（例: `git commit -m "fix .env loading"`）は pathspec と誤認しません（`--` 区切り後のみ pathspec として扱う設計）。
+- `git add .` / `git add -A` などの bulk add は**ブロックしません**（`.gitignore` + 既存の R02/R03 書込ガードに委ねる設計判断。摩擦を増やさないため）。
+- 実装: `go/internal/guardrail/{helpers.go,rules.go}`、テスト 16 件追加（deny 10・誤検知防止 6）。
+
+#### 2. 非エンジニア向け用語集の追加
+
+**今まで**: `spec` / `contract` / `cc:完了` / `confidence %` / `team_validation_mode` / `$easy` などの用語が生成物に出るのに、利用者向けの定義がどこにも無く、「これで承認していいか」を判断できませんでした。
+
+**今後**: `docs/onboarding/glossary.md` を新設。各用語を**1 文のやさしい説明（日英併記）**で定義し、`confidence %` の目安（75%+=進めてOK / 40-74%=注意 / 40%未満=相談）まで明記。README.md / README_ja.md の Quickstart 導線と Documentation 表からリンク。
+
 ## [4.16.0] - 2026-06-18
 
 ### テーマ: Cross-Session Relay とアップストリーム追従、setup/sync/footer/Windows まわりの修正

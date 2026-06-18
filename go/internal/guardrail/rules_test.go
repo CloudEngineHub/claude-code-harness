@@ -1110,3 +1110,140 @@ func TestR12_WrappedByWatch(t *testing.T) {
 		t.Errorf("expected deny for watch-wrapped push to main with deny policy, got %s", result.Decision)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// R15: block staging/committing secret files
+// ---------------------------------------------------------------------------
+
+func TestR15_GitAddEnv(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add .env"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git add .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddForcedEnv(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add -f .env"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git add -f .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddEnvVariant(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add config/.env.production"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git add .env.production, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddPemKey(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add certs/server.pem"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git add .pem, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddSecretsDir(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add secrets/db.yml"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git add secrets/, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddSshKey(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add .ssh/id_rsa"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git add .ssh key, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitStageEnv(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git stage .env"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git stage .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_ChainedNoSpaceAddEnv(t *testing.T) {
+	// The classic leak chain, written without spaces around &&.
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add .env&&git commit -m wip"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for chained git add .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitCommitPathspecEnv(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git commit -m wip -- .env"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git commit -- .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddQuotedEnv(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add '.env'"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git add '.env', got %s", result.Decision)
+	}
+}
+
+// --- No false positives: legitimate, non-secret staging must pass ---
+
+func TestR15_GitAddNormalFile(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add src/index.ts"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for git add src/index.ts, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddDot(t *testing.T) {
+	// Bulk add must not be blocked (relies on .gitignore + write guards instead).
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add ."})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for git add ., got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddAllFlag(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add -A"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for git add -A, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitCommitMessageMentionsEnv(t *testing.T) {
+	// ".env" inside the commit message must not be read as a pathspec.
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git commit -m \"fix .env loading bug\""})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for commit message mentioning .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddGitignore(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add .gitignore"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for git add .gitignore, got %s", result.Decision)
+	}
+}
+
+func TestR15_NonGitCommand(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "cat .env"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for cat .env (R15 only guards staging), got %s", result.Decision)
+	}
+}
