@@ -300,6 +300,33 @@ Details:
 ```
 ~~~
 
+### Persist Verdict (required for commit guard / #218 fix)
+
+Output Contract の JSON ブロックを出力したら、verdict が `.claude/state/review-result.json` に
+**必ず永続化される**よう以下の step を最後に実行する。これを踏み忘れると、PreToolUse commit guard が
+後続 `git commit` を `APPROVE` 無しでブロックする (`harness-work` step 10 と同じ pattern)。
+
+```bash
+# 1. 上の JSON ブロックを一時ファイルへ書き出す (verdict / acceptance_bar 等を実値で)
+mkdir -p .claude/state
+cat > .claude/state/tmp-review-result.json <<'JSON'
+{ "schema_version": "review-result.v1", "verdict": "APPROVE", ... }
+JSON
+
+# 2. write-review-result.sh で正規化保存 (commit_hash は省略可)
+bash "${HARNESS_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-$PWD}}/scripts/write-review-result.sh" \
+  .claude/state/tmp-review-result.json \
+  "$(git rev-parse --short HEAD 2>/dev/null || true)"
+
+# 3. 一時ファイル削除
+rm -f .claude/state/tmp-review-result.json
+```
+
+`verdict` が `REQUEST_CHANGES` でも保存する (commit guard は `APPROVE` のみ通過させ、`REQUEST_CHANGES` は履歴として残す)。
+`harness-release` の Review Gate から委譲された場合も同じ step を踏む。
+
+reviewer subagent は read-only (`allowed-tools: Read, Grep, Glob`) のため、上記 write 操作は **orchestrator (skill を呼んだ main agent)** が行う。
+
 ## Codex Environment
 
 Codex 環境では使える tool が異なる。
