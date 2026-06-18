@@ -179,6 +179,7 @@ Use these after the basic trigger path is visible.
 | [Distribution Scope](docs/distribution-scope.md) | Included vs compatibility vs development-only paths. |
 | [Hardening parity](docs/hardening-parity.md) | Runtime safety differences between Claude hooks and Codex gates. |
 | [Work All Evidence Pack](docs/evidence/work-all.md) | Success/failure verification contract for full-plan execution. |
+| [Language / i18n](docs/i18n.md) | How to switch output language (English default, Japanese opt-in). |
 | [Changelog](CHANGELOG.md) | User-facing version history. |
 
 ## Contributing

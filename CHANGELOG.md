@@ -14,6 +14,36 @@ Change history for claude-code-harness.
 
 ### Fixed
 
+#### `harness-review` / `harness-release` で出た APPROVE が commit guard を通らなかった問題（#218）
+
+**今まで**: `/harness-review` を単独で実行したり、`/harness-release` の Review Gate が委譲したレビューで `APPROVE` が出ても、その verdict は会話に表示されるだけで `.claude/state/review-result.json` には書かれませんでした。PreToolUse commit guard はそのファイルを読むため、続く `git commit` は「Run /harness-review before committing」で弾かれ、release が事実上動かない状態でした。Plans.md の work skill だけが `write-review-result.sh` を呼んでいた歴史的事情が原因です。
+
+**今後**: 二段防御で必ず保存されるようになりました。`harness-review` skill には Output Contract 直後に `write-review-result.sh` 呼び出し step を追加（work step 10 と同じパターン）。さらに `SubagentStop` hook で reviewer subagent の最終応答から `review-result.v1` JSON ブロックを抽出して自動保存する backstop を新設したため、SKILL step を踏み忘れても保存されます。reviewer subagent は read-only のまま維持（write は hook 側）。`harness-release` の Review Gate にも二段防御の persist check を入れました。
+
+#### release の bump commit が承認消費でブロックされる問題（#219）
+
+**今まで**: PostToolUse の commit-cleanup は `git commit` が 1 回成功するたびに `.claude/state/review-result.json` を無条件で削除して「次回の commit 前に再レビュー」を要求していました。一方 `harness-release` は bare release で work commit + version bump commit と複数回 commit します。最初の work commit で承認が消費されるため、続く bump commit が APPROVE 無しでブロックされ、release が止まる構造でした。
+
+**今後**: cleanup と commit guard の両側で「bookkeeping commit」を識別するようになりました。`VERSION` / `.claude-plugin/plugin.json` / `harness.toml` / `CHANGELOG.md` のみを変更する commit と merge commit はレビュー対象外として、承認削除を skip し、commit guard も承認を要求しません。これにより `harness-release` の自動 commit はそのまま通過します。判定根拠は `.claude/state/commit-cleanup-audit.jsonl` に append-only で記録されます。git unavailable 時は fail-closed（= 従来動作 = 削除）を維持。
+
+#### Skill listing budget overflow による auto-loading 信頼性低下の短期対応（#200）
+
+**今まで**: 28 skills を LLM に送る description の合計が 9,089 chars で、CC の 6,000 chars budget を超えていました。alphabetical 順の終盤スキルが truncate される可能性があり、auto-loading の信頼性が下がっていました。
+
+**今後**: 上位 verbose 10 件（`harness-accept` 601 → 195 chars / `cursor-ask` 531 → 167 / `harness-plan-brief` 523 → 196 / `harness-progress` 489 → 187 / `harness-orchestration` 446 → 175 / `cursor-do` 418 → 197 / `gogcli-ops` 418 → 185 / `memory` 365 → 175 / `cc-cursor-cc` 315 → 199 / `cursor-setup` 311 → 187）の description を ≤200 chars に trim し、total を 10,619 → 8,099 chars に 20% 圧縮しました。trigger phrase（auto-loading キーワード）は保持。詳細仕様は SKILL.md body に移動しています。`scripts/check-skill-description-budget.sh` を新規追加して budget gate を機械検証できるようにしました。残り 28 件の trim と 6,000 chars 厳格達成は次フェーズで対応します。
+
+#### Language / i18n 設定手順を README からたどれるよう整備（#173）
+
+**今まで**: 出力言語の切替方法（英語 default / 日本語 opt-in）は CLAUDE.md の Language 節に短く書かれているだけで、README からは直接たどれませんでした。新規ユーザーは英語以外で出力する方法を見つけるのに時間がかかっていました。
+
+**今後**: `docs/i18n.md` を新規 SSOT として作成し、3 経路（`.claude-code-harness.config.yaml` の `i18n.language` / `CLAUDE_CODE_HARNESS_LANG=ja` / per-message session 指示）と precedence（config > env > en）、「変更されない箇所」（machine-readable JSON, commit prefixes）を明示。README の Documentation 表と CLAUDE.md Language 節からリンクしています。
+
+#### Reviewer の cyber-related safeguard 中断への mitigation（#172）
+
+**今まで**: `claude-code-harness:reviewer`（Opus 4.7）が security 問題を検出した直後、上流の cyber-related safeguard が triggered して reviewer が途中で停止し、verdict JSON が生成されない事象が観測されていました。Harness 側で完全消去はできない（Anthropic 製品仕様の model-side safeguard）。
+
+**今後**: `agents/reviewer.md` に「security finding は中立的事実列挙にとどめる」instruction を追加。exploit code / PoC を本文に展開せず、CVE / CWE / OWASP の識別子のみ引用、mitigation は修正方針だけ記述するルールに narrow しました。完全な workaround として `docs/known-limitations.md` を新規作成し、症状・根本原因・回避策（Opus 4.8 への切替推奨 / security 専門 PR は人手レビューに escalate）を SSOT 化しました。
+
 - Cursor アダプタ evidence ドキュメント（`docs/research/cursor-adapter-candidate.md`）の tier 表記を `internal-compatible` に復元。PR #174 の昇格マージで evidence ファイル分の hunk が脱落し、`release-preflight.sh` の cursor adapter candidate smoke が FAIL していたのを修正（README / onboarding / テストは既に `internal-compatible` で整合済みだった）。
 
 #### 配布される codex/AGENTS.md の「Hooks 未対応」記述が事実誤りに

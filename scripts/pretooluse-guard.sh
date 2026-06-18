@@ -1241,32 +1241,76 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     fi
 
     if [ "$COMMIT_GUARD_ENABLED" = "true" ]; then
-      # レビュー承認状態をチェック
-      REVIEW_APPROVED="false"
-      if command -v jq >/dev/null 2>&1; then
-        if [ -f "$REVIEW_RESULT_FILE" ]; then
-          RESULT_VERDICT=$(jq -r '.verdict // empty' "$REVIEW_RESULT_FILE" 2>/dev/null)
-          if [ "$RESULT_VERDICT" = "APPROVE" ]; then
-            REVIEW_APPROVED="true"
-          fi
-        fi
-
-        if [ "$REVIEW_APPROVED" = "false" ] && [ -f "$REVIEW_STATE_FILE" ]; then
-          APPROVED_AT=$(jq -r '.approved_at // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
-          JUDGMENT=$(jq -r '.judgment // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
-          if [ -n "$APPROVED_AT" ] && [ "$JUDGMENT" = "APPROVE" ]; then
-            REVIEW_APPROVED="true"
-          fi
+      # [#219 fix] bookkeeping-only commit (VERSION / .claude-plugin/plugin.json /
+      # harness.toml / CHANGELOG.md のみ) はレビュー対象外で commit guard を免除。
+      # harness-release の multi-commit (work commit + version bump commit) の
+      # bump 側が承認消費後にブロックされる問題を防ぐ。
+      #
+      # 厳格化 (codex review P2): bash 1 行で staging と commit を同時に行う
+      # コマンド (`git add ... && git commit`) では、PreToolUse hook 実行時点では
+      # 新しい staging が反映されていないため、index 検査だけでは:
+      #   (i) `git add VERSION && git commit ...` が deny されてしまう
+      #       (実際は bookkeeping commit のはずなのに staged が空 or 古い)
+      #   (ii) `git add src/main.go && git commit` が allow されてしまう
+      #       (index に古い VERSION-only staging が残っていると bookkeeping 判定)
+      # → BOOKKEEPING_ONLY は「コマンドが pure な `git commit` (index を mutate
+      #   しない) + index がすでに bookkeeping のみ」両方を満たす場合に限定する。
+      BOOKKEEPING_ONLY="false"
+      # (1) コマンド自体が index を mutate しない pure な `git commit` か検証。
+      #     `git add`, `git restore --staged`, `git reset` を含む command、または
+      #     `&&` / `||` / `;` / `|` で他コマンドと連結されている場合は除外。
+      if echo "$COMMAND" | grep -Eq '(^|[[:space:]])git[[:space:]]+(add|restore|reset|rm)([[:space:]]|$)' \
+         || echo "$COMMAND" | grep -Eq '(&&|\|\||\;|^\||[[:space:]]\|[[:space:]])'; then
+        BOOKKEEPING_ONLY="false"
+      elif command -v git >/dev/null 2>&1; then
+        STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
+        if [ -n "$STAGED_FILES" ]; then
+          BOOKKEEPING_ONLY="true"
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              "VERSION"|".claude-plugin/plugin.json"|"harness.toml"|"CHANGELOG.md") ;;
+              *) BOOKKEEPING_ONLY="false"; break ;;
+            esac
+          done <<< "$STAGED_FILES"
         fi
       fi
 
-      if [ "$REVIEW_APPROVED" = "false" ]; then
-        emit_deny "$(msg deny_git_commit_no_review)"
-        exit 0
-      fi
+      if [ "$BOOKKEEPING_ONLY" = "true" ]; then
+        # 監査ログに通過理由を append-only で残す
+        mkdir -p .claude/state 2>/dev/null || true
+        printf '{"ts":"%s","scope":"pretool-commit-guard","reason":"bookkeeping-only","approval_required":false}\n' \
+          "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          >> ".claude/state/commit-cleanup-audit.jsonl" 2>/dev/null || true
+        # bookkeeping commit は承認不要で通過
+      else
+        # レビュー承認状態をチェック
+        REVIEW_APPROVED="false"
+        if command -v jq >/dev/null 2>&1; then
+          if [ -f "$REVIEW_RESULT_FILE" ]; then
+            RESULT_VERDICT=$(jq -r '.verdict // empty' "$REVIEW_RESULT_FILE" 2>/dev/null)
+            if [ "$RESULT_VERDICT" = "APPROVE" ]; then
+              REVIEW_APPROVED="true"
+            fi
+          fi
 
-      # コミット後に承認状態をクリア（次回コミット前に再レビューを要求）
-      # Note: これは PostToolUse で行うべきだが、ここでは警告のみ
+          if [ "$REVIEW_APPROVED" = "false" ] && [ -f "$REVIEW_STATE_FILE" ]; then
+            APPROVED_AT=$(jq -r '.approved_at // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
+            JUDGMENT=$(jq -r '.judgment // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
+            if [ -n "$APPROVED_AT" ] && [ "$JUDGMENT" = "APPROVE" ]; then
+              REVIEW_APPROVED="true"
+            fi
+          fi
+        fi
+
+        if [ "$REVIEW_APPROVED" = "false" ]; then
+          emit_deny "$(msg deny_git_commit_no_review)"
+          exit 0
+        fi
+
+        # コミット後に承認状態をクリア（次回コミット前に再レビューを要求）
+        # Note: これは PostToolUse で行うべきだが、ここでは警告のみ
+      fi
     fi
   fi
 
