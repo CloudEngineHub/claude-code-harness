@@ -519,9 +519,9 @@ autonomous_stop_points (Lead 判断を要する箇所):
 
 **Purpose**: HITL→HOTL（個人ハーネス。組織級統治は ContextHarness V2、CCH は憲法を継承し「私のループ」だけを治める）の前提を、実装計画を引く**前に** spike で潰す。段階導入ラダーは出さない（autonomy は proven harness の出力）。三権分立の大半は既存の枯れた規格（policy-as-code / RTM / in-toto）の re-labeling と判明したので**再発明せず採用可否を検証**する。新規性は「自己参照統治（自分のハーネスを編集し自分の採点を gaming しうるエージェント）」のみ。Spec delta: `spec.md` §HOTL Governance Contract（不変条件 6 を契約化）。
 
-**team_validation_mode**: `subagent`（統治アーキ / provenance エンジニア / リスク懐疑派 3 体 + Cursor 敵対レビュー + workflow research 6 agent、2026-06-16 実行）。**Codex**: `unavailable`（usage-limit、16:00 以降に第5の声として再投下可）。
+**team_validation_mode**: `subagent`（統治アーキ / provenance エンジニア / リスク懐疑派 3 体 + Cursor 敵対レビュー + workflow research 6 agent、2026-06-16 実行）。U6/U7 追加時に文章規範 gist（k16shikano「日本語技術文書の文章規範」）を 4 観点サブエージェント（全文抽出 / gate 化可否 / 既存衝突 / リスク懐疑、2026-06-18）で掌握。**Codex**: `unavailable`（usage-limit、16:00 以降に第5の声として再投下可）。
 
-**unknown_data**（`not_observed != absent`）: U0 in-run leash の自動推論実現性 / U1 土台のブランチ実在 / U2 R06 改ざん検知 / U3 地図 gate 化の道具選定 / U4 LLM verdict の現権威所在 / U5 blast-radius 機械検知。
+**unknown_data**（`not_observed != absent`）: U0 in-run leash の自動推論実現性 / U1 土台のブランチ実在 / U2 R06 改ざん検知 / U3 地図 gate 化の道具選定 / U4 LLM verdict の現権威所在 / U5 blast-radius 機械検知 / U6 文章規範 §7 禁止フレーズの public doc 実 hit 数（baseline scan 前は unknown）。
 
 **最大発見（敵対レビュー）**: 「終端レビューで drift を捕まえる」は私とユーザー両者の共有盲点。task drift / silent failure はエラーを出さず run 途中で蓄積し最終 diff に現れない → **in-run scope leash (U0) を検証筆頭に格上げ**。**人間負荷ゼロ制約**: U0 のスコープは plan から自動推論し、人間にファイル一覧を手宣言させない（手宣言は新たな HITL ボトルネック＝本末転倒）。
 
@@ -533,10 +533,14 @@ autonomous_stop_points (Lead 判断を要する箇所):
 | 101.4 | `[lane:gate]` `[tdd:required]` **U3 地図 gate 化の道具選定 PoC**。rule↔check を OPA/Conftest or 自前 scanner で「孤立 check / 効かないルール」exit 1。RTM-as-data の実現性も | (a) 既存 14 ルール中ゲート未接続（現状 4/14）を 1 回で全列挙、(b) 枯れた道具（OPA/Conftest）採用 or 自前の判断を evidence 付きで提示、(c) 地図は `derived` 印 + gitignore で SSOT 分離 | 101.3 | cc:todo |
 | 101.5 | `[lane:fast]` `[tdd:skip:investigation]` **U4 LLM 助言縛りの確認**。既存レビュー経路（review-result.v1 / harness-review）が LLM verdict で gate していないか。決定性 veto 構造への差分 | (a) 現状の verdict 権威所在を evidence 化、(b) advisory-only（LLM は決定性層を上書き不可）への最小差分を特定 | - | cc:todo |
 | 101.6 | `[lane:gate]` `[tdd:required]` **U5 3軸ゲート機械化 spike**。blast-radius（触ファイル数 / 削除 / cross-repo / 不可逆）を PreToolUse で検知。R05/R06/R11 を escalation 面に配線 | (a) blast-radius 閾値超で escalation（fixture）、(b) 意味判定（spec/UX）に頼らず機械検知だけで外側の砦になる、(c) 既存 deny gate を HOTL escalation トリガーに二重利用 | 101.1 | cc:todo |
+| 101.7 | `[lane:gate]` `[tdd:required]` **U6 文章規範パイロット gate spike**。文章規範 gist §7 LLM 禁止フレーズの決定性サブセット（約14本: 重要なのは / 本章では〜を扱う / 掘り下げる / 正面から〜 / 〜に他ならない / 多角的 等）を **JP opt-in public doc 面のみ**に baseline scan。hit>0 なら既存 gate（`tests/test-support-claim-wording.sh` と同形＝固定ファイル列 + grep + JSON verdict）に literal 追記し、**rule↔check↔execution を end-to-end に通す最初の Authority Provenance Graph 実例**にする | (a) baseline scan が JP opt-in surface 限定で EN default を 1 byte も触らない、(b) hit>0 で既存 gate 形に literal 追記し CI の red→green を実証 / hit=0 なら「不要」evidence で採用ゼロ、(c) gate 化対象は §7 決定性サブセットのみ（LLM-advisory 36条・hedge・em ダッシュは **gate 化しない**）、(d) rule(§7)↔check(grep)↔exec(exit 1) の双方向リンクを machine-readable 記録し孤立 check / 効かないルールを出さない、(e) 決定性（LLM 非依存） | 101.4 | cc:todo |
+| 101.8 | `[lane:fast]` `[tdd:skip:investigation]` **U7 prose SSOT 一元化検証**。文章規範 gist / `~/.claude/rules/external-doc-style.md` / 認知負荷ルール（easy）の 3 文書を突き合わせ、重複・衝突・gap を踏まえ **prose SSOT 1 本化 or register 階層化**の方針を決める（第3 SSOT drift 回避）。em ダッシュは **緩い推奨（非 gate）** | (a) 3 文書の overlap / conflict / gap を evidence 化（衝突筆頭＝em ダッシュ家風、一文一行 vs 散文）、(b) 単一 SSOT か register 分離（技術文書 / 外部 / easy）かを根拠付きで提示、(c) JP opt-in 限定・EN default 不可侵を明記、(d) 強制範囲（決定性サブセットのみ gate / 残りは推奨）を文書化 | 101.7 | cc:todo |
 
 **autonomous_stop_points（Lead 判断を要する箇所）**:
 - **101.1** scope 自動推論の粒度（ファイル単位 vs ディレクトリ単位）— 人間負荷ゼロを崩さない範囲で
 - **101.4** OPA/Conftest 採用 vs 自前 scanner（依存追加 vs 配布単純さのトレードオフ）
 - **101.6** blast-radius 閾値（N ファイル）の初期値
+- **101.7** §7 禁止フレーズの gate 化対象の線引き（決定性サブセットの確定）と適用 public doc ファイル列
+- **101.8** prose SSOT を単一化するか register 分離（技術文書 / 外部 / easy）にするか
 
-**注**: Phase 101 は検証のみ。実装計画（Phase 102+）は U0–U5 の evidence が出てから `/harness-plan create` で確定する。VERSION / plugin.json / harness.toml は触らない（通常 planning）。
+**注**: Phase 101 は検証のみ。実装計画（Phase 102+）は U0–U7 の evidence が出てから `/harness-plan create` で確定する。VERSION / plugin.json / harness.toml は触らない（通常 planning）。

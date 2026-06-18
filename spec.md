@@ -52,7 +52,7 @@ operator's autonomous loop. The goal is **Human-on-the-Loop**: the operator
 supervises from outside the loop instead of approving every gate (HITL).
 
 Status: **verification-first**. No autonomy rollout — and no phased adoption
-ladder — until the prerequisites in `Plans.md` Phase 101 (U0-U5) are proven with
+ladder — until the prerequisites in `Plans.md` Phase 101 (U0-U7) are proven with
 evidence. Autonomy is the *output* of a proven harness, not the starting point.
 
 Invariants (each must become machine-checkable before the matching autonomy is
@@ -93,6 +93,17 @@ enabled):
    autonomous decisions is derived mechanically from an immutable event log, not
    from agent self-narration. A kill switch (`~/.harness/HALT`) denies all tool
    use ahead of any LLM judgment.
+
+Prose-quality governance is scoped, not universal. Writing-norms enforcement
+(derived from the Japanese technical-writing standard validated in Phase 101)
+applies only to the **Japanese opt-in surface**; English is the shipped default
+and stays untouched. Only the deterministic banned-phrase subset (empty LLM-filler
+strings) is eligible to become a gate, proven first as the reference instance of
+rule↔check provenance (invariant 1). Semantic writing rules (causal-mechanism,
+hedge-preservation, single-cause reduction) stay advisory and never veto.
+Orthographic preferences such as the em-dash ban are loose recommendations, never
+gates — a prose gate that fired on the agent's own output would deadlock the
+in-run leash with no slack. There is one prose SSOT, not three overlapping ones.
 
 Reuse over reinvention: rule↔check and feature→requirement→proof traceability is
 the mature discipline of policy-as-code (OPA/Conftest) and Requirements
