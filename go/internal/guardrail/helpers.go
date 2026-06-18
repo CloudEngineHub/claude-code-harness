@@ -484,7 +484,22 @@ func isProtectedReviewPath(filePath string) bool {
 // sub-commands. Listing the longer operators first (&&, ||) keeps Go's
 // leftmost-first alternation from splitting them into single `&`/`|` tokens,
 // so `git add .env&&git commit` (no surrounding spaces) is still separated.
-var gitSubcmdSeparator = regexp.MustCompile(`&&|\|\||;|\||&`)
+// `$(`, `)` and backtick are included so a subshell-wrapped invocation such as
+// `$(git add .env)` or “ `git add .env` “ is split out as its own segment.
+var gitSubcmdSeparator = regexp.MustCompile("&&|\\|\\||;|\\||&|\\$\\(|\\)|`")
+
+// gitGlobalValueOpts are git global options that consume the following token as
+// their value when written as a separate token (e.g. `-C /repo`, not
+// `--git-dir=/repo`). They may appear between `git` and the subcommand.
+var gitGlobalValueOpts = map[string]bool{
+	"-C":             true,
+	"-c":             true,
+	"--git-dir":      true,
+	"--work-tree":    true,
+	"--namespace":    true,
+	"--exec-path":    true,
+	"--super-prefix": true,
+}
 
 // r15SecretStagingPatterns is a staging-focused superset of the R09 read-warn
 // patterns. It deliberately targets credential-bearing files (dotenv variants,
@@ -544,25 +559,54 @@ func gitCommitPathspecs(args []string) []string {
 	return out
 }
 
+// indexOfGitSubcommand returns the index of the git subcommand token (e.g.
+// "add") for the first `git` invocation in the segment, skipping any global
+// options (and their values) that appear between `git` and the subcommand. This
+// makes `git -C /repo add .env` resolve to the "add" token. Returns -1 when the
+// segment has no git invocation with a subcommand.
+func indexOfGitSubcommand(tokens []string) int {
+	for i := 0; i < len(tokens); i++ {
+		if normalizeGitToken(tokens[i]) != "git" {
+			continue
+		}
+		for j := i + 1; j < len(tokens); j++ {
+			tok := tokens[j]
+			if !strings.HasPrefix(tok, "-") {
+				return j // first non-option token is the subcommand
+			}
+			// Skip a separate value token for value-taking global options
+			// (e.g. "-C /repo"). The "--opt=value" form is a single token.
+			if !strings.Contains(tok, "=") && gitGlobalValueOpts[tok] {
+				j++
+			}
+		}
+		return -1 // git present but no subcommand in this segment
+	}
+	return -1
+}
+
 // extractGitStagedPaths returns every path that a command would add to the git
 // index via `git add`/`git stage`/`git commit <pathspec>`. Each sub-command is
 // inspected independently so chained commands are all covered.
+//
+// Known accepted scope gaps (consistent with the bulk `git add .` case): paths
+// supplied to git through stdin (`echo .env | xargs git add`) are invisible to
+// command-string analysis, and `git commit -a` re-stages already-tracked files
+// without naming them. Both rely on .gitignore plus the R02/R03 write guards.
 func extractGitStagedPaths(command string) []string {
 	normalized := normalizeCommand(command)
 	var paths []string
 	for _, part := range gitSubcmdSeparator.Split(normalized, -1) {
 		tokens := strings.Fields(part)
-		for i := 0; i+1 < len(tokens); i++ {
-			if normalizeGitToken(tokens[i]) != "git" {
-				continue
-			}
-			switch normalizeGitToken(tokens[i+1]) {
-			case "add", "stage":
-				paths = append(paths, gitAddPathspecs(tokens[i+2:])...)
-			case "commit":
-				paths = append(paths, gitCommitPathspecs(tokens[i+2:])...)
-			}
-			break // at most one git invocation per sub-command segment
+		idx := indexOfGitSubcommand(tokens)
+		if idx < 0 {
+			continue
+		}
+		switch normalizeGitToken(tokens[idx]) {
+		case "add", "stage":
+			paths = append(paths, gitAddPathspecs(tokens[idx+1:])...)
+		case "commit":
+			paths = append(paths, gitCommitPathspecs(tokens[idx+1:])...)
 		}
 	}
 	return paths
