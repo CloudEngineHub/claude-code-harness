@@ -20,8 +20,8 @@ Change history for claude-code-harness.
 
 - コミットメッセージ内の `.env`（例: `git commit -m "fix .env loading"`）は pathspec と誤認しません（`--` 区切り後のみ pathspec として扱う設計）。
 - `git add .` / `git add -A` などの bulk add は**ブロックしません**（`.gitignore` + 既存の R02/R03 書込ガードに委ねる設計判断。摩擦を増やさないため）。
-- コマンド解析はクォート対応のシェル字句解析で行い、`git commit -m "x; y" -- .env` のようにメッセージ内へ区切り記号や `--` を混ぜた回避を防ぎます。`git -C <dir>` / `$(...)` / backtick 形式も検出します。
-- 実装: `go/internal/guardrail/{helpers.go,rules.go}`、テスト 30 件追加（deny / 回避耐性 / 誤検知防止 / スコープギャップ）。
+- コマンド解析はクォート・バックスラッシュエスケープ対応のシェル字句解析で行い、`git commit -m "x; y" -- .env` や `git commit -m "test\"end" -- .env` のようにメッセージ内へ区切り記号・`--`・エスケープ引用符を混ぜた回避を防ぎます。`git -C <dir>` / `$(...)` / backtick 形式も検出します。
+- 実装: `go/internal/guardrail/{helpers.go,rules.go}`、テスト 33 件追加（deny / 回避耐性 / 誤検知防止 / スコープギャップ）。
 
 #### 2. 非エンジニア向け用語集の追加
 

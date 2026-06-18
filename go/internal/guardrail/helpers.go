@@ -523,11 +523,17 @@ type shellToken struct {
 	op     bool
 }
 
-// shellLex tokenizes a command while respecting single/double quotes. Control
-// operators become op tokens; whitespace separates tokens; characters inside
-// quotes (including separators like ';' or '&&') are kept literal. This makes
-// `git commit -m "x; y" -- .env` stay a single sub-command whose message is one
-// quoted token, instead of being split at the in-message ';'.
+// shellLex tokenizes a command while respecting single/double quotes and
+// backslash escapes. Control operators become op tokens; whitespace separates
+// tokens; characters inside quotes (including separators like ';' or '&&') are
+// kept literal. This makes `git commit -m "x; y" -- .env` stay a single
+// sub-command whose message is one quoted token, instead of being split at the
+// in-message ';'.
+//
+// Escaping follows POSIX shell rules: single quotes are fully literal (no
+// escapes); inside double quotes a backslash only escapes "$ ` \" and newline,
+// so `"a\"b"` is the single value `a"b` and the inner quote does not terminate;
+// outside quotes a backslash escapes the next character.
 func shellLex(command string) []shellToken {
 	var tokens []shellToken
 	var cur strings.Builder
@@ -550,8 +556,10 @@ func shellLex(command string) []shellToken {
 
 	for i := 0; i < len(command); i++ {
 		c := command[i]
-		if quote != 0 {
-			if c == quote {
+
+		// Single quotes are fully literal — no escape processing.
+		if quote == '\'' {
+			if c == '\'' {
 				quote = 0
 			} else {
 				cur.WriteByte(c)
@@ -559,6 +567,34 @@ func shellLex(command string) []shellToken {
 			}
 			continue
 		}
+
+		// Inside double quotes: backslash escapes only $ ` " \ (others literal).
+		if quote == '"' {
+			if c == '\\' && i+1 < len(command) {
+				if n := command[i+1]; n == '"' || n == '\\' || n == '$' || n == '`' {
+					cur.WriteByte(n)
+					curHas = true
+					i++
+					continue
+				}
+			}
+			if c == '"' {
+				quote = 0
+			} else {
+				cur.WriteByte(c)
+				curHas = true
+			}
+			continue
+		}
+
+		// Outside quotes: a backslash escapes the next character literally.
+		if c == '\\' && i+1 < len(command) {
+			cur.WriteByte(command[i+1])
+			curHas = true
+			i++
+			continue
+		}
+
 		switch c {
 		case '\'', '"':
 			quote = c

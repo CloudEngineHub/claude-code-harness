@@ -1373,3 +1373,31 @@ func TestR15_CommitQuotedSecretPathspec(t *testing.T) {
 		t.Errorf("expected deny for commit -- \".env\", got %s", result.Decision)
 	}
 }
+
+// --- R15 backslash-escape handling (CodeRabbit major follow-up) ---
+
+func TestR15_EscapedQuoteInMessageThenSecret(t *testing.T) {
+	// In bash, \" inside double quotes is a literal quote, so the quote does not
+	// terminate early; the `-- .env` pathspec must still be detected.
+	ctx := makeCtx("Bash", map[string]interface{}{"command": `git commit -m "test\"end" -- .env`})
+	if result := EvaluateRules(ctx); result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for escaped-quote message then -- .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_EscapedQuoteMessageNoFalsePositive(t *testing.T) {
+	// Same escaping, but no real pathspec: must stay approved.
+	ctx := makeCtx("Bash", map[string]interface{}{"command": `git commit -m "say \"hi\" to .env"`})
+	if result := EvaluateRules(ctx); result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for escaped-quote message mentioning .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_SingleQuotesAreLiteral(t *testing.T) {
+	// Single quotes do not process escapes; the message ends at the first ',
+	// then `-- .env` is a real pathspec.
+	ctx := makeCtx("Bash", map[string]interface{}{"command": `git commit -m 'msg' -- .env`})
+	if result := EvaluateRules(ctx); result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for single-quoted msg then -- .env, got %s", result.Decision)
+	}
+}
