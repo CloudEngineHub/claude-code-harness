@@ -389,6 +389,31 @@ var Rules = []GuardRule{
 			}
 		},
 	},
+
+	// R15: block staging/committing secret files (git add / git commit pathspec)
+	{
+		ID:          "R15:no-stage-secret-files",
+		ToolPattern: regexp.MustCompile(`^Bash$`),
+		Evaluate: func(ctx hookproto.RuleContext) *hookproto.HookResult {
+			command, ok := ctx.Input.ToolInput["command"].(string)
+			if !ok {
+				return nil
+			}
+			path, found := secretFileStaging(command)
+			if !found {
+				return nil
+			}
+			return &hookproto.HookResult{
+				Decision: hookproto.DecisionDeny,
+				Reason: fmt.Sprintf(
+					"Staging a file that looks like a secret (%s) is not allowed. "+
+						"Secrets must never enter git history. Add it to .gitignore, "+
+						"and if you truly need to commit it, stage it manually outside the agent.",
+					path,
+				),
+			}
+		},
+	},
 }
 
 // EvaluateRules evaluates all guard rules in order and returns the first match.

@@ -47,6 +47,7 @@ run the migration report before cleanup or reinstall.
 | New user | [Tool-first onboarding](docs/onboarding/index.md) |
 | Existing user | [Migration check](docs/onboarding/migration.md) |
 | Claude Code fast path | [Install in 30 seconds](#install-in-30-seconds) |
+| Non-engineer / jargon help | [Plain-language glossary](docs/onboarding/glossary.md) |
 | Trigger proof | [Skill trigger gate](docs/onboarding/skill-trigger-acceptance.md) |
 
 ## Install in 30 Seconds
@@ -172,6 +173,7 @@ Use these after the basic trigger path is visible.
 | [Tool-first onboarding](docs/onboarding/index.md) | Where to start by host tool. |
 | [Install routes](docs/onboarding/install.md) | Per-tool setup and support-tier boundaries. |
 | [Migration check](docs/onboarding/migration.md) | Existing-user impact, compatibility, and rollback path. |
+| [Plain-language glossary](docs/onboarding/glossary.md) | Non-engineer definitions for spec, contract, cc:* markers, confidence %, and more. |
 | [Skill trigger gate](docs/onboarding/skill-trigger-acceptance.md) | How install success is verified. |
 | [Capability matrix](docs/tool-capability-matrix.md) | Supported, internal-compatible, candidate, and unsupported host claims. |
 | [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Current Claude Code requirements and compatibility notes. |
