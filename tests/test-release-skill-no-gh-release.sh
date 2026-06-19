@@ -22,7 +22,7 @@ TARGETS=(
 hit_count=0
 for t in "${TARGETS[@]}"; do
   if [ -d "$t" ]; then
-    n=$(grep -rnE "$PATTERN" "$t" 2>/dev/null | wc -l | tr -d ' ')
+    n=$( { grep -rnE "$PATTERN" "$t" 2>/dev/null || true; } | wc -l | tr -d ' ')
     if [ "$n" -gt 0 ]; then
       echo "FAIL: $t has $n forbidden hits (must be 0)" >&2
       grep -rnE "$PATTERN" "$t" >&2
