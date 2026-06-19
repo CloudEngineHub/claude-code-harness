@@ -81,6 +81,37 @@ review が `APPROVE` なら、そのまま `harness-release` の Work Commit Gat
 review が `REQUEST_CHANGES` なら release は保留し、`harness-work` で修正してから `harness-review` を再実行する。
 この修正後再レビュー loop は `APPROVE` まで継続する。
 
+#### Persist Verdict after Review Gate (required / #218 fix)
+
+`harness-review` 委譲後、必ず `.claude/state/review-result.json` に verdict が永続化されている
+ことを確認する。`harness-review` 側の Persist Verdict step が踏まれていれば既に保存済みだが、
+踏み忘れ時の **二段防御**として、Review Gate 側でも次の check + 補完保存を行う。これを欠かすと
+**Work Commit Gate (Step 6) の `git commit` が PreToolUse commit guard でブロックされる**。
+
+```bash
+# 1. 保存済みか確認
+if [ -f .claude/state/review-result.json ] \
+   && [ "$(jq -r '.verdict // empty' .claude/state/review-result.json 2>/dev/null)" = "APPROVE" ]; then
+  echo "review-result.json already persisted with APPROVE"
+else
+  # 2. 未保存なら orchestrator が in-context の verdict JSON を一時ファイルへ書き出し
+  mkdir -p .claude/state
+  cat > .claude/state/tmp-review-result.json <<'JSON'
+{ "schema_version": "review-result.v1", "verdict": "APPROVE", ... }
+JSON
+  bash "${HARNESS_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-$PWD}}/scripts/write-review-result.sh" \
+    .claude/state/tmp-review-result.json \
+    "$(git rev-parse --short HEAD 2>/dev/null || true)"
+  rm -f .claude/state/tmp-review-result.json
+fi
+```
+
+multi-commit セーフティ: Phase 94.1.3 で PostToolUse commit-cleanup が `VERSION` / `.claude-plugin/plugin.json` /
+`harness.toml` / `CHANGELOG.md` のみの **bookkeeping commit** を認識し承認削除を skip するようになったため、
+Post-Gate の version bump commit (Step 11) は `harness-release` の自動 commit でそのまま通過する。
+それ以前のバージョン (4.15.0 以前) を使う場合は、Work Commit Gate と version bump commit の間に
+再度 Persist Verdict を行うこと。
+
 ユーザーに戻してよいのは次の場合だけ。
 
 1. 修正に仕様正本 / Plans.md / API / permission / migration / billing などの意思決定が必要で、`AskUserQuestion` が必要

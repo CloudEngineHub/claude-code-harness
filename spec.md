@@ -708,6 +708,46 @@ is installed.
 - Received bodies are injected as data, not instructions: wrapped with the
   non-instruction disclaimer and bounded by the same byte cap as the inbox path.
 
+## Review Approval Persistence Contract
+
+Every review approval that the host runtime needs to honour is persisted to
+`.claude/state/review-result.json` regardless of which path produced it. The
+commit guard reads only that file, so any verdict that exists only in the
+conversation cannot pass the gate. This contract was codified in Phase 94
+(`#218` + `#219`).
+
+The contract has three parts:
+
+- **Coverage**: every review path persists the verdict. `harness-work`,
+  `breezing`, and `harness-loop` already wrote via `scripts/write-review-result.sh`
+  from a SKILL step. Phase 94.1.1 added the same step to `harness-review` (Output
+  Contract) and to `harness-release` (Review Gate delegation). Phase 94.1.2 added
+  a deterministic backstop: a `SubagentStop` hook handler
+  (`scripts/hook-handlers/subagentstop-reviewer-persist.sh`) that extracts the
+  `review-result.v1` JSON block from the reviewer subagent's final transcript
+  turn and persists it via the same writer. The backstop fires when the SKILL
+  step is skipped by the LLM. Coverage = SKILL step (intentional) ∪ hook
+  (fail-safe).
+- **Bookkeeping-only exemption**: a commit whose diff touches only
+  `VERSION`, `.claude-plugin/plugin.json`, `harness.toml`, or `CHANGELOG.md` is a
+  release bookkeeping commit, not a code change. The PreToolUse commit guard
+  (`scripts/pretooluse-guard.sh`) and the PostToolUse cleanup
+  (`go/internal/hookhandler/posttooluse_commit_cleanup.go`) both recognise this
+  taxonomy and exempt bookkeeping commits from the approval requirement and the
+  approval-clearing step. Merge commits are also exempt. Any other diff still
+  consumes the approval (= the pre-Phase 94 behaviour). Both sides must apply
+  the exemption — if only one side did, the next commit in a multi-commit flow
+  would still be blocked.
+- **Determinism over coordination**: the cleanup and the persistence layer do
+  not depend on the LLM following SKILL instructions. The hook layer must
+  produce the same outcome whether or not the agent remembered to invoke the
+  writer. Decisions about whether to keep or clear an approval are recorded in
+  `.claude/state/commit-cleanup-audit.jsonl` (append-only) so that the operator
+  can later see why a given commit kept or lost the prior approval.
+
+This contract closes the path that prevented `harness-review` standalone runs
+and `harness-release` bare invocations from progressing to the commit step.
+
 ## Non-Goals
 
 V2 does not:
