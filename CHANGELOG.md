@@ -52,6 +52,16 @@ Change history for claude-code-harness.
 
 - **Runtime action hard floor（Phase 92.2.1）**: Bash command を実行前（PreToolUse 層）に pattern-match して 5 カテゴリ（money/billing・外部送信/egress・認証/secret 読取・本番 deploy・worktree 外破壊）の運用は必ず human escalation に上げる仕組みを `go/internal/runtimefloor` として追加しました。`CheckCommand` は disable flag / env var / config 読込を構造的に持たないため、どの設定でも無効化できません。decision は `permissionDecision=ask` + reason `RUNTIME_FLOOR:<category>:...` 形式で返ります。既存の file gate (`go/internal/floor`) は "pre-merge policy gate" と名称分離し、混同を防ぎました。
 
+- **Worktree-escape の OS temp allowlist（Phase 92.2.4）**: Phase 92.2.1 で導入した `worktree-escape` カテゴリの判定を narrow にしました。OS が「消えていい」と保証している scratch 領域（`/tmp` / `/var/tmp` / macOS の `/private/tmp` / `/private/var/tmp` / `$TMPDIR` override / `~/.cache` / `~/Library/Caches`）配下の `rm -rf` は worktree 外でも通します。`~/Desktop` / `~/Documents` / `/etc` / `/opt` 等の本物の data-loss path は引き続き `RUNTIME_FLOOR:worktree-escape` で人間判断必須です。
+
+#### Before/After（Worktree-escape temp allowlist）
+
+| Before | After |
+|--------|-------|
+| `rm /tmp/v3check/p*.png` のような一時ファイル掃除も毎回 hard stop | OS temp 領域配下は通る。本当のデータ損失リスクのある削除のみ stop |
+| `rm ~/Desktop/important.pdf` も `rm /tmp/foo` も同じ扱い | Desktop/Documents 等は stop、`/tmp` 系は通る |
+| Phase 92.2.1 fail-safe（env / config で disable できない）を維持 | 同じ。allowlist は code に hardcode（runtime 上書き経路なし） |
+
 - **Worktree escape fingerprint gate（Phase 92.2.2）**: cursor/codex worker の worktree 封じ込めを `go/internal/wtfingerprint` + `bin/harness wt fingerprint capture/diff` で実装しました。`scripts/cursor-companion.sh` と `scripts/codex-companion.sh` は task 実行を fingerprint capture(before) → 起動 → diff の流れで wrap し、`$HOME/.claude/settings*.json`・`~/.claude/plugins/{installed_plugins,known_marketplaces,blocklist}.json`・`~/.aws/`・`~/.ssh/`・`~/.gnupg/`・`~/.config/gcloud/`・`~/.netrc` への worktree 外書込を検知すると hard-stop します（companion exit 1）。`bin/harness` 不在は fail-fast。`.claude/rules/cursor-cli-only.md` に「`--workspace` は CWD ヒントで書込境界ではない」を明記し、Harness 側 3 段境界（専用 worktree + fingerprint 比較 + Lead diff review/cherry-pick）を SSOT 化しました。CC ランタイム自身が常時書き込む ephemeral 領域（`~/.claude/projects/` / `~/.claude/plugins/cache/` 等）は監視対象外として false WORKTREE-ESCAPE を構造的に防いでいます。
 
 - **Team dispatch hardening（Phase 92.2.3）**: `harness work --team` 経路で companion 起動直前に Phase 92.2.1 の runtime hard floor を通すよう配線しました。floor が止めた場合は companion を起動せず `RUNTIME_FLOOR:<category>:...` を載せた exit 2 envelope を返します。auto-approve（環境変数 `HARNESS_AUTO_APPROVE=on`）は `go/internal/autoapprove` で構造的 fail-safe 化し、`bin/harness wt fingerprint capture` が exit 0 で動かない限り **OFF に強制**されます（env だけでは ON にできない）。新 package `go/internal/orchestrationledger` が `scripts/lib/orchestration-ledger.sh` と互換な 8 フィールド JSONL を `subcommand="team-dispatch"` で append し、auto-approve 判定と floor stop を Lead が監査できるようにしました。
