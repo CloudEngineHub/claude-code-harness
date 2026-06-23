@@ -543,4 +543,65 @@ autonomous_stop_points (Lead 判断を要する箇所):
 - **101.7** §7 禁止フレーズの gate 化対象の線引き（決定性サブセットの確定）と適用 public doc ファイル列
 - **101.8** prose SSOT を単一化するか register 分離（技術文書 / 外部 / easy）にするか
 
-**注**: Phase 101 は検証のみ。実装計画（Phase 102+）は U0–U7 の evidence が出てから `/harness-plan create` で確定する。VERSION / plugin.json / harness.toml は触らない（通常 planning）。
+---
+
+## Phase 102: Local dogfood / release alignment + Codex cache refresh
+
+**Purpose**: `public/latest`、Claude Code local dogfood、Codex local cache、development branch を分けて整理し、Codex `breezing --cursor` を他作業で使えるよう active local cache に即時反映してから、redesign work を再開できる状態に戻す。
+
+**Spec skip reason**: `spec.md` は既に Execution Backend Contract / resolver-only backend selection / `/breezing` argument surface (`--cursor`) を定義済み。今回は product contract 変更ではなく、runtime truth surface の整理、local cache drift 解消、review closeout。
+
+**team_validation_mode**: `manual-pass`（Codex native TeamAgent / `spawn_agent` はこの実行面では未露出。Product / Architecture / Security / QA / Skeptic 観点を Lead が分けて評価）。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 102.1 | `[lane:fast]` `[tdd:skip:investigation]` public/latest・local applied・development branch・Codex local cache の truth surface を表に整理 | (a) `docs/local-dogfood-release-alignment-2026-06-22.md` に version/capability table、(b) v4.16.1 に `--cursor` 有・Phase 92.2.4 無の tag grep evidence、(c) harness-mem evidence id 記録 | - | cc:done |
+| 102.2 | `[lane:fast]` `[tdd:skip:local-cache-sync]` active Codex plugin cache `4.12.11` の `breezing` / `harness-work` を repo Codex SSOT から同期し、`--cursor` / backend selection を即時利用可能にする | (a) cache `skills/breezing/SKILL.md` hash が `skills-codex/breezing/SKILL.md` と一致、(b) cache `skills/harness-work/SKILL.md` hash が `skills-codex/harness-work/SKILL.md` と一致、(c) cache grep `--cursor` / `cursor-companion.sh` が hit | 102.1 | cc:done |
+| 102.3 | `[lane:release]` `[tdd:skip:docs-only]` release update 判断を固定: v4.16.1 は `--cursor` 済み、Phase 92.2.4 は未 release、plain update は dogfood patch を落とす可能性あり | (a) decision が `.claude/memory/decisions.md` または docs に Why 付きで残る、(b) 「update 可否」推奨が Yes/No で読める、(c) release/publish/tag は実行しない | 102.1 | cc:done |
+| 102.4 | `[lane:gate]` `[tdd:skip:review-closeout]` mirror / repo / cache 検証と harness-review closeout | (a) `scripts/sync-skill-mirrors.sh --check` PASS、(b) focused grep checks PASS、(c) harness-review または manual-pass review で critical/major 0、(d) Phase 102 全 task を `cc:done` に更新 | 102.2, 102.3 | cc:done |
+
+---
+
+## Phase 103: Public release promotion + redesign resume alignment
+
+**Purpose**: Phase 102 で分離した `public/latest`、Claude Code local dogfood、development branch の差分を解消する。配布版は `origin/main`/release line を基点に Phase 92.2.4 相当を最小 backport/promote して `v4.16.1` より新しい public release 候補へ進める。リデザイン版はその release-line 結果と Phase 95 / PR #225 の release workflow delegation だけを取り込み、`plan/zero-base-redesign` の 166 ahead / 89 behind 状態を解消して HOTL/redesign 作業を再開可能にする。
+
+**Spec result**: `spec.md` は既存の `[lane:release]` required closeout、Stage Gate Flow、PR / Release Boundary、`local checks passed != release ready` を維持したまま、PR #225 由来の Release Workflow Delegation Contract だけを追加した。今回は新しい product contract 追加ではなく、dogfood-only patch の public release 昇格、PR #225 の release safety 取り込み、branch alignment の実行計画。
+
+**Approval**: 2026-06-23 user approved this plan. Additional user constraint: redesign はゼロベース作り直しなので、旧仕様へ戻す取り込みは禁止。必要な知見・安全対策・release 手順だけを allowlist で取り込む。
+
+**team_validation_mode**: `manual-pass + focused-subagent-investigation`（Product / Architecture / Security / QA / Skeptic 観点を Lead が分けて評価し、PR #225 / `cbc4c904` / Phase 92.2.1-92.2.4 の所在確認だけ subagent 3 本で分担）。
+
+**validation_baseline**: Go は `gofmt` + focused `go test`、plugin/package は `bash tests/validate-plugin.sh` + `bash scripts/ci/check-consistency.sh`、release lane は `bash scripts/release-preflight.sh` または現行 `harness-release --check`、docs-only 差分は `git diff --check`。不足が見つかった場合は 103.1 の中で setup task に分離する。
+
+**manual-pass summary**:
+
+| 観点 | 判断 | Why |
+|---|---|---|
+| Product | Phase 92.2.4 は公開版へ反映する | local dogfood で試した安全挙動が public `v4.16.1` に無く、plain update すると挙動を失うため |
+| Architecture | release line へ最小 backport し、current redesign branch を直接 release source にしない | `plan/zero-base-redesign` は ahead/behind が大きく、未完成 redesign/HOTL 文脈を public artifact に混ぜるリスクが高い |
+| Security | tag / GitHub Release / push は explicit release gate まで行わない | public artifact と外部副作用は Risk Gate。local green や review approve は release ready ではない |
+| QA | release fix と redesign sync のテスト面を分ける | 配布版の安全回帰と、リデザイン branch の再開可能性は failure surface が違う |
+| Skeptic | cache 直接更新を「リリース済み」と扱わない | cache patch は update で上書きされる convenience patch で、配布保証ではない |
+
+**redesign import allowlist / denylist**:
+
+| 区分 | 取り込み可否 | 内容 |
+|---|---|---|
+| Phase 92.2.4 runtime safety | 取り込む | worktree-escape OS temp allowlist。安全挙動として release / redesign の両方に必要 |
+| Phase 95 / PR #225 release delegation | 取り込む | Claude Code runtime hard floor に合わせ、publish は workflow に委譲し、確認は verify script / API polling で行う |
+| Codex `breezing --cursor` / cache drift 解消 | 取り込む | 現行作業を動かす tool surface。旧 product spec ではない |
+| 旧 HOTL / Fleet / agent teams の未確定仕様 | 取り込まない | 知見として参照は可。ただし redesign の新仕様を旧仕様へ戻す merge は不可 |
+| 旧 UI / 旧 workflow defaults | 取り込まない | ゼロベース redesign の設計意図を優先。必要なら新設計へ翻訳して別 task 化 |
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 103.1 | `[lane:release]` `[tdd:skip:investigation]` release truth surface を再確認し、release/backport branch の基点を固定する。`v4.16.1`、`origin/main`、`cbc4c904`、local Claude cache、Phase 102 doc、D53/D54、harness_session_inbox signal `a8f0cf7c-1351-462c-8b1f-727700e17254` を同じ表で再検証 | Done: `gh release list` で public latest は 2026-06-23 時点も `v4.16.1`。`git tag --contains cbc4c904` は empty、`git branch --contains cbc4c904` は `plan/zero-base-redesign` のみ。`harness_session_inbox` は新規なし、scoped `harness_mem_signal_read(agent_id=d0226600-edeb-44b0-ae5b-2235d2b601f2)` で signal `a8f0...` は `ackedAt=null` の PR #225 handoff と確認。release candidate 基点は `origin/main` `ef79f618` とし、redesign branch は release source にしない。 | - | cc:done [investigation] |
+| 103.2 | `[lane:release]` `[tdd:required]` Phase 92.2.4 相当（worktree-escape OS temp allowlist）を release line へ最小 backport/promote する。redesign/HOTL 未完成差分は入れない | Done on `release/v4.16.2-phase103`: `408fed5b` で Phase 92.2.1 runtimefloor を release line へ追加、`bc96f759` で `cbc4c904` の temp allowlist を最小昇格。Focused `go test ./go/internal/runtimefloor ./go/internal/guardrail` PASS。HOTL/redesign/3CLI/autoapprove/orchestrationledger は入れない。 | 103.1 | cc:done [408fed5b, bc96f759] |
+| 103.3 | `[lane:release]` `[tdd:skip:release-metadata]` release candidate を作る。既定は patch bump `v4.16.2`（安全挙動の公開反映・互換維持）だが、差分確認で minor 相当なら Why 付きで変更。PR #225 の release workflow delegation を前提に、direct publish CLI 手順を復活させない | Done locally on `release/v4.16.2-phase103`: `8ca46950` で `VERSION` / plugin manifests / `harness.toml` を `4.16.2` に同期し、PR #225 の release delegation wording を direct publish-free に調整。`1138cbf6` で platform binaries 4 本を rebuild。Checks PASS: release verify/no-direct-publish tests、mirror sync、version check、focused Go tests、`validate-plugin` 104 PASS、`check-consistency` PASS、`release-preflight --check-adapters` 19 PASS / 5 WARN / 0 FAIL。 | 103.2 | cc:done [8ca46950, 1138cbf6] |
+| 103.4 | `[lane:release]` `[tdd:skip:external-release-gate]` public release closeout を実行する。PR / merge / tag / GitHub Release / plugin update 確認は明示 GO 後のみ。publish 実行は workflow に委譲し、operator は verify script / API polling で公開完了を確認する | Pending external GO: local release candidate is ready, but branch push / PR / merge / tag / public release / plugin update are external side effects and remain unexecuted. Next required action is explicit release GO with PR body including base/head, release bump, tests, risk, D53/D54 boundary, and PR #225 boundary. | 103.3 | cc:blocked [external-release-go] |
+| 103.5 | `[lane:gate]` `[tdd:skip:branch-alignment]` `plan/zero-base-redesign` に必要な release/main safety 差分だけを取り込む。full merge/rebase は public release closeout 後の独立 branch-alignment gate に延期し、redesign import allowlist 以外の旧仕様は入れない | Done for resume gate: full merge/rebase は実行せず、PR #225 の safety contract だけを current redesign branch に手当て。Added `scripts/release-verify-publish.sh` + 2 tests、updated `skills/harness-release` + codex/opencode mirrors + release-notes reference、added `spec.md` Release Workflow Delegation Contract、`CHANGELOG.md` に current dev branch 用 entry。`VERSION=4.15.0` は dev surface として維持。 | 103.3 | cc:done [allowlist-only] |
+| 103.6 | `[lane:gate]` `[tdd:required]` redesign branch の再開前 smoke。Phase 92.2.4 挙動、PR #225 release delegation、Codex `breezing --cursor`、mirror/cache、HOTL Phase 101 前提を再検証する | Done on `plan/zero-base-redesign`: `bash tests/test-release-verify-publish.sh` PASS、`bash tests/test-release-skill-no-gh-release.sh` PASS、`bash scripts/sync-skill-mirrors.sh --check` in-sync、`go test ./go/internal/runtimefloor ./go/internal/guardrail` PASS、`git diff --check -- .` PASS、direct publish grep 0 hit in release skill/spec/test surfaces。Next HOTL/redesign task remains selectable from Phase 101/102 without old spec rollback. | 103.5 | cc:done [redesign-smoke] |
+| 103.7 | `[lane:fast]` `[tdd:skip:handoff-docs]` release 反映版 / local applied 版 / redesign 版の最終表を更新し、作業再開プロンプトを残す | Done locally: `docs/local-dogfood-release-alignment-2026-06-22.md` updated with 2026-06-23 Phase 103 table、`.claude/memory/decisions.md` updated with Why、this Plans.md row updated. Residual: public release execution remains 103.4 external gate. Suggested next resume prompt: "Continue Phase 103.4 external release gate for `release/v4.16.2-phase103`; if not releasing yet, resume HOTL/redesign from Phase 101/102 with PR #225 safety already imported." | 103.4, 103.6 | cc:done [handoff-docs] |
+
+**注**: Phase 101 は HOTL 検証のみ。HOTL 本実装計画は U0-U7 の evidence を前提に別途 `/harness-plan create` で確定する。Phase 102/103 は local dogfood / release / redesign alignment の計画であり、この planning turn では VERSION / plugin.json / harness.toml は触らない。
