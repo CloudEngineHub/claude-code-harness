@@ -2,75 +2,79 @@
 
 ## Conclusion
 
-Do not replace the current Claude Code local dogfood runtime with the public
-release line yet if Phase 92.2.4 behavior matters. Public `v4.16.1` is newer and
-already contains Codex `breezing --cursor` skill support, but it does not contain
-commit `cbc4c904` (`Phase 92.2.4 - worktree-escape OS temp allowlist`).
+Public latest is now `v4.16.2`. It includes the Phase 92.2.4-equivalent
+worktree-escape OS temp allowlist and PR #225 release workflow delegation.
 
-The Codex local skill cache is a separate problem: the active Codex plugin cache
-at `~/.codex/plugins/cache/claude-code-harness-local/claude-code-harness/4.12.11`
-was older than both `v4.15.0` and `v4.16.1` for `breezing` / `harness-work`.
-It should be refreshed from the repo's Codex skill SSOT so `--cursor` is usable
-immediately in other Codex work.
+The local Claude Code user-scope plugin has been updated from `4.15.0` to
+`4.16.2`. Claude Code reports that a restart is required to apply the update.
+Because the plugin cache update populated manifest/skills but not `bin/`, the
+local `4.16.2` cache `bin/` was filled from the published `v4.16.2` release
+assets so hooks can still resolve `bin/harness` after restart.
 
-## Phase 103 update - 2026-06-23
+The redesign branch remains a development surface, not a release source. It keeps
+its zero-base redesign direction; the release work does not authorize a full
+merge/rebase that would bring old HOTL/Fleet/UI defaults back into the redesign.
+
+## Phase 103 closeout - 2026-06-24
 
 | Surface | Current state | What it means |
 |---|---|---|
-| Public latest | `v4.16.1` remains latest (`gh release list`, published 2026-06-19T03:42:48Z) | Public users still do not have the Phase 92.2.4 temp allowlist. |
-| Release candidate | local branch `release/v4.16.2-phase103`, ahead of `origin/main` by 4 commits: `408fed5b`, `bc96f759`, `8ca46950`, `1138cbf6` | Ready locally for PR/release gate. It promotes runtimefloor/temp allowlist, bumps metadata to `4.16.2`, sanitizes release delegation wording, and rebuilds 4 platform binaries. |
-| Local Claude dogfood | version label `4.15.0`, binary contains `runtimefloor` / `allowlistedTempRoots` behavior from `cbc4c904` | Still a dogfood patch, not a clean public install. Keep until `v4.16.2` or equivalent is published and verified. |
-| Redesign branch | `plan/zero-base-redesign` at `cbc4c904`, `VERSION=4.15.0`, plus PR #225 release-delegation safety files patched in | No full merge/rebase from old main. Only release safety knowledge was imported so HOTL/redesign work can resume without rolling back to older specs. |
+| Public latest | `v4.16.2` is Latest (`gh release list`, published 2026-06-24T02:50:47Z) | Public users now have the release-line safety promotion and PR #225 workflow delegation. |
+| Release source | PR #226 merged to `origin/main` at `78a8c3b5`; tags `v4.16.2` and `claude-code-harness--v4.16.2` pushed | Release source was `release/v4.16.2-phase103`, not `plan/zero-base-redesign`. |
+| GitHub Release | `auto-release` run `28071678901` succeeded; `release-verify-publish` PASS with 4 assets | Publish was delegated to workflow; operator verification used script/API polling. |
+| Local Claude applied plugin | `claude-code-harness@claude-code-harness-marketplace` user scope is `4.16.2`, enabled; restart required | Local installed version now matches public latest. Cache `bin/` was filled from published assets because hooks require `bin/harness`. |
+| Redesign branch | `plan/zero-base-redesign` remains a dev surface with `VERSION=4.15.0` and PR #225 safety files patched in | Work can resume without treating old main/release specs as the redesign source of truth. |
 
 ### Version / capability comparison
 
 | Version/surface | Performance / capability profile | Release status |
 |---|---|---|
-| `v4.16.1` public | Official latest. Has PR #225 release workflow delegation on `origin/main`, but lacks local dogfood Phase 92.2.4 runtimefloor temp allowlist. | Released. |
-| Local applied dogfood `4.15.0+cbc4c904` | Best local UX for current CC sessions: `/tmp` / cache cleanup no longer hard-stops, while real data-loss paths still escalate. Version label is stale by design. | Local-only test patch. |
-| `v4.16.2` release candidate | Intended public replacement: official release-line base + runtimefloor + temp allowlist + PR #225 delegation + rebuilt binaries. | Local candidate only; push/PR/tag/public release require explicit external-release GO. |
+| `v4.16.2` public/latest | Official release-line base + runtimefloor/temp allowlist + PR #225 delegation + 4 platform release assets. | Released and Latest. |
+| Local applied Claude plugin `4.16.2` | Installed user-scope plugin is `4.16.2`; cache binaries match published release asset SHA256 digests; `bin/harness --version` returns `4.16.2 (Hokage)`. | Applied locally; Claude Code restart required. |
+| Previous dogfood `4.15.0+cbc4c904` | The old local-only safety patch is now superseded by public `v4.16.2`. | Historical dogfood surface only. |
 | Redesign branch `plan/zero-base-redesign` | Design/research line for new HOTL/redesign. Keeps Phase 92.2.4 and receives PR #225 safety contract, but does not accept old HOTL/Fleet/UI defaults by merge. | Development branch, not release source. |
 
 ### Phase 103 decision
 
-- Use `release/v4.16.2-phase103` as the release candidate surface, not `plan/zero-base-redesign`.
-- Keep `plan/zero-base-redesign` on its redesign path. Import only Phase 92.2.4 runtime safety and PR #225 release delegation.
-- Do not update the local dogfood install from public latest until the public artifact is verified to include Phase 92.2.4 behavior by binary/hash/behavior.
-- Tag, GitHub Release, plugin update, and public cache replacement remain external-release gates.
+- Completed: use `release/v4.16.2-phase103` as the release surface, not `plan/zero-base-redesign`.
+- Completed: publish `v4.16.2` through workflow delegation and verify with release script/API.
+- Completed: update the local Claude plugin after verifying public asset version/hash/behavior.
+- Still preserved: keep `plan/zero-base-redesign` on its redesign path and import only allowlisted safety/release knowledge.
 
 ## Evidence
 
 | Surface | Observed value | Evidence |
 |---|---:|---|
-| Public latest release | `v4.16.1` | `gh release list --repo Chachamaru127/claude-code-harness --limit 3` |
-| Release line version files | `4.16.1` | `git show v4.16.1:VERSION`; `.claude-plugin/plugin.json`; `.codex-plugin/plugin.json`; `harness.toml` |
-| Current dev branch | `plan/zero-base-redesign` at `cbc4c904` | `git rev-parse --abbrev-ref HEAD`; `git log -1 --oneline` |
-| Current dev version files | `4.15.0` | `cat VERSION`; `.claude-plugin/plugin.json`; `harness.toml` |
-| Local Claude plugin registry | `claude-code-harness` version `4.15.0` | `claude plugin list`; `~/.claude/plugins/installed_plugins.json` |
-| Local Claude patched binary | `4.15.0` label, but contains `cbc4c904` binary behavior | binary shasum equality with repo `bin/harness-darwin-arm64`; strings include `runtimefloor`, `allowlistedTempRoots`, `worktree-escape` |
-| Public release contains Codex `--cursor` skill support | yes | `git show v4.16.1:skills-codex/breezing/SKILL.md` grep `--cursor` |
-| Public release contains Phase 92.2.4 temp allowlist | no | `git show v4.16.1:go/internal/runtimefloor/runtimefloor.go` grep `allowlistedTempRoots` returns 0 |
-| Current branch commit in release tags | no | `git tag --contains cbc4c904...` returns 0 |
+| Public latest release | `v4.16.2` | `gh release list --repo Chachamaru127/claude-code-harness --limit 5` |
+| Release source commit | `78a8c3b596fae82422e2c167dd222eba32cfc548` | PR #226 merge commit; `gh run view 28071678901` headSha |
+| Release publish workflow | success | `gh run watch 28071678901 --exit-status`; `gh run view 28071678901` |
+| Public artifact verification | PASS, 4 assets | `bash scripts/release-verify-publish.sh v4.16.2 Chachamaru127/claude-code-harness` |
+| Published darwin-arm64 asset | `6dd13bd4743182a293b3756d9789494c26b045d64a7c59c3a59c5a5f71dd3bd7` | `gh release view v4.16.2 --json assets`; local cache `shasum -a 256` |
+| Published runtime behavior | `4.16.2 (Hokage)`, contains `allowlistedTempRoots` / `runtimefloor` | downloaded release asset `--version`; `strings ... | rg` |
+| Local Claude plugin registry | `claude-code-harness` version `4.16.2` | `claude plugin list`; `~/.claude/plugins/installed_plugins.json` |
+| Local Claude plugin cache | `installPath` points to `.../claude-code-harness/4.16.2` at `gitCommitSha=78a8c3b5` | `~/.claude/plugins/installed_plugins.json` |
+| Current dev branch | `plan/zero-base-redesign` at `c61247ac` | `git rev-parse --abbrev-ref HEAD`; `git log -1 --oneline` |
+| Current dev version files | `4.15.0` | intentionally retained as dev surface, not public release metadata |
 | harness-mem prior context | local cache was patched for Phase 92.2.4 dogfood | `obs_00mqo0jxv88e8ec30efe8371f2` |
 
 ## Version / capability table
 
 | Name | Actual state | Capability / safety profile | Recommendation |
 |---|---|---|---|
-| Codex local cache `4.12.11` | Active Codex skill bundle before this sync. `breezing` lacked `--cursor` / backend selection text. | Oldest capability. Bad fit for current cross-tool work because `composer` / `--cursor` intent is not visible to the Codex skill. | Refresh the two Codex skill files locally now. Low risk; docs/skill-only. |
-| Public release `v4.16.1` | Latest public release, version files all `4.16.1`. | Newer release line. Includes Codex `breezing --cursor` support. Does not include Phase 92.2.4 temp allowlist. | Good official line, but not a drop-in replacement for the dogfood Claude runtime if Phase 92.2.4 matters. |
-| Local Claude applied runtime | Registry says `4.15.0`, but binary cache was manually patched from `cbc4c904`. | Has Phase 92.2.4 behavior: OS temp cleanup no longer hard-stops as worktree escape; real data-loss paths still stop. Version label remains `4.15.0`, so it is intentionally a dogfood patch, not a clean release install. | Keep for now until `cbc4c904` or equivalent is released. |
-| Development branch `plan/zero-base-redesign` | `VERSION=4.15.0`, HEAD `cbc4c904`, ahead/behind `origin/main`. | Development/research line with redesign/HOTL work and Phase 92.2.4. Not identical to public release and not installed as a full plugin. | Resume work here after the local cache sync and review closeout. |
+| Codex local cache `4.12.11` | Previously stale; Phase 102 refreshed the relevant Codex skill files from repo SSOT. | Solves Codex `breezing --cursor` visibility without changing release source. | No new action from Phase 103. |
+| Public release `v4.16.2` | Latest public release, version files and GitHub Release are `4.16.2`. | Includes Codex skill support, Phase 92.2.4-equivalent runtimefloor temp allowlist, PR #225 workflow delegation, and 4 platform assets. | Use as the public baseline. |
+| Local Claude applied runtime | User-scope plugin registry says `4.16.2`; cache `bin/` matches published release asset SHA256 digests. | Clean public install surface is now aligned with the safety behavior previously tested as dogfood. Current Claude process may still need restart. | Treat local applied version as `4.16.2` after restart. |
+| Development branch `plan/zero-base-redesign` | `VERSION=4.15.0`, HEAD `c61247ac`, ahead/behind `origin/main`, PR #225 safety patched in. | Development/research line with redesign/HOTL work. Not identical to public release and not the release source. | Resume HOTL/redesign here, using `v4.16.2` as public baseline evidence only. |
 
 ## Decision matrix
 
 | Question | Answer | Why |
 |---|---|---|
-| 1. What should the release line update include? | Promote/backport Phase 92.2.4 into a future release if the temp-allowlist behavior is desired publicly. Codex `--cursor` is already in `v4.16.1`. | The only confirmed missing dogfood feature in `v4.16.1` is `cbc4c904`; tag grep shows `--cursor` is already present. |
-| 2. Can the local dogfood runtime be updated to the public release now? | Not recommended as the default. | A plain update to `v4.16.1` would move to official bits but likely drop the Phase 92.2.4 local patch. |
-| 3. How to get Codex `breezing --cursor` locally now? | Sync `skills-codex/breezing` and `skills-codex/harness-work` into the active Codex cache `4.12.11`. | Current repo and public release already contain the contract; the active cache is simply stale. |
-| 4. What should be reflected in development version? | Keep the existing Codex skill support as-is; record this alignment doc and Plans.md Phase 102. | No code delta is needed in dev for `--cursor`; the repo SSOT already has it. |
-| 5. When to resume development work? | After cache sync, mirror/repo checks, and review approve. | This avoids continuing HOTL/redesign work while the operator-facing tool surface remains stale. |
+| 1. Was the dogfood-only safety behavior promoted? | Yes. `v4.16.2` public contains the runtimefloor/temp allowlist promotion. | PR #226 merged the release branch and release assets contain `allowlistedTempRoots` / `runtimefloor`. |
+| 2. Can the local dogfood runtime be updated to public latest now? | Yes, and it has been updated to `4.16.2`. | The public asset was verified by version/hash/symbol before local update/cache repair. |
+| 3. Does this mean redesign should merge old main wholesale? | No. | Public release closeout and zero-base redesign are different truth surfaces; only allowlisted safety/release knowledge should flow into redesign. |
+| 4. What should be reflected in development version? | Keep dev metadata (`VERSION=4.15.0`) until redesign itself intentionally bumps. | `4.16.2` metadata belongs to the release line, not the current redesign branch. |
+| 5. When to resume development work? | Now, after Claude restart if relying on updated Claude plugin hooks. | Release, local install, and handoff docs are closed; remaining work is HOTL/redesign, not release gate. |
 
 ## Spec result
 
