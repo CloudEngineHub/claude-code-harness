@@ -197,7 +197,7 @@ func TestCheckWorktreeEscape_AllowsUserCacheRoots(t *testing.T) {
 
 func TestCheckWorktreeEscape_StopsHomeDirectoriesOutsideCache(t *testing.T) {
 	worktree := testWorktreeRoot(t)
-	home := t.TempDir()
+	home := "/home/runtimefloor-test-user"
 	t.Setenv("HOME", home)
 	t.Setenv("TMPDIR", t.TempDir())
 
