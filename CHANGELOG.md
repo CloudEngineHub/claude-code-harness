@@ -6,6 +6,8 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.16.3] - 2026-06-24
+
 ### Fixed
 
 #### Plugin reload 後に `UserPromptSubmit` hook が missing script で警告する問題
