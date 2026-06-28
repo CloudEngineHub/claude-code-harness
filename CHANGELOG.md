@@ -6,6 +6,30 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Changed
+
+#### runtime action hard floor の egress カテゴリにオーナー単位の scope 制御を追加
+
+**今まで**: `curl` / `wget` / `nc` / `scp` / `rsync` で許可リスト外ホストへ通信すると、
+runtime action hard floor が必ず human approval に上げていました。これは自律 worker の
+暴走防止としては正しい一方、ユーザー自身が回す調査・ダイナミックワークフロー（外部 URL を
+正当に多数取得し、人間がその場で見ている）でも step ごとに同じ確認が出続け、過剰でした。
+egress は環境変数で無効化できない設計のため、これを止める手段がありませんでした。
+
+**今後**: オーナーが `HARNESS_RUNTIME_FLOOR_EGRESS=off` を設定したセッションでは、
+egress カテゴリ**のみ**を floor の対象外にできます。残る 4 カテゴリ（課金 / secret 読取 /
+本番 publish / worktree 外破壊）は引き続き無効化不可です。
+
+```jsonc
+// ~/.claude/settings.json — 調査セッションを既定で egress floor の対象外にする
+{ "env": { "HARNESS_RUNTIME_FLOOR_EGRESS": "off" } }
+```
+
+この変数は PreToolUse hook が読む **Claude Code プロセスの環境**に対してのみ効きます。
+sandbox 化・prompt injection された worker は hook の環境を書き換えられないため、
+設定できるのはセッションを起動する人間（shell export か settings.json）に限られます。
+未設定・`off` 以外の値はすべて従来どおり enforce（fail-safe default）。
+
 ## [4.16.3] - 2026-06-24
 
 ### Fixed
