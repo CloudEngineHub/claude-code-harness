@@ -13,7 +13,9 @@ assets so hooks can still resolve `bin/harness` after restart.
 
 The redesign branch remains a development surface, not a release source. It keeps
 its zero-base redesign direction; the release work does not authorize a full
-merge/rebase that would bring old HOTL/Fleet/UI defaults back into the redesign.
+merge/rebase that would mechanically restore old HOTL/Fleet/UI defaults. The
+knowledge from those areas is still carried forward by translating it into the
+new design.
 
 ## Phase 103 closeout - 2026-06-24
 
@@ -23,7 +25,7 @@ merge/rebase that would bring old HOTL/Fleet/UI defaults back into the redesign.
 | Release source | PR #226 merged to `origin/main` at `78a8c3b5`; tags `v4.16.2` and `claude-code-harness--v4.16.2` pushed | Release source was `release/v4.16.2-phase103`, not `plan/zero-base-redesign`. |
 | GitHub Release | `auto-release` run `28071678901` succeeded; `release-verify-publish` PASS with 4 assets | Publish was delegated to workflow; operator verification used script/API polling. |
 | Local Claude applied plugin | `claude-code-harness@claude-code-harness-marketplace` user scope is `4.16.2`, enabled; restart required | Local installed version now matches public latest. Cache `bin/` was filled from published assets because hooks require `bin/harness`. |
-| Redesign branch | `plan/zero-base-redesign` remains a dev surface with `VERSION=4.15.0` and PR #225 safety files patched in | Work can resume without treating old main/release specs as the redesign source of truth. |
+| Redesign branch | `plan/zero-base-redesign` remains a dev surface with `VERSION=4.15.0` and PR #225 safety files patched in | Work can resume without treating old main/release specs as the redesign source of truth. HOTL/Fleet/UI lessons still carry forward as translated inputs. |
 
 ### Version / capability comparison
 
@@ -32,14 +34,14 @@ merge/rebase that would bring old HOTL/Fleet/UI defaults back into the redesign.
 | `v4.16.2` public/latest | Official release-line base + runtimefloor/temp allowlist + PR #225 delegation + 4 platform release assets. | Released and Latest. |
 | Local applied Claude plugin `4.16.2` | Installed user-scope plugin is `4.16.2`; cache binaries match published release asset SHA256 digests; `bin/harness --version` returns `4.16.2 (Hokage)`. | Applied locally; Claude Code restart required. |
 | Previous dogfood `4.15.0+cbc4c904` | The old local-only safety patch is now superseded by public `v4.16.2`. | Historical dogfood surface only. |
-| Redesign branch `plan/zero-base-redesign` | Design/research line for new HOTL/redesign. Keeps Phase 92.2.4 and receives PR #225 safety contract, but does not accept old HOTL/Fleet/UI defaults by merge. | Development branch, not release source. |
+| Redesign branch `plan/zero-base-redesign` | Design/research line for new HOTL/redesign. Keeps Phase 92.2.4 and receives PR #225 safety contract. It does not accept old HOTL/Fleet/UI defaults by mechanical merge, but it does inherit their lessons by translation. | Development branch, not release source. |
 
 ### Phase 103 decision
 
 - Completed: use `release/v4.16.2-phase103` as the release surface, not `plan/zero-base-redesign`.
 - Completed: publish `v4.16.2` through workflow delegation and verify with release script/API.
 - Completed: update the local Claude plugin after verifying public asset version/hash/behavior.
-- Still preserved: keep `plan/zero-base-redesign` on its redesign path and import only allowlisted safety/release knowledge.
+- Still preserved: keep `plan/zero-base-redesign` on its redesign path, import allowlisted safety/release changes directly, and translate HOTL/Fleet/UI lessons into the new design.
 
 ## Evidence
 
@@ -72,7 +74,7 @@ merge/rebase that would bring old HOTL/Fleet/UI defaults back into the redesign.
 |---|---|---|
 | 1. Was the dogfood-only safety behavior promoted? | Yes. `v4.16.2` public contains the runtimefloor/temp allowlist promotion. | PR #226 merged the release branch and release assets contain `allowlistedTempRoots` / `runtimefloor`. |
 | 2. Can the local dogfood runtime be updated to public latest now? | Yes, and it has been updated to `4.16.2`. | The public asset was verified by version/hash/symbol before local update/cache repair. |
-| 3. Does this mean redesign should merge old main wholesale? | No. | Public release closeout and zero-base redesign are different truth surfaces; only allowlisted safety/release knowledge should flow into redesign. |
+| 3. Does this mean redesign should merge old main wholesale? | No. | Public release closeout and zero-base redesign are different truth surfaces. Safety/release changes may flow directly; HOTL/Fleet/UI lessons should flow as translated design inputs, not old defaults. |
 | 4. What should be reflected in development version? | Keep dev metadata (`VERSION=4.15.0`) until redesign itself intentionally bumps. | `4.16.2` metadata belongs to the release line, not the current redesign branch. |
 | 5. When to resume development work? | Now, after Claude restart if relying on updated Claude plugin hooks. | Release, local install, and handoff docs are closed; remaining work is HOTL/redesign, not release gate. |
 
