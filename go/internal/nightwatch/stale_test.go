@@ -61,7 +61,49 @@ func TestDetectStaleTasks_StaleWIP(t *testing.T) {
 	}
 }
 
-func TestDetectOpenDecisions_StaleOpen(t *testing.T) {
+func TestDetectOpenDecisions_RepoFormatJapaneseOpenState(t *testing.T) {
+	dir := t.TempDir()
+	decisionsPath := filepath.Join(dir, "decisions.md")
+	oldDate := time.Now().Add(-200 * time.Hour).Format("2006-01-02")
+	content := "## D57: 本流化 gate 判断 `#decision`\n\n**日付**: " + oldDate + "\n**状態**: 未決\n"
+	if err := os.WriteFile(decisionsPath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	open, err := DetectOpenDecisions(decisionsPath, 168, time.Now())
+	if err != nil {
+		t.Fatalf("DetectOpenDecisions: %v", err)
+	}
+	if len(open) != 1 {
+		t.Fatalf("got %d open decisions, want 1", len(open))
+	}
+	if open[0].DecisionID != "D57" {
+		t.Fatalf("decision_id = %q, want D57", open[0].DecisionID)
+	}
+	if !strings.Contains(open[0].Title, "本流化 gate 判断") {
+		t.Fatalf("title = %q", open[0].Title)
+	}
+}
+
+func TestDetectOpenDecisions_RepoFormatAdoptedIsNotOpen(t *testing.T) {
+	dir := t.TempDir()
+	decisionsPath := filepath.Join(dir, "decisions.md")
+	oldDate := time.Now().Add(-200 * time.Hour).Format("2006-01-02")
+	content := "## D1: 採用済み判断 `#decision`\n\n**日付**: " + oldDate + "\n**状態**: 採用\n"
+	if err := os.WriteFile(decisionsPath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	open, err := DetectOpenDecisions(decisionsPath, 168, time.Now())
+	if err != nil {
+		t.Fatalf("DetectOpenDecisions: %v", err)
+	}
+	if len(open) != 0 {
+		t.Fatalf("got %d open decisions, want 0", len(open))
+	}
+}
+
+func TestDetectOpenDecisions_LegacyDateFormatRegression(t *testing.T) {
 	dir := t.TempDir()
 	decisionsPath := filepath.Join(dir, "decisions.md")
 	oldDate := time.Now().Add(-200 * time.Hour).Format("2006-01-02")

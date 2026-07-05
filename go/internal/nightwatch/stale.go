@@ -17,22 +17,24 @@ import (
 )
 
 const (
-	defaultStaleTaskHours     = int64(72)
-	defaultOpenDecisionHours  = int64(168)
+	defaultStaleTaskHours      = int64(72)
+	defaultOpenDecisionHours   = int64(168)
 	defaultUnresolvedLoopHours = int64(1)
 )
 
 var (
 	nowFn = time.Now
 
-	reOpenStatus = regexp.MustCompile(`(?i)\*\*status\*\*:\s*open`)
-	reDecisionH  = regexp.MustCompile(`^##\s+([0-9]{4}-[0-9]{2}-[0-9]{2}):\s*(.+)$`)
+	reOpenStatus     = regexp.MustCompile(`(?i)^\*\*(?:status|状態)\*\*:\s*(open|pending|todo|unresolved|未決|未解決|保留|検討中|要判断)(?:\s|$|[（(])`)
+	reDateDecisionH  = regexp.MustCompile(`^##\s+([0-9]{4}-[0-9]{2}-[0-9]{2}):\s*(.+)$`)
+	reRepoDecisionH  = regexp.MustCompile(`^##\s+(D[0-9]+):\s*(.+)$`)
+	reDecisionDateJP = regexp.MustCompile(`^\*\*日付\*\*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})\b`)
 )
 
 // StaleConfig holds patrol thresholds loaded from templates/night-watch-config.yaml.
 type StaleConfig struct {
-	StaleTaskHours     int64
-	OpenDecisionHours  int64
+	StaleTaskHours    int64
+	OpenDecisionHours int64
 }
 
 // LoadStaleConfig reads stale_task_hours / open_decision_hours from config YAML.
@@ -110,7 +112,7 @@ func DetectStaleTasks(plansPath string, staleHours int64, now time.Time) ([]Stal
 	return stale, nil
 }
 
-// DetectOpenDecisions returns decisions marked **Status**: Open older than openHours.
+// DetectOpenDecisions returns decisions marked open/pending in decisions.md.
 func DetectOpenDecisions(decisionsPath string, openHours int64, now time.Time) ([]OpenDecision, error) {
 	data, err := os.ReadFile(decisionsPath)
 	if err != nil {
@@ -154,7 +156,16 @@ func DetectOpenDecisions(decisionsPath string, openHours int64, now time.Time) (
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if m := reDecisionH.FindStringSubmatch(trimmed); len(m) == 3 {
+		if m := reRepoDecisionH.FindStringSubmatch(trimmed); len(m) == 3 {
+			flush()
+			currentID = strings.TrimSpace(m[1])
+			currentTitle = strings.TrimSpace(m[2])
+			currentDate = time.Time{}
+			hasDate = false
+			open = false
+			continue
+		}
+		if m := reDateDecisionH.FindStringSubmatch(trimmed); len(m) == 3 {
 			flush()
 			currentID = strings.TrimSpace(m[2])
 			currentTitle = currentID
@@ -166,6 +177,14 @@ func DetectOpenDecisions(decisionsPath string, openHours int64, now time.Time) (
 			}
 			open = false
 			continue
+		}
+		if currentID != "" && !hasDate {
+			if m := reDecisionDateJP.FindStringSubmatch(trimmed); len(m) == 2 {
+				if d, err := time.Parse("2006-01-02", m[1]); err == nil {
+					currentDate = d
+					hasDate = true
+				}
+			}
 		}
 		if reOpenStatus.MatchString(trimmed) {
 			open = true
@@ -303,14 +322,14 @@ func extractTaskID(payloadJSON string) string {
 
 // BuildReportOptions configures report generation.
 type BuildReportOptions struct {
-	RepoRoot       string
-	DryRun         bool
-	Now            time.Time
-	BridgeHome     string
-	PlansPath      string
-	DecisionsPath  string
-	ConfigPath     string
-	SchemaPath     string
+	RepoRoot      string
+	DryRun        bool
+	Now           time.Time
+	BridgeHome    string
+	PlansPath     string
+	DecisionsPath string
+	ConfigPath    string
+	SchemaPath    string
 }
 
 // BuildReport assembles a schema-valid night-watch report.
