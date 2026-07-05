@@ -1184,6 +1184,24 @@ else
     warn_test "tests/test-phase-72-mirror-closeout.sh が見つかりません（スキップ）"
 fi
 
+
+
+echo ""
+echo "17. Hooks sync regression"
+echo "----------------------------------------"
+
+if bash "$PLUGIN_ROOT/tests/test-hooks-sync.sh" > /dev/null 2>&1; then
+    pass_test "dual hooks.json sync contract passes (test-hooks-sync.sh)"
+else
+    fail_test "hooks sync contract failed — 'bash tests/test-hooks-sync.sh' で詳細確認"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-generate-skill-manifest.sh" > /dev/null 2>&1; then
+    pass_test "skill manifest contract passes (test-generate-skill-manifest.sh)"
+else
+    fail_test "skill manifest contract failed — 'bash tests/test-generate-skill-manifest.sh' で詳細確認"
+fi
+
 echo ""
 echo "=========================================="
 echo "テスト結果サマリー"

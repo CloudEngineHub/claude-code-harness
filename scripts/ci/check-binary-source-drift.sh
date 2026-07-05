@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+GOOS_VALUE="$(go env GOOS)"
+GOARCH_VALUE="$(go env GOARCH)"
+case "$GOOS_VALUE/$GOARCH_VALUE" in
+  darwin/arm64) target="$ROOT/bin/harness-darwin-arm64" ;;
+  darwin/amd64) target="$ROOT/bin/harness-darwin-amd64" ;;
+  linux/amd64) target="$ROOT/bin/harness-linux-amd64" ;;
+  windows/amd64) target="$ROOT/bin/harness-windows-amd64.exe" ;;
+  *) echo "unsupported binary drift platform: $GOOS_VALUE/$GOARCH_VALUE" >&2; exit 0 ;;
+esac
+
+if [ ! -f "$target" ]; then
+  echo "missing platform binary: ${target#$ROOT/}" >&2
+  exit 1
+fi
+
+version="$(tr -d '[:space:]' < "$ROOT/VERSION")"
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/harness-bin-drift.XXXXXX")"
+trap 'rm -rf "$tmpdir"' EXIT
+built="$tmpdir/$(basename "$target")"
+
+(
+  cd "$ROOT/go"
+  CGO_ENABLED=0 GOOS="$GOOS_VALUE" GOARCH="$GOARCH_VALUE" \
+    go build -trimpath -ldflags "-s -w -X main.version=$version" -o "$built" ./cmd/harness
+)
+
+if ! cmp -s "$built" "$target"; then
+  echo "binary/source drift detected for ${target#$ROOT/}" >&2
+  echo "rebuild with: cd go && CGO_ENABLED=0 GOOS=$GOOS_VALUE GOARCH=$GOARCH_VALUE go build -trimpath -ldflags '-s -w -X main.version=$version' -o ../${target#$ROOT/} ./cmd/harness" >&2
+  exit 1
+fi
+
+echo "binary/source drift OK: ${target#$ROOT/}"

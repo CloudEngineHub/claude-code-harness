@@ -74,6 +74,8 @@ func main() {
 		runWork(os.Args[2:])
 	case "plan":
 		runPlan(os.Args[2:])
+	case "plans":
+		runPlans(os.Args[2:])
 	case "review":
 		runReview(os.Args[2:])
 	case "release":
@@ -161,6 +163,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  init [root]             Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
+	fmt.Fprintln(os.Stderr, "  plans check-deps [Plans.md]  Verify done tasks only depend on closed tasks")
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [--migration-report] [root]  Health check plus migration status/report")
 	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
 	fmt.Fprintln(os.Stderr, "  mem status|setup|update|doctor|off|purge|health  Manage harness-mem companion")

@@ -1015,6 +1015,52 @@ else
   ERRORS=$((ERRORS + 1))
 fi
 
+
+# ================================
+# 20. Plans Depends/Status gate
+# ================================
+echo ""
+echo "📌 [20/22] Plans Depends/Status gate..."
+
+if (cd "$PLUGIN_ROOT/go" && go run ./cmd/harness plans check-deps "$PLUGIN_ROOT/Plans.md") >/tmp/harness-plans-deps.$$ 2>&1; then
+  echo "  ✅ Plans dependency closure OK"
+else
+  echo "  ❌ Plans dependency closure failed"
+  sed 's/^/      /' /tmp/harness-plans-deps.$$ | tail -40
+  ERRORS=$((ERRORS + 1))
+fi
+rm -f /tmp/harness-plans-deps.$$
+
+# ================================
+# 21. Branch alignment ledger gate
+# ================================
+echo ""
+echo "🧾 [21/22] Branch alignment ledger gate..."
+
+if bash "$PLUGIN_ROOT/scripts/ci/check-branch-alignment-ledger.sh" >/tmp/harness-branch-ledger.$$ 2>&1; then
+  echo "  ✅ branch alignment ledger OK"
+else
+  echo "  ❌ branch alignment ledger failed"
+  sed 's/^/      /' /tmp/harness-branch-ledger.$$ | tail -40
+  ERRORS=$((ERRORS + 1))
+fi
+rm -f /tmp/harness-branch-ledger.$$
+
+# ================================
+# 22. Binary/source drift gate
+# ================================
+echo ""
+echo "🧱 [22/22] Binary/source drift gate..."
+
+if bash "$PLUGIN_ROOT/scripts/ci/check-binary-source-drift.sh" >/tmp/harness-bin-drift.$$ 2>&1; then
+  echo "  ✅ binary/source drift OK"
+else
+  echo "  ❌ binary/source drift failed"
+  sed 's/^/      /' /tmp/harness-bin-drift.$$ | tail -40
+  ERRORS=$((ERRORS + 1))
+fi
+rm -f /tmp/harness-bin-drift.$$
+
 # ================================
 # 結果サマリー
 # ================================
