@@ -202,7 +202,13 @@ func isAllowlistedHost(host string) bool {
 }
 
 func checkSecretRead(cmd string, _ Context) Decision {
-	if !secretReadVerbs.MatchString(cmd) {
+	// Scan only the executable portion of the command, not heredoc bodies or
+	// comments. A secret filename that appears purely as document text (e.g.
+	// inside a `<<'EOF' ... EOF` block, or after `#`) is not an actual read and
+	// must not trip the floor. The read verb + indicator still fire on real
+	// reads like `cat .env`.
+	scannable := stripNonExecutableText(cmd)
+	if !secretReadVerbs.MatchString(scannable) {
 		return Decision{}
 	}
 
@@ -219,12 +225,62 @@ func checkSecretRead(cmd string, _ Context) Decision {
 	}
 
 	for _, item := range indicators {
-		if item.re.MatchString(cmd) {
+		if item.re.MatchString(scannable) {
 			return stop(CategorySecretRead, item.pattern,
 				"credential or secret read requires human approval")
 		}
 	}
 	return Decision{}
+}
+
+var heredocOpen = regexp.MustCompile(`<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)(['"]?)`)
+
+// stripNonExecutableText removes heredoc bodies and trailing line comments so
+// that secret indicators appearing only as document text do not trigger the
+// floor. It is deliberately conservative: it strips heredoc bodies between an
+// opener (`<<WORD`) and the matching terminator line, and removes `#` comments
+// that start at line-begin or after whitespace (not inside a token).
+func stripNonExecutableText(cmd string) string {
+	lines := strings.Split(cmd, "\n")
+	out := make([]string, 0, len(lines))
+	var terminator string // non-empty while inside a heredoc body
+
+	for _, line := range lines {
+		if terminator != "" {
+			// Inside a heredoc body: drop lines until the terminator line.
+			if strings.TrimSpace(line) == terminator {
+				terminator = ""
+			}
+			continue
+		}
+		// Detect a heredoc opener on this line; keep the line itself (the
+		// opener is part of the command) but suppress the following body.
+		if m := heredocOpen.FindStringSubmatch(line); m != nil {
+			terminator = m[2]
+		}
+		out = append(out, stripLineComment(line))
+	}
+	return strings.Join(out, "\n")
+}
+
+// stripLineComment removes a `#` comment from a single line when the `#` is at
+// line start or preceded by whitespace and is not inside single/double quotes.
+func stripLineComment(line string) string {
+	var inSingle, inDouble bool
+	for i := 0; i < len(line); i++ {
+		c := line[i]
+		switch {
+		case c == '\'' && !inDouble:
+			inSingle = !inSingle
+		case c == '"' && !inSingle:
+			inDouble = !inDouble
+		case c == '#' && !inSingle && !inDouble:
+			if i == 0 || line[i-1] == ' ' || line[i-1] == '\t' {
+				return line[:i]
+			}
+		}
+	}
+	return line
 }
 
 func checkProdDeploy(cmd string, _ Context) Decision {

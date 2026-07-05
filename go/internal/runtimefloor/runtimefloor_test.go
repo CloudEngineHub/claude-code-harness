@@ -243,3 +243,47 @@ func TestCheckCommand_SchemelessEgress(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckSecretRead_NoFalsePositiveOnDocumentText(t *testing.T) {
+	// Phase 105.8: secret filenames appearing as document text (heredoc body,
+	// comments) must NOT trip the floor — they are not actual reads.
+	cases := []struct {
+		name string
+		cmd  string
+	}{
+		{"heredoc body mentions dotenv", "cat >> notes.md <<'EOF'\nWe fixed the .env false positive today.\nEOF"},
+		{"heredoc body mentions pem", "cat > out.txt <<EOF\nremember server.pem rotation\nEOF"},
+		{"comment mentions dotenv", "cat notes.md # remember to check .env later"},
+		{"echo describes credentials", "echo 'the credentials file was rotated'"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := CheckCommand(tc.cmd, Context{})
+			if d.Stopped {
+				t.Fatalf("expected no floor stop for document-text command, got category %s reason %q", d.Category, d.Reason)
+			}
+		})
+	}
+}
+
+func TestCheckSecretRead_StillFiresOnRealRead(t *testing.T) {
+	// Phase 105.8 regression guard: real secret reads must still be denied.
+	cases := []struct {
+		name string
+		cmd  string
+	}{
+		{"cat dotenv", "cat .env"},
+		{"grep secret in dotenv", "grep SECRET .env"},
+		{"less ssh key", "less ~/.ssh/id_rsa"},
+		{"cat aws credentials", "cat ~/.aws/credentials"},
+		{"real read plus heredoc", "cat .env\ncat > out <<'EOF'\nignore .env here\nEOF"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := CheckCommand(tc.cmd, Context{})
+			if !d.Stopped || d.Category != CategorySecretRead {
+				t.Fatalf("expected secret-read stop, got Stopped=%v Category=%s", d.Stopped, d.Category)
+			}
+		})
+	}
+}
