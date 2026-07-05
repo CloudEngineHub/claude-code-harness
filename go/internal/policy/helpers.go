@@ -475,3 +475,220 @@ func isProtectedReviewPath(filePath string) bool {
 	}
 	return false
 }
+
+// ---------------------------------------------------------------------------
+// Secret file staging detection (R15)
+// ---------------------------------------------------------------------------
+
+var gitGlobalValueOpts = map[string]bool{
+	"-C":             true,
+	"-c":             true,
+	"--git-dir":      true,
+	"--work-tree":    true,
+	"--namespace":    true,
+	"--exec-path":    true,
+	"--super-prefix": true,
+}
+
+// r15SecretStagingPatterns targets credential-bearing pathspecs that must not
+// be staged by name. Bulk adds remain governed by .gitignore plus R02/R03.
+var r15SecretStagingPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?:^|/)\.env(?:\.[^/]+)?$`),
+	regexp.MustCompile(`(?:^|/)id_rsa(?:\.[^/]+)?$`),
+	regexp.MustCompile(`(?:^|/)id_ed25519(?:\.[^/]+)?$`),
+	regexp.MustCompile(`\.pem$`),
+	regexp.MustCompile(`\.key$`),
+	regexp.MustCompile(`\.p12$`),
+	regexp.MustCompile(`\.pfx$`),
+	regexp.MustCompile(`(?:^|/)\.npmrc$`),
+	regexp.MustCompile(`(?:^|/)\.pypirc$`),
+	regexp.MustCompile(`(?:^|/)credentials$`),
+	regexp.MustCompile(`(?:^|/)secrets?/`),
+	regexp.MustCompile(`(?:^|/)\.aws/`),
+	regexp.MustCompile(`(?:^|/)\.ssh/`),
+}
+
+type shellToken struct {
+	value  string
+	quoted bool
+	op     bool
+}
+
+func shellLex(command string) []shellToken {
+	var tokens []shellToken
+	var cur strings.Builder
+	curQuoted := false
+	curHas := false
+	var quote byte
+
+	emit := func() {
+		if curHas {
+			tokens = append(tokens, shellToken{value: cur.String(), quoted: curQuoted})
+		}
+		cur.Reset()
+		curQuoted = false
+		curHas = false
+	}
+	emitOp := func() {
+		emit()
+		tokens = append(tokens, shellToken{op: true})
+	}
+
+	for i := 0; i < len(command); i++ {
+		c := command[i]
+
+		if quote == '\'' {
+			if c == '\'' {
+				quote = 0
+			} else {
+				cur.WriteByte(c)
+				curHas = true
+			}
+			continue
+		}
+
+		if quote == '"' {
+			if c == '\\' && i+1 < len(command) {
+				if n := command[i+1]; n == '"' || n == '\\' || n == '$' || n == '`' {
+					cur.WriteByte(n)
+					curHas = true
+					i++
+					continue
+				}
+			}
+			if c == '"' {
+				quote = 0
+			} else {
+				cur.WriteByte(c)
+				curHas = true
+			}
+			continue
+		}
+
+		if c == '\\' && i+1 < len(command) {
+			cur.WriteByte(command[i+1])
+			curHas = true
+			i++
+			continue
+		}
+
+		switch c {
+		case '\'', '"':
+			quote = c
+			curQuoted = true
+			curHas = true
+		case ' ', '\t', '\n', '\r':
+			emit()
+		case ';', ')', '`':
+			emitOp()
+		case '|', '&':
+			if i+1 < len(command) && command[i+1] == c {
+				i++
+			}
+			emitOp()
+		case '$':
+			if i+1 < len(command) && command[i+1] == '(' {
+				i++
+				emitOp()
+			} else {
+				cur.WriteByte(c)
+				curHas = true
+			}
+		default:
+			cur.WriteByte(c)
+			curHas = true
+		}
+	}
+	emit()
+	return tokens
+}
+
+func indexOfGitSubcommand(tokens []shellToken) int {
+	for i := 0; i < len(tokens); i++ {
+		if tokens[i].quoted || tokens[i].value != "git" {
+			continue
+		}
+		for j := i + 1; j < len(tokens); j++ {
+			t := tokens[j]
+			if t.quoted || !strings.HasPrefix(t.value, "-") {
+				return j
+			}
+			if !strings.Contains(t.value, "=") && gitGlobalValueOpts[t.value] {
+				j++
+			}
+		}
+		return -1
+	}
+	return -1
+}
+
+func gitAddPathspecs(args []shellToken) []string {
+	var out []string
+	for _, t := range args {
+		if !t.quoted && (t.value == "--" || strings.HasPrefix(t.value, "-")) {
+			continue
+		}
+		if t.value != "" {
+			out = append(out, t.value)
+		}
+	}
+	return out
+}
+
+func gitCommitPathspecs(args []shellToken) []string {
+	var out []string
+	sawSep := false
+	for _, t := range args {
+		if !sawSep {
+			if !t.quoted && t.value == "--" {
+				sawSep = true
+			}
+			continue
+		}
+		if t.value != "" {
+			out = append(out, t.value)
+		}
+	}
+	return out
+}
+
+func extractGitStagedPaths(command string) []string {
+	var paths []string
+	var segment []shellToken
+
+	flush := func() {
+		if len(segment) == 0 {
+			return
+		}
+		if idx := indexOfGitSubcommand(segment); idx >= 0 {
+			switch segment[idx].value {
+			case "add", "stage":
+				paths = append(paths, gitAddPathspecs(segment[idx+1:])...)
+			case "commit":
+				paths = append(paths, gitCommitPathspecs(segment[idx+1:])...)
+			}
+		}
+		segment = nil
+	}
+
+	for _, tok := range shellLex(command) {
+		if tok.op {
+			flush()
+			continue
+		}
+		segment = append(segment, tok)
+	}
+	flush()
+	return paths
+}
+
+func secretFileStaging(command string) (string, bool) {
+	for _, path := range extractGitStagedPaths(command) {
+		for _, p := range r15SecretStagingPatterns {
+			if p.MatchString(path) {
+				return path, true
+			}
+		}
+	}
+	return "", false
+}

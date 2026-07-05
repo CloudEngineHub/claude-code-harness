@@ -2,7 +2,7 @@ package policy
 
 // Deny-surface self-audit (Phase 91.6 FLOOR).
 //
-// The guard rules R01-R13 are "the chain that constrains the agent": a subset
+// The guard rules R01-R15 are "the chain that constrains the agent": a subset
 // of them can emit a DENY decision (force-push, reset --hard on a protected
 // branch, secret / protected-path writes, Codex-mode direct writes, etc.). If
 // that chain is silently weakened — a deny rule removed, or its triggering
@@ -91,6 +91,7 @@ func denyRuleSignatures() []denyRuleSignature {
 		{ruleID: "R10:no-git-bypass-flags", matchers: regexpSources(noVerifyPattern, noGpgSignPattern)},
 		{ruleID: "R11:no-reset-hard-protected-branch", matchers: regexpSources(protectedBranchRefPattern)},
 		{ruleID: "R12:confirm-direct-push-protected-branch", matchers: append(regexpSources(gitPushPattern, protectedBranchRefPattern), "policy=deny")},
+		{ruleID: "R15:no-stage-secret-file", matchers: append(regexpSources(r15SecretStagingPatterns...), "git-add-stage-commit-pathspec", "quote-aware-shell-lexer")},
 	}
 }
 
@@ -174,6 +175,7 @@ var baselineDenySurface = []string{
 	"R10:no-git-bypass-flags:4a9a63d2d3a4f496d16fb4f2e135b060d741b95006278c249c526ae683c732c5",
 	"R11:no-reset-hard-protected-branch:7b0ffd50649b06d0fc4630cdbbf134e4278f3dbe707df381521b87c0a7a61bfd",
 	"R12:confirm-direct-push-protected-branch:1f47124d7cec9dd1ec43abc991b8ab054c756cd56d0d5bbc407ea4137b50de6b",
+	"R15:no-stage-secret-file:366c9bab920e49263dd7c93df5143712750a1f7c4ec03849651c024d81acec6a",
 }
 
 // compareDenySurfaces reports whether current is WEAKENED relative to baseline.

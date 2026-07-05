@@ -1110,3 +1110,55 @@ func TestR12_WrappedByWatch(t *testing.T) {
 		t.Errorf("expected deny for watch-wrapped push to main with deny policy, got %s", result.Decision)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// R15: block staging/committing secret files
+// ---------------------------------------------------------------------------
+
+func TestR15_GitAddEnv(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add .env"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git add .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitDashCDirAddEnv(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git -C /repo add .env"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for git -C <dir> add .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_SubshellAddEnv(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "$(git add .env)"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for subshell git add .env, got %s", result.Decision)
+	}
+}
+
+func TestR15_QuotedAndEscapedCommitPathspec(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": `git commit -m "test\"end" -- ".env.local"`})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for quoted/escaped secret pathspec, got %s", result.Decision)
+	}
+}
+
+func TestR15_GitAddNormalGoFile(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git add go/internal/policy/rules.go"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for normal .go file staging, got %s", result.Decision)
+	}
+}
+
+func TestR15_CommitMessageMentionsEnvNoFalsePositive(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": `git commit -m "fix -- .env handling"`})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve when .env only appears in commit message, got %s", result.Decision)
+	}
+}

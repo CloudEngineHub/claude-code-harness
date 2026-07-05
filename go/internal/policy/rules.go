@@ -181,6 +181,26 @@ var Rules = []GuardRule{
 		Evaluate:    r14TddRequiredLocalTrialResult,
 	},
 
+	// R15: block staging or committing secret files
+	{
+		ID:          "R15:no-stage-secret-file",
+		ToolPattern: regexp.MustCompile(`^Bash$`),
+		Evaluate: func(ctx hookproto.RuleContext) *hookproto.HookResult {
+			command, ok := ctx.Input.ToolInput["command"].(string)
+			if !ok {
+				return nil
+			}
+			path, ok := secretFileStaging(command)
+			if !ok {
+				return nil
+			}
+			return &hookproto.HookResult{
+				Decision: hookproto.DecisionDeny,
+				Reason:   fmt.Sprintf("staging secret or credential file is not allowed: %s", path),
+			}
+		},
+	},
+
 	// R04: confirm write outside project root
 	{
 		ID:          "R04:confirm-write-outside-project",
