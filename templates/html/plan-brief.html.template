@@ -195,7 +195,7 @@
   </section>
 
   <section class="brief-section">
-    <h2>確信度</h2>
+    <h2>Plan readiness</h2>
     <div class="confidence-bar">
       <div class="num">{{confidence}}<small> / 100</small></div>
       <div class="track"><div class="fill" style="width: {{confidence}}%"></div></div>

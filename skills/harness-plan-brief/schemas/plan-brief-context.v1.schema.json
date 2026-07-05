@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://claude-code-harness.local/schemas/plan-brief-context.v1.schema.json",
   "title": "plan-brief-context.v1",
-  "description": "Plan Brief 用の context 構造体。harness-plan-brief skill が harness-mem search 結果から組み立てる。",
+  "description": "Plan Brief 用の context 構造体。confidence は互換名として残すが、意味は plan_readiness (DoD 明確度 + 依存解決率) に限定する。",
   "type": "object",
   "required": [
     "schema",
@@ -83,11 +83,13 @@
     },
     "confidence": {
       "type": "integer",
+      "description": "Backward-compatible field name for plan_readiness. Score only DoD clarity plus dependency resolution; do not add similar-plan success rate or D/P count as separate axes.",
       "minimum": 0,
       "maximum": 100
     },
     "confidence_evidence": {
       "type": "array",
+      "description": "Evidence for plan_readiness: DoD clarity, dependency resolution, and context-only notes. Must not imply AI understanding or success probability.",
       "items": { "type": "string" }
     },
     "related_decisions": {
