@@ -69,6 +69,7 @@ harness-ui/CLAUDE.md
 /.cursor/plans/
 /.cursor/skills/
 /.cursor/worktrees.json
+/.harness-worktrees/
 /.cursor/rules/harness-mem*.md
 /.cursor/rules/harness-mem*.mdc
 

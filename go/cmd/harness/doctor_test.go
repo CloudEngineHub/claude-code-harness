@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 // NOTE: TestDoctor_Residue and TestDoctor_Residue_MissingScript were removed in
@@ -743,5 +744,90 @@ func TestDoctor_NonCommandHooksSkipped(t *testing.T) {
 	}
 	if totalGo != 0 {
 		t.Errorf("expected 0 Go entries, got %d", totalGo)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_CheckHarnessWorktrees
+// ---------------------------------------------------------------------------
+
+func TestDoctor_CheckHarnessWorktrees_Absent(t *testing.T) {
+	dir := t.TempDir()
+
+	r := checkHarnessWorktrees(dir)
+	if !r.ok {
+		t.Fatalf("expected ok=true when .harness-worktrees/ is absent, got false: %s", r.detail)
+	}
+	if !strings.Contains(r.detail, "not found") {
+		t.Errorf("expected absent detail, got %q", r.detail)
+	}
+}
+
+func TestDoctor_DetectHarnessWorktreeResidue_NewWorktree(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, ".harness-worktrees")
+	fresh := filepath.Join(root, "task-fresh")
+	if err := os.MkdirAll(fresh, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings := detectHarnessWorktreeResidue(root, entries, map[string]bool{filepath.Clean(fresh): true}, time.Now())
+	if len(findings) != 0 {
+		t.Fatalf("expected no findings for fresh registered worktree, got %+v", findings)
+	}
+}
+
+func TestDoctor_DetectHarnessWorktreeResidue_OldWorktree(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, ".harness-worktrees")
+	oldPath := filepath.Join(root, "task-old")
+	if err := os.MkdirAll(oldPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldTime := time.Now().Add(-(harnessWorktreeStaleAfter + time.Hour))
+	if err := os.Chtimes(oldPath, oldTime, oldTime); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings := detectHarnessWorktreeResidue(root, entries, map[string]bool{filepath.Clean(oldPath): true}, time.Now())
+	if len(findings) != 1 {
+		t.Fatalf("expected one old worktree finding, got %+v", findings)
+	}
+	if !findings[0].old || findings[0].orphan {
+		t.Fatalf("expected old=true orphan=false, got %+v", findings[0])
+	}
+}
+
+func TestDoctor_DetectHarnessWorktreeResidue_OrphanWorktree(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, ".harness-worktrees")
+	orphanPath := filepath.Join(root, "task-orphan")
+	if err := os.MkdirAll(orphanPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings := detectHarnessWorktreeResidue(root, entries, map[string]bool{}, time.Now())
+	if len(findings) != 0 {
+		t.Fatalf("empty registered map means orphan detection unavailable, got %+v", findings)
+	}
+
+	findings = detectHarnessWorktreeResidue(root, entries, map[string]bool{filepath.Join(dir, "other"): true}, time.Now())
+	if len(findings) != 1 {
+		t.Fatalf("expected one orphan worktree finding, got %+v", findings)
+	}
+	if findings[0].old || !findings[0].orphan {
+		t.Fatalf("expected old=false orphan=true, got %+v", findings[0])
 	}
 }

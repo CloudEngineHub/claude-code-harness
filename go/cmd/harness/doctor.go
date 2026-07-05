@@ -9,6 +9,10 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/breezing"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // runDoctor implements the "harness doctor [--migration] [--migration-report]" subcommand.
@@ -108,6 +112,7 @@ func runBasicChecks(projectRoot string) bool {
 		checkHooksGoPattern(projectRoot),
 		checkPlatformBinary(projectRoot),
 		checkNodeNotRequired(projectRoot),
+		checkHarnessWorktrees(projectRoot),
 	}
 
 	allOK := true
@@ -370,6 +375,96 @@ func checkNodeNotRequired(projectRoot string) checkResult {
 		ok:     true,
 		detail: "hooks/ contains no legacy Node.js hook references",
 	}
+}
+
+const harnessWorktreeStaleAfter = 7 * 24 * time.Hour
+
+type harnessWorktreeFinding struct {
+	path   string
+	old    bool
+	orphan bool
+}
+
+func checkHarnessWorktrees(projectRoot string) checkResult {
+	label := "harness worktree residue"
+	root := filepath.Join(projectRoot, breezing.HarnessWorktreesRoot)
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return checkResult{label: label, ok: true, detail: ".harness-worktrees/ not found"}
+		}
+		return checkResult{label: label, ok: false, detail: fmt.Sprintf("failed to read %s: %v", root, err)}
+	}
+
+	registered := registeredGitWorktrees(projectRoot)
+	findings := detectHarnessWorktreeResidue(root, entries, registered, time.Now())
+	if len(findings) == 0 {
+		return checkResult{label: label, ok: true, detail: fmt.Sprintf("no stale harness worktrees (%d checked)", len(entries))}
+	}
+
+	oldCount := 0
+	orphanCount := 0
+	for _, finding := range findings {
+		if finding.old {
+			oldCount++
+		}
+		if finding.orphan {
+			orphanCount++
+		}
+	}
+
+	return checkResult{
+		label: label,
+		ok:    true,
+		detail: fmt.Sprintf(
+			"WARN: %d stale harness worktree(s): %d older than %d days, %d orphan. Review %s, then run git worktree prune and remove leftovers.",
+			len(findings),
+			oldCount,
+			int(harnessWorktreeStaleAfter.Hours()/24),
+			orphanCount,
+			breezing.HarnessWorktreesRoot,
+		),
+	}
+}
+
+func detectHarnessWorktreeResidue(root string, entries []os.DirEntry, registered map[string]bool, now time.Time) []harnessWorktreeFinding {
+	var findings []harnessWorktreeFinding
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		path := filepath.Join(root, entry.Name())
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		old := now.Sub(info.ModTime()) >= harnessWorktreeStaleAfter
+		orphan := len(registered) > 0 && !registered[filepath.Clean(path)]
+		if old || orphan {
+			findings = append(findings, harnessWorktreeFinding{path: path, old: old, orphan: orphan})
+		}
+	}
+	sort.Slice(findings, func(i, j int) bool {
+		return findings[i].path < findings[j].path
+	})
+	return findings
+}
+
+func registeredGitWorktrees(projectRoot string) map[string]bool {
+	out, err := gitport.CombinedOutput(projectRoot, "worktree", "list", "--porcelain")
+	if err != nil {
+		return nil
+	}
+	registered := make(map[string]bool)
+	for _, line := range strings.Split(out, "\n") {
+		path, ok := strings.CutPrefix(line, "worktree ")
+		if !ok || strings.TrimSpace(path) == "" {
+			continue
+		}
+		registered[filepath.Clean(path)] = true
+	}
+	return registered
 }
 
 // printCheck prints a single check result.

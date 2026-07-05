@@ -8,6 +8,8 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **Harness worktree residue doctor check (Phase 105.7)**: `.harness-worktrees/` を git ignore 対象にし、`harness doctor` が 7 日以上未更新または git 管理外になった Harness worktree を advisory warning として検出するようにしました。新しい / 古い / 不在の 3 状態テストを追加しています。
+
 - **Failure Codifier（Phase 100）**: breezing orchestration ledger + Judgment Ledger から再現失敗パターンを read-only 抽出し、`failure-rule.v1` 候補を confidence score 付きで提案する self-learning loop 中核を追加しました。`templates/schemas/failure-rule.v1.json` / `go/internal/failurecodifier`（Extract / Confidence count≥3 medium・count≥5 high / human-approval gate で auto-promotion 構造的禁止）/ `scripts/failure-codifier-propose.sh --dry-run` / `skills/failure-codifier/SKILL.md` + `references/promotion-workflow.md`（`human-approval-required`）がセットです。`patterns.md` / `decisions.md` への昇格は dry-run 提案のみ — codifier は SSOT を一切書き込みません。
 
 #### Before/After（Failure Codifier）
