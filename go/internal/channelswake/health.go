@@ -4,13 +4,14 @@
 package channelswake
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/eventstore"
 
 	_ "modernc.org/sqlite"
 )
@@ -122,14 +123,14 @@ func mailboxStale(dbPath string, staleAfter time.Duration, now time.Time) (bool,
 		return false, fmt.Errorf("mailbox db missing")
 	}
 
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := eventstore.Open(dbPath)
 	if err != nil {
 		return false, err
 	}
 	defer db.Close()
 
-	var maxTS sql.NullInt64
-	if err := db.QueryRow("SELECT MAX(ts) FROM bridge_events").Scan(&maxTS); err != nil {
+	maxTS, err := eventstore.MaxTimestamp(db)
+	if err != nil {
 		return false, err
 	}
 	if !maxTS.Valid {

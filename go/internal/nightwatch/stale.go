@@ -2,7 +2,6 @@ package nightwatch
 
 import (
 	"bufio"
-	"database/sql"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/eventstore"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 
 	_ "modernc.org/sqlite"
@@ -196,24 +196,24 @@ func DetectOpenDecisions(decisionsPath string, openHours int64, now time.Time) (
 
 // UnresolvedLoopsFromMailbox scans bridge_events for request events without a matching response.
 func UnresolvedLoopsFromMailbox(dbPath string, now time.Time) ([]UnresolvedLoop, error) {
-	if _, err := os.Stat(dbPath); err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
+	exists, err := eventstore.MailboxExists(dbPath)
+	if err != nil {
 		return nil, err
 	}
+	if !exists {
+		return nil, nil
+	}
 
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := eventstore.Open(dbPath)
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
 
-	rows, err := db.Query(`SELECT event_id, source, event_type, payload_json, ts FROM bridge_events ORDER BY ts ASC`)
+	events, err := eventstore.Events(db)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	type pending struct {
 		eventID   string
@@ -225,33 +225,25 @@ func UnresolvedLoopsFromMailbox(dbPath string, now time.Time) ([]UnresolvedLoop,
 	requests := make(map[string]pending)
 	responses := make(map[string]bool)
 
-	for rows.Next() {
-		var eventID, source, eventType, payloadJSON string
-		var ts int64
-		if err := rows.Scan(&eventID, &source, &eventType, &payloadJSON, &ts); err != nil {
-			return nil, err
-		}
-		key := loopKey(eventType, payloadJSON)
+	for _, event := range events {
+		key := loopKey(event.EventType, event.PayloadJSON)
 		if key == "" {
 			continue
 		}
-		if isLoopResponse(eventType) {
+		if isLoopResponse(event.EventType) {
 			responses[key] = true
 			continue
 		}
-		if isLoopRequest(eventType) {
-			taskID := extractTaskID(payloadJSON)
+		if isLoopRequest(event.EventType) {
+			taskID := extractTaskID(event.PayloadJSON)
 			requests[key] = pending{
-				eventID:   eventID,
-				eventType: eventType,
-				source:    source,
+				eventID:   event.EventID,
+				eventType: event.EventType,
+				source:    event.Source,
 				taskID:    taskID,
-				ts:        ts,
+				ts:        event.TS,
 			}
 		}
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	var loops []UnresolvedLoop

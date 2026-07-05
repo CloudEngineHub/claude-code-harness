@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/eventstore"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -131,15 +133,7 @@ func TestUnresolvedLoopsFromMailbox_RequestWithoutResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`
-CREATE TABLE bridge_events (
-  event_id TEXT PRIMARY KEY,
-  source TEXT NOT NULL,
-  event_type TEXT NOT NULL,
-  lane TEXT NOT NULL,
-  payload_json TEXT NOT NULL,
-  ts INTEGER NOT NULL
-);`); err != nil {
+	if err := eventstore.EnsureSchema(db); err != nil {
 		t.Fatal(err)
 	}
 	oldTS := time.Now().Add(-3 * time.Hour).UnixNano()
