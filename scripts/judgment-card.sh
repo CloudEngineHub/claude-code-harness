@@ -12,6 +12,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEMA="${ROOT}/templates/schemas/judgment-card.v1.json"
 LEDGER_SCRIPT="${ROOT}/scripts/judgment-ledger.sh"
+HARNESS_BIN="${HARNESS_BIN:-${ROOT}/bin/harness}"
 
 ISSUE_REASONS=(
   dod-ambiguous
@@ -203,52 +204,7 @@ PY
 }
 
 cmd_compute_impact() {
-  local files_changed=0
-  local lines_changed=0
-  local floor_category=""
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --files-changed)
-        files_changed="${2:-0}"
-        shift 2
-        ;;
-      --lines-changed)
-        lines_changed="${2:-0}"
-        shift 2
-        ;;
-      --floor-category)
-        floor_category="${2:-}"
-        shift 2
-        ;;
-      *)
-        echo "compute-impact: unknown argument: $1" >&2
-        exit 1
-        ;;
-    esac
-  done
-
-  python3 - "$files_changed" "$lines_changed" "$floor_category" <<'PY'
-import json
-import sys
-
-files = int(sys.argv[1])
-lines = int(sys.argv[2])
-floor = sys.argv[3]
-
-if floor:
-    score = 100
-    hard_stop = True
-else:
-    files = max(0, files)
-    lines = max(0, lines)
-    score = min(99, files * 5 + lines // 10)
-    hard_stop = False
-
-print(json.dumps({"impact_score": score, "hard_stop": hard_stop}))
-if hard_stop:
-    raise SystemExit(2)
-PY
+  "$HARNESS_BIN" impact-score "$@"
 }
 
 cmd_record_answer() {

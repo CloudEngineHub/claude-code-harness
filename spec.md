@@ -968,6 +968,8 @@ defines `brief-card.v1`, `judgment-card.v1`, breezing mem lifecycle events, and
 fail-open memory behavior for `/breezing` free-text entry layered on this
 orchestrator.
 
+Historical L3 note: an earlier bridge subsystem prototyped a `bridge-event.v1` envelope that normalized CC mailbox, Cursor stop-hook, and Codex app-server events into a sqlite WAL mailbox, then projected lane-aware records into memory and host-specific notice delivery. That subsystem stayed unwired from the `bin/harness` runtime and was removed in Phase 104.4, but the useful design lesson remains: any future L3 collaboration layer should keep source adapters, append-only mailbox storage, delivery transport, and natural-language backend dispatch as explicit boundaries with fail-open fallback and hub-spoke ownership.
+
 - Hub-spoke, no worker-to-worker. Workers emit only `companionresult.v1` on
   stdout; they never address or message each other. All coordination is
   spoke->hub (worker result -> Lead). For v1 the Lead is Claude Code, the only
