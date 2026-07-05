@@ -105,10 +105,10 @@ elif [ "$HOST" = "cursor" ]; then
 else
   case "$TIER" in
     lite) MODEL="claude-haiku-4-5"; EFFORT="low" ;;
-    standard) MODEL="claude-sonnet-4-6"; EFFORT="medium" ;;
+    standard) MODEL="claude-sonnet-5"; EFFORT="medium" ;;
     deep|advisor) MODEL="$CLAUDE_BRAIN_MODEL"; EFFORT="xhigh" ;;
-    review) MODEL="claude-sonnet-4-6"; EFFORT="xhigh" ;;
-    release) MODEL="claude-sonnet-4-6"; EFFORT="high" ;;
+    review) MODEL="claude-sonnet-5"; EFFORT="xhigh" ;;
+    release) MODEL="claude-sonnet-5"; EFFORT="high" ;;
     long-context) MODEL="sonnet[1m]"; EFFORT="high" ;;
     spark) echo "ERROR: spark tier is codex-only" >&2; exit 2 ;;
     *) echo "ERROR: unknown claude tier: $TIER" >&2; exit 2 ;;

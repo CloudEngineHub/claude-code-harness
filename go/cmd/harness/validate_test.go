@@ -381,7 +381,7 @@ func TestValidateAgents_Valid(t *testing.T) {
 	writeAgentFile(t, dir, "my-agent", `---
 name: my-agent
 description: "A valid agent"
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 effort: high
 maxTurns: 50
 ---

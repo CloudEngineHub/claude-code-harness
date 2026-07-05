@@ -108,13 +108,13 @@ opus_explicit_model="$(HARNESS_BRAIN_MODEL=opus bash "${ROUTER}" --host claude -
 }
 
 fable_worker_model="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude --role worker --field model)"
-[ "${fable_worker_model}" = "claude-sonnet-4-6" ] || {
+[ "${fable_worker_model}" = "claude-sonnet-5" ] || {
   echo "fable brain opt-in must not touch the claude worker tier"
   exit 1
 }
 
 fable_reviewer_model="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host claude --role reviewer --field model)"
-[ "${fable_reviewer_model}" = "claude-sonnet-4-6" ] || {
+[ "${fable_reviewer_model}" = "claude-sonnet-5" ] || {
   echo "fable brain opt-in must not change the primary review tier"
   exit 1
 }

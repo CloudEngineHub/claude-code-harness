@@ -10,7 +10,7 @@ disallowedTools:
   - Edit
   - Bash
   - Agent
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 effort: xhigh
 maxTurns: 50
 color: blue
@@ -49,7 +49,7 @@ exploit コードは含めない。run-only ではなく audit-only であり、
 findings を親 orchestrator に返す時は **verdict ＋ 件数 ＋ `file:line` ＋ 1 行修正方針**
 に限定し、攻撃 payload・exploit PoC・脅威シナリオの逐語を親 context に流さない
 （Fable 5 の親 session に security 語彙が還流すると Opus へ自動切替される主因になるため）。
-この agent の `model: claude-sonnet-4-6` pin は cyber-safeguard 緩和のための invariant であり、
+この agent の `model: claude-sonnet-5` pin は cyber-safeguard 緩和のための invariant であり、
 `inherit` や Fable 系に変更しない。詳細契約は
 `skills/harness-review/references/security-profile.md` の「Fresh-context 隔離と findings 還流の契約」を参照。
 

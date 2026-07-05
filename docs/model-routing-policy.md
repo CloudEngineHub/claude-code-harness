@@ -83,11 +83,11 @@ guaranteed for every Harness user.
 | Harness tier | Claude model | Effort | Use cases |
 | --- | --- | --- | --- |
 | `lite` | `claude-haiku-4-5` or `haiku` | `low` or `medium` | read-only search, docs cleanup, simple summaries, cheap side research |
-| `standard` | `claude-sonnet-4-6` | `medium` by default, `high` for code-risk tasks | normal worker implementation, setup, tests, scoped refactors |
+| `standard` | `claude-sonnet-5` | `medium` by default, `high` for code-risk tasks | normal worker implementation, setup, tests, scoped refactors |
 | `deep` | `claude-opus-4-8` | `xhigh` | architecture, security, migration, cross-repo decisions, repeated failures |
-| `review` | default reviewer: `claude-sonnet-4-6`; adversarial/final reviewer: `claude-opus-4-8` | `xhigh` | normal review stays cost-aware; high-risk gates use Opus |
+| `review` | default reviewer: `claude-sonnet-5`; adversarial/final reviewer: `claude-opus-4-8` | `xhigh` | normal review stays cost-aware; high-risk gates use Opus |
 | `advisor` | `claude-opus-4-8` | `xhigh` | PLAN / CORRECTION / STOP decisions after blocked execution |
-| `release` | `claude-sonnet-4-6` | `high` | release preflight, changelog, version/tag/GitHub Release checks |
+| `release` | `claude-sonnet-5` | `high` | release preflight, changelog, version/tag/GitHub Release checks |
 | `long-context` | `sonnet[1m]` | `high` | large repo reading, long sessions, context-heavy comparison |
 
 Recommended Claude session default:
@@ -98,14 +98,14 @@ Recommended Claude session default:
   "availableModels": [
     "opusplan",
     "claude-opus-4-8",
-    "claude-sonnet-4-6",
+    "claude-sonnet-5",
     "claude-haiku-4-5",
     "sonnet[1m]"
   ],
   "effortLevel": "high",
   "env": {
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5"
   }
 }

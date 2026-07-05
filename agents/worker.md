@@ -10,7 +10,7 @@ tools:
   - Glob
 disallowedTools:
   - Agent
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 effort: medium
 maxTurns: 100
 color: yellow

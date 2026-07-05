@@ -57,6 +57,7 @@ var validModelNames = map[string]bool{
 	"claude-opus-4-8":   true,
 	"claude-opus-4-7":   true,
 	"claude-opus-4-6":   true,
+	"claude-sonnet-5": true,
 	"claude-sonnet-4-6": true,
 	"claude-haiku-4-5":  true,
 	"claude-opus-4":     true,
