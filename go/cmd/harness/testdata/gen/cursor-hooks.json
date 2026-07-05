@@ -1,6 +1,5 @@
 {
   "floor_policy": {
-    "version": "floor.policy.v1",
     "categories": [
       {
         "id": "money-billing",
@@ -22,15 +21,24 @@
         "id": "worktree-escape",
         "name": "Worktree Escape"
       }
-    ]
+    ],
+    "version": "floor.policy.v1"
   },
   "hooks": {
     "preToolUse": [
       {
-        "type": "command",
         "command": "bin/harness hook pre-tool --host cursor",
         "matcher": "*",
-        "timeout": 30
+        "timeout": 30,
+        "type": "command"
+      }
+    ],
+    "stop": [
+      {
+        "command": "bin/harness inbox check --team {{TEAM}} --agent {{AGENT}}",
+        "matcher": "*",
+        "timeout": 30,
+        "type": "command"
       }
     ]
   },

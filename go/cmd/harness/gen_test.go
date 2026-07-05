@@ -45,6 +45,15 @@ func TestGeneratedHooks_ContainsCodexAndCursor(t *testing.T) {
 		if !strings.Contains(string(gen[name]), "hook pre-tool") {
 			t.Errorf("%s generated hooks.json does not invoke 'hook pre-tool':\n%s", name, gen[name])
 		}
+		if !strings.Contains(string(gen[name]), "inbox check") {
+			t.Errorf("%s generated hooks.json does not invoke delivery inbox-check:\n%s", name, gen[name])
+		}
+	}
+	if !strings.Contains(string(gen["codex"]), "\"Stop\"") {
+		t.Errorf("codex generated hooks.json missing Stop delivery event:\n%s", gen["codex"])
+	}
+	if !strings.Contains(string(gen["cursor"]), "\"stop\"") {
+		t.Errorf("cursor generated hooks.json missing stop delivery event:\n%s", gen["cursor"])
 	}
 }
 

@@ -168,13 +168,77 @@ func generatedHooks(root string) (map[string][]byte, error) {
 	}
 	out := make(map[string][]byte, len(hosts))
 	for _, name := range hostgen.SortedNames(hosts) {
-		b, genErr := hostgen.GenerateHooksJSON(hosts[name])
+		b, genErr := generateHostHooksJSON(hosts[name])
 		if genErr != nil {
 			return nil, genErr
 		}
 		out[name] = b
 	}
 	return out, nil
+}
+
+func generateHostHooksJSON(h hostgen.Host) ([]byte, error) {
+	enforcement, err := hostgen.GenerateHooksJSON(h)
+	if err != nil {
+		return nil, err
+	}
+	delivery, ok, err := hostgen.GenerateDeliveryHooksJSON(h)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return enforcement, nil
+	}
+	return mergeHooksJSON(enforcement, delivery)
+}
+
+func mergeHooksJSON(base, extra []byte) ([]byte, error) {
+	var baseDoc map[string]interface{}
+	if err := json.Unmarshal(base, &baseDoc); err != nil {
+		return nil, fmt.Errorf("parse generated enforcement hooks: %w", err)
+	}
+	var extraDoc map[string]interface{}
+	if err := json.Unmarshal(extra, &extraDoc); err != nil {
+		return nil, fmt.Errorf("parse generated delivery hooks: %w", err)
+	}
+	baseHooks, err := hooksMap(baseDoc)
+	if err != nil {
+		return nil, fmt.Errorf("enforcement hooks: %w", err)
+	}
+	extraHooks, err := hooksMap(extraDoc)
+	if err != nil {
+		return nil, fmt.Errorf("delivery hooks: %w", err)
+	}
+	for event, groups := range extraHooks {
+		if _, exists := baseHooks[event]; exists {
+			return nil, fmt.Errorf("refusing to overwrite generated hooks.%s while adding delivery hooks", event)
+		}
+		baseHooks[event] = groups
+	}
+	return marshalGenJSON(baseDoc)
+}
+
+func hooksMap(doc map[string]interface{}) (map[string]interface{}, error) {
+	raw, ok := doc["hooks"]
+	if !ok {
+		return nil, fmt.Errorf("missing hooks key")
+	}
+	hooks, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("hooks key is %T, want object", raw)
+	}
+	return hooks, nil
+}
+
+func marshalGenJSON(v interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(v); err != nil {
+		return nil, fmt.Errorf("marshal generated hooks: %w", err)
+	}
+	return buf.Bytes(), nil
 }
 
 // runGenWrite writes the generated codex/cursor hooks.json to their hook_path
@@ -191,7 +255,7 @@ func runGenWrite(root string) error {
 			fmt.Printf("gen: %-7s %s  skipped (tracked, hand-maintained; PreToolUse drift-checked)\n", name, h.HookPath)
 			continue
 		}
-		data, genErr := hostgen.GenerateHooksJSON(h)
+		data, genErr := generateHostHooksJSON(h)
 		if genErr != nil {
 			return genErr
 		}
