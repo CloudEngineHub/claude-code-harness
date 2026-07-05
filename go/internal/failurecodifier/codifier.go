@@ -25,10 +25,10 @@ type evidenceBucket struct {
 
 // ExtractOpts configures read-only failure pattern extraction.
 type ExtractOpts struct {
-	RepoRoot              string
-	JudgmentLedgerPath    string
+	RepoRoot                string
+	JudgmentLedgerPath      string
 	OrchestrationLedgerPath string
-	SchemaPath            string
+	SchemaPath              string
 }
 
 // ExtractFromLedger reads Judgment Ledger + breezing orchestration logs (read-only)
@@ -128,10 +128,7 @@ func judgmentFailureSignature(rec judgmentledger.Record) (sig, summary, target s
 	if answer == "" {
 		return "", "", ""
 	}
-	negative := strings.Contains(answer, "reject") ||
-		strings.Contains(answer, "no") ||
-		strings.Contains(answer, "stop") ||
-		strings.Contains(answer, "wait")
+	negative := containsNegativeAnswerToken(answer)
 	if !negative {
 		for _, tag := range rec.Tags {
 			t := strings.ToLower(tag)
@@ -274,6 +271,22 @@ func normalizeSignature(s string) string {
 		s = s[:80]
 	}
 	return s
+}
+
+func containsNegativeAnswerToken(answer string) bool {
+	for _, token := range answerTokens(answer) {
+		switch token {
+		case "reject", "rejected", "rejects", "rejecting", "no", "not", "stop", "stopped", "stopping", "wait", "waiting":
+			return true
+		}
+	}
+	return false
+}
+
+func answerTokens(answer string) []string {
+	return strings.FieldsFunc(strings.ToLower(answer), func(r rune) bool {
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9')
+	})
 }
 
 func firstWords(s string, n int) string {

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/judgmentledger"
 )
 
 func TestCodifier_ExtractFromLedger_EmptyCorpusReturnsNoRules(t *testing.T) {
@@ -95,6 +97,43 @@ func TestProposeDryRun_ReturnsJSONArray(t *testing.T) {
 	}
 	if len(data) == 0 || data[0] != '[' {
 		t.Fatalf("expected JSON array, got %q", string(data))
+	}
+}
+
+func TestCodifier_JudgmentFailureSignatureUsesNegativeTokenBoundaries(t *testing.T) {
+	tests := []struct {
+		name        string
+		answer      string
+		wantFailure bool
+	}{
+		{
+			name:        "known affirmative does not match no substring",
+			answer:      "Known good. Proceed with the planned implementation.",
+			wantFailure: false,
+		},
+		{
+			name:        "noted affirmative does not match not token",
+			answer:      "Noted. This is acceptable and ready to proceed.",
+			wantFailure: false,
+		},
+		{
+			name:        "standalone no is negative",
+			answer:      "No, wait for review before proceeding.",
+			wantFailure: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sig, _, _ := judgmentFailureSignature(judgmentledger.Record{
+				Question: "Should this implementation proceed?",
+				Answer:   tt.answer,
+			})
+			gotFailure := sig != ""
+			if gotFailure != tt.wantFailure {
+				t.Fatalf("judgmentFailureSignature failure = %v, want %v (sig=%q)", gotFailure, tt.wantFailure, sig)
+			}
+		})
 	}
 }
 
