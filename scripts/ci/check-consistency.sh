@@ -1020,7 +1020,7 @@ fi
 # 20. Plans Depends/Status gate
 # ================================
 echo ""
-echo "📌 [20/22] Plans Depends/Status gate..."
+echo "📌 [20/23] Plans Depends/Status gate..."
 
 if (cd "$PLUGIN_ROOT/go" && go run ./cmd/harness plans check-deps "$PLUGIN_ROOT/Plans.md") >/tmp/harness-plans-deps.$$ 2>&1; then
   echo "  ✅ Plans dependency closure OK"
@@ -1035,7 +1035,7 @@ rm -f /tmp/harness-plans-deps.$$
 # 21. Branch alignment ledger gate
 # ================================
 echo ""
-echo "🧾 [21/22] Branch alignment ledger gate..."
+echo "🧾 [21/23] Branch alignment ledger gate..."
 
 if bash "$PLUGIN_ROOT/scripts/ci/check-branch-alignment-ledger.sh" >/tmp/harness-branch-ledger.$$ 2>&1; then
   echo "  ✅ branch alignment ledger OK"
@@ -1050,7 +1050,7 @@ rm -f /tmp/harness-branch-ledger.$$
 # 22. Binary/source drift gate
 # ================================
 echo ""
-echo "🧱 [22/22] Binary/source drift gate..."
+echo "🧱 [22/23] Binary/source drift gate..."
 
 if bash "$PLUGIN_ROOT/scripts/ci/check-binary-source-drift.sh" >/tmp/harness-bin-drift.$$ 2>&1; then
   echo "  ✅ binary/source drift OK"
@@ -1060,6 +1060,21 @@ else
   ERRORS=$((ERRORS + 1))
 fi
 rm -f /tmp/harness-bin-drift.$$
+
+# ================================
+# 23. i18n hookhandler ratchet
+# ================================
+echo ""
+echo "🌐 [23/23] i18n hookhandler ratchet..."
+
+if bash "$PLUGIN_ROOT/scripts/ci/check-i18n-hookhandler-ratchet.sh" "$PLUGIN_ROOT" >/tmp/harness-i18n-ratchet.$$ 2>&1; then
+  sed 's/^/  /' /tmp/harness-i18n-ratchet.$$ | tail -2
+else
+  echo "  ❌ i18n hookhandler ratchet failed"
+  sed 's/^/      /' /tmp/harness-i18n-ratchet.$$ | tail -10
+  ERRORS=$((ERRORS + 1))
+fi
+rm -f /tmp/harness-i18n-ratchet.$$
 
 # ================================
 # 結果サマリー
