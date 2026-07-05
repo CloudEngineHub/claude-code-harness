@@ -406,9 +406,16 @@ Plans.md の task には、TDD 判定を明示するタグを内容または DoD
 | `pm:確認済` | PM レビュー完了 |
 | `blocked` | ブロック中（理由を必ず記載） |
 
+### 計画確定後の導線（非エンジニア向け計画概要）
+
+Plans.md への task append が完了したら、非エンジニアの発注者が計画を判断できるよう
+`harness-plan-brief` を提案する。これは理解・選択肢・リスク・合格条件を 1 枚の HTML に
+まとめた「計画概要」画面で、専門知識なしで読める。実装に入る前の合意形成に使う。
+
 ## 関連スキル
 
 - `harness-sync` — 実装と Plans.md を同期する
 - `harness-work` — 計画したタスクを実装する
+- `harness-plan-brief` — 計画概要 HTML（非エンジニア向け、計画確定時に提案）
 - `harness-review` — 実装のレビュー
 - `harness-setup` — プロジェクト初期化

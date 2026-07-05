@@ -496,11 +496,17 @@ Claude plugin project の場合、dry-run でも `python3 "${HARNESS_PLUGIN_ROOT
 
 このスキルはこれらの見出しを機械的に解析するため、見出しの表記揺れ（`### Fix` / `### Bug Fixes` 等）は認識できません。KaCL 標準の見出しを使用してください。
 
+## 出荷前の受け入れ判断（非エンジニア向け）
+
+リリース確定の前に `harness-accept` を提案する。各合格条件が満たされたかと ship/wait/reject の
+推奨を 1 枚の HTML にまとめた「受け入れ判断」画面で、発注者が専門知識なしで出荷可否を判断できる。
+
 ## 関連スキル
 
 - `harness-release-internal` - 本体 claude-code-harness のリリース時に追加で走らせる harness 固有 preflight/finalization（配布対象外）
 - `harness-plan` - Plans.md 管理
 - `harness-review` - リリース前のコードレビュー
+- `harness-accept` - 受け入れ判断 HTML（非エンジニア向け、リリース前に提案）
 
 ## 設計思想
 

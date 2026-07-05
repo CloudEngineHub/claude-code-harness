@@ -118,6 +118,18 @@ The 5 verb skills keep that surface small: plan, work, review, sync, release.
 | PR | Evidence pack | PR ready is not release ready. |
 | Release | Tag/release artifacts | Release preflight must pass on the release path. |
 
+### Non-engineer decision surfaces
+
+Three single-screen HTML views surface the decision at each phase, so a non-engineer
+sponsor can judge without reading code:
+
+- **Plan Brief** (`harness-plan-brief`) — understanding, options, risks, and acceptance
+  criteria before implementation. Offered when a plan is finalized.
+- **Progress** (`harness-progress`) — WIP/TODO/done counts and drift alerts during work.
+  Auto-regenerated on a PostToolUse hook.
+- **Acceptance** (`harness-accept`) — per-criterion pass/fail with a ship/wait/reject
+  recommendation before release.
+
 ## Install By Tool
 
 | Tool | Tier | Route |
