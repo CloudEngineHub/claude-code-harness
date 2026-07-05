@@ -37,6 +37,12 @@ After install, the default changes from "ask the agent to code" to:
 4. review independently,
 5. package evidence for PR or release.
 
+**Claims in this README are machine-checked against the code.** CI gates verify that
+implemented components are actually wired (no dead code claimed as done), that the task
+ledger's dependencies stay consistent, and that the shipped binaries rebuild from source.
+A feature is described here only after a gate proves it is reachable — "written" is not
+"working."
+
 ## Quickstart
 
 New users should start from the tool they already use. Existing users should
