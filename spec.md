@@ -1090,16 +1090,19 @@ per-host variation.
 ### auto-approve scope
 
 `HARNESS_AUTO_APPROVE=on` (strict literal `on` only; `true` / `1` / `ON` /
-`yes` are rejected) is the only opt-in switch for auto-approval. It applies
-**only inside the active worktree**: `autoapprove.AppliesTo(path,
-worktreeRoot)` returns false for any path outside the worktree root, so the
-5-category runtime floor and `wt fingerprint` containment continue to
-adjudicate worktree-external attempts and remain non-overridable by
-`HARNESS_AUTO_APPROVE`. The switch is gated on three prereqs being
-demonstrably done (Phase 92.1.1 parallel base hygiene, 92.2.3 team dispatch
-hardening, 96.1.2 3-CLI hook parity); if any prereq is missing the gate
-fail-safes to OFF regardless of the env value. The gate decision is recorded
-on every `harness work --team` dispatch through the orchestration ledger.
+`yes` are rejected) is currently ledger instrumentation only. It records the
+enablement gate and prereq check result; it does not skip approval prompts or
+wire any approval-skip branch. The retained scope predicate
+`autoapprove.AppliesTo(path, worktreeRoot)` returns false for any path outside
+the worktree root, so the 5-category runtime floor and `wt fingerprint`
+containment continue to adjudicate worktree-external attempts and remain
+non-overridable by `HARNESS_AUTO_APPROVE`. The switch is gated on three
+prereqs being demonstrably done (Phase 92.1.1 parallel base hygiene, 92.2.3
+team dispatch hardening, 96.1.2 3-CLI hook parity); if any prereq is missing
+the gate fail-safes to OFF regardless of the env value. The gate decision is
+recorded on every `harness work --team` dispatch through the orchestration
+ledger. Approval automation will be wired only after HOTL governance
+verification (Phase 101 U0-U7 evidence).
 
 ## Breezing Brief Contract
 

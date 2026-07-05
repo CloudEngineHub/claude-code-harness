@@ -164,7 +164,7 @@ Use these after the basic trigger path is visible.
 | Codex companion review | Schema-backed Codex second opinion through `scripts/codex-companion.sh`. | Raw `codex exec` is not the Harness companion path. |
 | OpenCode bootstrap | Mirrors Harness guidance into OpenCode-compatible surfaces. | Real runtime parity is not claimed. |
 | harness-mem | Project-scoped memory and recall across sessions. | Optional companion; purge remains explicit. |
-| auto-approve (experimental) | `HARNESS_AUTO_APPROVE=on` opt-in for worktree-scoped auto-approval inside Breezing. | Default OFF. Strict env value (`on` only). Gated on Phase 92.1.1 / 92.2.3 / 96.1.2 prereqs. Worktree-scoped only; 5-category floor and fingerprint containment remain non-overridable. |
+| auto-approve (experimental) | `HARNESS_AUTO_APPROVE=on` currently records the enablement gate and prereq check result in the orchestration ledger only. Approval prompts are not skipped. | Default OFF. Strict env value (`on` only). Gated on Phase 92.1.1 / 92.2.3 / 96.1.2 prereqs for ledger instrumentation; approval automation is deferred until HOTL governance verification (Phase 101 U0-U7 evidence). |
 
 ## Documentation
 

@@ -1,4 +1,5 @@
 // Package autoapprove gates HARNESS_AUTO_APPROVE behind phase prereqs and worktree scope.
+// NOTE: the gate decision is currently used only for ledger records; approval-skip is not wired (Phase 104.3 ruling).
 // fail-safe: default OFF; missing any prereq → auto-approve OFF (not overridable by env alone).
 package autoapprove
 
