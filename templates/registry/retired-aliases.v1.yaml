@@ -42,3 +42,27 @@ entries:
       - "docs/positioning-notes.md"
       - "docs/release-copy-phase21.md"
       - "Plans.md"
+
+  - id: skill-gogcli-ops
+    kind: path
+    pattern: "skills/gogcli-ops"
+    removed_in: "Phase 104.9"
+    reason: "Phase 91.7 で曖昧と自己認定、参照監査 (2026-07-05) で機能参照ゼロを確認し削除。test fixture は agent-browser に差し替え"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - "Plans.md"
+      - "CLAUDE.md"
+      - "templates/registry/"
+
+  - id: skill-cc-cursor-cc
+    kind: path
+    pattern: "skills/cc-cursor-cc"
+    removed_in: "Phase 104.9"
+    reason: "Phase 91.7 で曖昧と自己認定、参照監査 (2026-07-05) で参照ゼロを確認し削除"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - "Plans.md"
+      - "CLAUDE.md"
+      - "templates/registry/"

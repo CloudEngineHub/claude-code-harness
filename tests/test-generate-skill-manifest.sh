@@ -45,7 +45,7 @@ jq -e '
     .pair == "harness-review"
   ) and
   any(.skills[];
-    .path == "skills/gogcli-ops/SKILL.md" and
+    .path == "skills/agent-browser/SKILL.md" and
     .kind == null and
     .purpose == null and
     .shape == null and
@@ -54,16 +54,28 @@ jq -e '
 ' "${OUTPUT_JSON}" >/dev/null
 
 jq -e '
-  any(.skills[]; .path == "skills/gogcli-ops/SKILL.md" and .disable_model_invocation == true) and
+  any(.skills[]; .path == "skills/agent-browser/SKILL.md" and .disable_model_invocation == true) and
   any(.skills[]; .path == "skills/cc-update-review/SKILL.md" and .user_invocable == false and .disable_model_invocation == true) and
-  any(.skills[]; .path == "skills/ci/SKILL.md" and .user_invocable == true and .disable_model_invocation == true)
+  any(.skills[]; .path == "skills/ci/SKILL.md" and .user_invocable == true and .disable_model_invocation == null)
 ' "${OUTPUT_JSON}" >/dev/null
 
 EXPECTED_MODEL_INVOKABLE='[
   "breezing",
+  "ci",
+  "cursor-ask",
+  "cursor-do",
+  "cursor-rescue",
+  "cursor-review",
+  "cursor-setup",
+  "failure-codifier",
+  "harness-accept",
   "harness-loop",
+  "harness-orchestration",
+  "harness-plan-brief",
   "harness-plan",
+  "harness-progress",
   "harness-release",
+  "harness-review",
   "harness-setup",
   "harness-sync",
   "harness-work",

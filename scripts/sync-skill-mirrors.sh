@@ -76,7 +76,7 @@ normalize_opencode_skill_name() {
 
 is_opencode_skipped_skill() {
   case "$1" in
-    test-*|x-*|allow1|claude-codex-upstream-update|harness-release-internal|zz-review-empty|zz-review-escape)
+    test-*|x-*|allow1|cc-update-review|claude-codex-upstream-update|harness-release-internal|zz-review-empty|zz-review-escape)
       return 0
       ;;
     *)
