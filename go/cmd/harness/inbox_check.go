@@ -6,10 +6,30 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/livemsg"
 )
+
+// resolveInboxDBPath returns the default livemsg store path when --db is omitted,
+// using the same precedence as the state store: ${CLAUDE_PLUGIN_DATA}/livemsg.db,
+// then ${PROJECT_ROOT}/.harness/livemsg.db, then ./.harness/livemsg.db. The
+// generated Mode-2 delivery hooks (Phase 105.9) invoke `inbox check` without a
+// --db argument, so the command must resolve a canonical path itself instead of
+// erroring. executeInboxCheck already treats a missing db file as "no messages".
+func resolveInboxDBPath() string {
+	if pluginData := os.Getenv("CLAUDE_PLUGIN_DATA"); pluginData != "" {
+		return filepath.Join(pluginData, "livemsg.db")
+	}
+	if projectRoot := os.Getenv("CLAUDE_PROJECT_DIR"); projectRoot != "" {
+		return filepath.Join(projectRoot, ".harness", "livemsg.db")
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		return filepath.Join(cwd, ".harness", "livemsg.db")
+	}
+	return ".harness/livemsg.db"
+}
 
 type inboxCheckOutput struct {
 	Team     string                   `json:"team"`
@@ -89,7 +109,11 @@ func parseInboxCheckArgs(args []string) (inboxCheckOpts, error) {
 		return opts, fmt.Errorf("--agent is required")
 	}
 	if opts.DB == "" {
-		return opts, fmt.Errorf("--db is required")
+		// Generated Mode-2 delivery hooks (Phase 105.9) omit --db; resolve the
+		// canonical livemsg store path instead of failing. A missing file is
+		// handled downstream as "no messages", so the hook stays silent when the
+		// Mode-2 write path is not active.
+		opts.DB = resolveInboxDBPath()
 	}
 	return opts, nil
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/livemsg"
@@ -65,6 +66,32 @@ func TestInboxCheck_EmptyDB(t *testing.T) {
 	}
 	if len(result.Messages) != 0 {
 		t.Errorf("messages len = %d, want 0", len(result.Messages))
+	}
+}
+
+// TestInboxCheck_GeneratedDeliveryCommandForm exercises the exact argument shape
+// that Phase 105.9 generated delivery hooks emit: `inbox check --team X --agent Y`
+// with NO --db. Before the fix this hit the "--db is required" path (fail-open,
+// exit 0, error on stderr, no valid JSON). Now it must resolve a default db,
+// succeed with valid empty JSON, and never print the "--db is required" error.
+func TestInboxCheck_GeneratedDeliveryCommandForm(t *testing.T) {
+	// Point the default resolver at an empty temp project so no real db exists.
+	t.Setenv("CLAUDE_PLUGIN_DATA", t.TempDir())
+
+	var stdout, stderr bytes.Buffer
+	code := runInboxCheckCommand([]string{"--team", "team-a", "--agent", "agent-1"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("generated command form should exit 0, got %d; stderr=%q", code, stderr.String())
+	}
+	if strings.Contains(stderr.String(), "--db is required") {
+		t.Fatalf("generated command form must not hit the --db-required error path; stderr=%q", stderr.String())
+	}
+	var result inboxCheckOutput
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		t.Fatalf("generated command form must emit valid JSON, got err %v; raw=%q", err, stdout.String())
+	}
+	if result.Team != "team-a" || result.Agent != "agent-1" || result.Unread != 0 {
+		t.Errorf("unexpected result: %+v", result)
 	}
 }
 
