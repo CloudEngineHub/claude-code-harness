@@ -243,11 +243,14 @@ var heredocOpen = regexp.MustCompile(`<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)(['"
 func stripNonExecutableText(cmd string) string {
 	lines := strings.Split(cmd, "\n")
 	out := make([]string, 0, len(lines))
-	var terminator string // non-empty while inside a heredoc body
+	var terminator string      // non-empty while inside a heredoc body
+	var inSingle, inDouble bool // shell quote state carried ACROSS lines
 
 	for _, line := range lines {
 		if terminator != "" {
 			// Inside a heredoc body: drop lines until the terminator line.
+			// Quotes here are literal document text, so quote state is not
+			// touched while suppressing the body.
 			if strings.TrimSpace(line) == terminator {
 				terminator = ""
 			}
@@ -258,15 +261,21 @@ func stripNonExecutableText(cmd string) string {
 		if m := heredocOpen.FindStringSubmatch(line); m != nil {
 			terminator = m[2]
 		}
-		out = append(out, stripLineComment(line))
+		var stripped string
+		stripped, inSingle, inDouble = stripLineComment(line, inSingle, inDouble)
+		out = append(out, stripped)
 	}
 	return strings.Join(out, "\n")
 }
 
 // stripLineComment removes a `#` comment from a single line when the `#` is at
 // line start or preceded by whitespace and is not inside single/double quotes.
-func stripLineComment(line string) string {
-	var inSingle, inDouble bool
+// Quote state is threaded in and out so that a string opened on a previous line
+// keeps the `#` on a continuation line from being misread as a comment — without
+// this, a multi-line quoted string whose closing quote shares a line with `#`
+// would let stripLineComment delete real trailing code (e.g. `&& cat .env`),
+// silently defeating the secret-read floor.
+func stripLineComment(line string, inSingle, inDouble bool) (string, bool, bool) {
 	for i := 0; i < len(line); i++ {
 		c := line[i]
 		switch {
@@ -276,11 +285,11 @@ func stripLineComment(line string) string {
 			inDouble = !inDouble
 		case c == '#' && !inSingle && !inDouble:
 			if i == 0 || line[i-1] == ' ' || line[i-1] == '\t' {
-				return line[:i]
+				return line[:i], inSingle, inDouble
 			}
 		}
 	}
-	return line
+	return line, inSingle, inDouble
 }
 
 func checkProdDeploy(cmd string, _ Context) Decision {

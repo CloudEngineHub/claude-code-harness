@@ -37,10 +37,27 @@ for f in "$HANDLER_DIR"/*.go; do
   case "$f" in *_test.go) continue ;; esac
   [ -f "$f" ] || continue
   n=$(awk '
+    # Strip a Go line comment (//) only when it is NOT inside a string literal.
+    # A naive sub(/\/\/.*/) would truncate at the // inside a URL such as
+    # "参照: https://example.com", deleting a localizer call closing paren and
+    # leaking paren depth across the rest of the file — silently disabling the
+    # ratchet. Track double-quote and backtick (raw) string state with escapes.
+    function stripComment(s,   i, ch, inD, inB, esc, len) {
+      len = length(s); inD = 0; inB = 0; esc = 0
+      for (i = 1; i <= len; i++) {
+        ch = substr(s, i, 1)
+        if (esc) { esc = 0; continue }
+        if (ch == "\\" && inD) { esc = 1; continue }
+        if (ch == "\"" && !inB) { inD = !inD; continue }
+        if (ch == "`" && !inD) { inB = !inB; continue }
+        if (ch == "/" && !inD && !inB && i < len && substr(s, i + 1, 1) == "/") {
+          return substr(s, 1, i - 1)
+        }
+      }
+      return s
+    }
     # Maintain paren depth of an active localizedHarnessMessage(...) call.
-    { line = $0 }
-    # Strip line comments so // 日本語 does not count.
-    { sub(/\/\/.*/, "", line) }
+    { line = stripComment($0) }
     {
       inCall = (depth > 0)
       # If this line opens a localizer call, everything from here is localized.

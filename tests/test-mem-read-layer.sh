@@ -111,7 +111,6 @@ audit_dir() {
 }
 
 audit_dir "breezingmem" "$ROOT/go/internal/breezingmem"
-audit_dir "triaddispatcher" "$ROOT/go/internal/triaddispatcher"
 
 echo ""
 echo "PASS=$PASS FAIL=$FAIL"

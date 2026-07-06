@@ -610,7 +610,12 @@ func indexOfGitSubcommand(tokens []shellToken) int {
 		}
 		for j := i + 1; j < len(tokens); j++ {
 			t := tokens[j]
-			if t.quoted || !strings.HasPrefix(t.value, "-") {
+			// A token that starts with "-" is a git global flag regardless of
+			// shell quoting: `git "-C" /repo add .env` is byte-identical to
+			// `git -C /repo add .env` from git's perspective. Treating a quoted
+			// flag as the subcommand let R15 be bypassed by quoting -C / -c /
+			// --git-dir, so quoting must not short-circuit the flag-skip loop.
+			if !strings.HasPrefix(t.value, "-") {
 				return j
 			}
 			if !strings.Contains(t.value, "=") && gitGlobalValueOpts[t.value] {

@@ -1162,3 +1162,28 @@ func TestR15_CommitMessageMentionsEnvNoFalsePositive(t *testing.T) {
 		t.Errorf("expected approve when .env only appears in commit message, got %s", result.Decision)
 	}
 }
+
+func TestR15_QuotedGlobalFlagBypass(t *testing.T) {
+	// Review CRITICAL-1: quoting a git global flag must not bypass R15.
+	// `git "-C" /repo add <secret>` is byte-identical to the unquoted form.
+	denyCases := []string{
+		`git "-C" /repo add .env`,
+		`git "-c" user.name=x add .env`,
+		`git "--git-dir" /repo/.git add .env`,
+		`git "-C" /repo commit -m msg -- .env`,
+	}
+	for _, cmd := range denyCases {
+		t.Run(cmd, func(t *testing.T) {
+			ctx := makeCtx("Bash", map[string]interface{}{"command": cmd})
+			result := EvaluateRules(ctx)
+			if result.Decision != hookproto.DecisionDeny {
+				t.Fatalf("expected deny for quoted-flag secret staging %q, got %s", cmd, result.Decision)
+			}
+		})
+	}
+	// Legitimate: quoting a normal file must still not be denied.
+	okCtx := makeCtx("Bash", map[string]interface{}{"command": `git "-C" /repo add main.go`})
+	if r := EvaluateRules(okCtx); r.Decision == hookproto.DecisionDeny {
+		t.Fatalf("must not deny quoted-flag add of a normal file, got %s", r.Decision)
+	}
+}

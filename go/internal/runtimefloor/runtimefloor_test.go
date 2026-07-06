@@ -287,3 +287,35 @@ func TestCheckSecretRead_StillFiresOnRealRead(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckSecretRead_CrossLineQuoteDoesNotDropRealRead(t *testing.T) {
+	// Review CRITICAL-2: a multi-line quoted string whose closing quote shares a
+	// line with `#` must NOT let stripLineComment drop the real command that
+	// follows the closing quote. Before the cross-line quote fix, the `#` on
+	// line 2 was misread as a comment start (quote state reset per line), so the
+	// trailing real `cat <secret>` was deleted and the floor missed it.
+	dotenv := ".env"
+	cases := []string{
+		// closing double-quote + '#' + real secret read on the same line
+		"x=\"foo\nbar # baz\" && cat " + dotenv,
+		// closing single-quote variant
+		"y='foo\nbar # baz' && cat " + dotenv,
+	}
+	for _, cmd := range cases {
+		t.Run(cmd, func(t *testing.T) {
+			d := CheckCommand(cmd, Context{})
+			if !d.Stopped || d.Category != CategorySecretRead {
+				t.Fatalf("expected secret-read stop for real read hidden after cross-line quote, got Stopped=%v Category=%s", d.Stopped, d.Category)
+			}
+		})
+	}
+}
+
+func TestCheckSecretRead_GenuineCommentStillStripped(t *testing.T) {
+	// Regression guard for the false-positive side: a real single-line comment
+	// mentioning a secret filename must still NOT trip the floor.
+	d := CheckCommand("cat notes.md # remember to rotate .env later", Context{})
+	if d.Stopped {
+		t.Fatalf("single-line comment mentioning a secret filename must not stop, got %s", d.Category)
+	}
+}
