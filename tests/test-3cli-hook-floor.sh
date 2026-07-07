@@ -7,6 +7,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKTREE_DIR="$(mktemp -d)"
 HARNESS_BIN="$(mktemp)"
+export GOCACHE="${GOCACHE:-${WORKTREE_DIR}/go-build}"
 
 cleanup() {
   rm -rf "${WORKTREE_DIR}"

@@ -453,6 +453,12 @@ else
     fail_test "3 CLI hook runtime floor parity に問題があります — 'bash tests/test-3cli-hook-floor.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-plan-preapproval.sh" >/dev/null 2>&1; then
+    pass_test "plan-preapproval.v1 schema と secret-read runtimefloor bridge が動作します (test-plan-preapproval.sh)"
+else
+    fail_test "plan-preapproval の契約テストに失敗 — 'bash tests/test-plan-preapproval.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then
     pass_test "Claude Code 2.1.80-2.1.86 の統合ポイントが配線されています"
 else
