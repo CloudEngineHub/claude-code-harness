@@ -113,11 +113,7 @@ func (h *UserPromptInjectPolicyHandler) resolveProjectRoot() string {
 
 // detectIntent はプロンプトから semantic/literal を判定する。
 func detectIntent(prompt string) string {
-	semanticKeywords := []string{
-		"定義", "参照", "rename", "診断", "リファクタ",
-		"変更", "修正", "実装", "追加", "削除", "移動",
-		"シンボル", "関数", "クラス", "メソッド", "変数",
-	}
+	semanticKeywords := userPromptSemanticKeywords()
 	lower := strings.ToLower(prompt)
 	for _, kw := range semanticKeywords {
 		if strings.Contains(lower, strings.ToLower(kw)) {
@@ -125,6 +121,27 @@ func detectIntent(prompt string) string {
 		}
 	}
 	return "literal"
+}
+
+func userPromptSemanticKeywords() []string {
+	return []string{
+		localizedHarnessMessage("ja", "definition", "定義"),
+		localizedHarnessMessage("ja", "reference", "参照"),
+		"rename",
+		localizedHarnessMessage("ja", "diagnostic", "診断"),
+		localizedHarnessMessage("ja", "refactor", "リファクタ"),
+		localizedHarnessMessage("ja", "change", "変更"),
+		localizedHarnessMessage("ja", "fix", "修正"),
+		localizedHarnessMessage("ja", "implement", "実装"),
+		localizedHarnessMessage("ja", "add", "追加"),
+		localizedHarnessMessage("ja", "delete", "削除"),
+		localizedHarnessMessage("ja", "move", "移動"),
+		localizedHarnessMessage("ja", "symbol", "シンボル"),
+		localizedHarnessMessage("ja", "function", "関数"),
+		localizedHarnessMessage("ja", "class", "クラス"),
+		localizedHarnessMessage("ja", "method", "メソッド"),
+		localizedHarnessMessage("ja", "variable", "変数"),
+	}
 }
 
 // updateSessionState は session.json の prompt_seq をインクリメントし、intent を更新する。

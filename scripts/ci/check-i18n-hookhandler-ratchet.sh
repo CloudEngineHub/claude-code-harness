@@ -3,14 +3,11 @@
 #
 # The spec i18n contract requires user-facing runtime strings to go through the
 # locale resolver (localizedHarnessMessage / resolveHarnessLocale), with English
-# as the default and Japanese opt-in. A large body of legacy Japanese literals
-# predates the contract; migrating all of them is tracked as a follow-up.
+# as the default and Japanese opt-in.
 #
-# This gate is a RATCHET: it counts "bare" Japanese string literals — Japanese
-# text in a string literal on a line that does NOT go through localizedHarnessMessage
-# and is NOT a comment — and fails if that count rises above the recorded baseline.
-# Migrating a file lowers the count (then lower BASELINE here); adding a new bare
-# Japanese user-facing string raises it and fails the gate.
+# This gate counts "bare" Japanese string literals — Japanese text in a string
+# literal on a line that does NOT go through localizedHarnessMessage and is NOT
+# a comment — and fails if any are present.
 #
 # Exit 0 if count <= baseline, exit 1 if it exceeds the baseline.
 # Note: no `set -e` — grep returning 1 (no match) in the counting pipeline is
@@ -20,9 +17,9 @@ set -uo pipefail
 ROOT="${1:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 HANDLER_DIR="$ROOT/go/internal/hookhandler"
 
-# Baseline recorded 2026-07-06 after migrating inbox_check.go. Only lower this
-# number as more files are migrated; never raise it to accommodate new debt.
-BASELINE=73
+# Phase 106.2: all hookhandler Japanese user-facing text is localized. Never
+# raise this baseline to accommodate new debt.
+BASELINE=0
 
 if [ ! -d "$HANDLER_DIR" ]; then
   echo "i18n ratchet: hookhandler dir not found ($HANDLER_DIR) — skipping (not-configured)"

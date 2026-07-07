@@ -337,11 +337,11 @@ func collectPlansState(plansFile string) (plansState, error) {
 		return plansState{}, fmt.Errorf("plans file not found: %w", err)
 	}
 
-	pmPending := countMarker(plansFile, "pm:依頼中") + countMarker(plansFile, "cursor:依頼中")
+	pmPending := countMarker(plansFile, localizedHarnessMessage("ja", "pm:pending", "pm:依頼中")) + countMarker(plansFile, localizedHarnessMessage("ja", "cursor:pending", "cursor:依頼中"))
 	ccTodo := countMarker(plansFile, "cc:TODO")
 	ccWip := countMarker(plansFile, "cc:WIP")
-	ccDone := countMarker(plansFile, "cc:完了")
-	pmConfirmed := countMarker(plansFile, "pm:確認済") + countMarker(plansFile, "cursor:確認済")
+	ccDone := countMarker(plansFile, localizedHarnessMessage("ja", "cc:done", "cc:完了"))
+	pmConfirmed := countMarker(plansFile, localizedHarnessMessage("ja", "pm:confirmed", "pm:確認済")) + countMarker(plansFile, localizedHarnessMessage("ja", "cursor:confirmed", "cursor:確認済"))
 
 	return plansState{
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),

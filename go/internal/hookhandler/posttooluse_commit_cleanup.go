@@ -92,7 +92,9 @@ func (h *CommitCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		_ = os.Remove(reviewStateFile)
 		_ = os.Remove(reviewResultFile)
 
-		_, _ = fmt.Fprintf(w, "[Commit Guard] レビュー承認状態をクリアしました。次回のコミット前に再度独立レビューを実行してください。\n")
+		_, _ = fmt.Fprint(w, localizedHarnessMessage("ja",
+			"[Commit Guard] Cleared review approval state. Run an independent review again before the next commit.\n",
+			"[Commit Guard] レビュー承認状態をクリアしました。次回のコミット前に再度独立レビューを実行してください。\n"))
 	}
 
 	return nil

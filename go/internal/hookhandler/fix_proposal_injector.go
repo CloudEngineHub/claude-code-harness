@@ -64,7 +64,7 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	// symlink チェック（isSymlink は notification_handler.go で定義済み）
 	if hasFixSymlinkComponent(stateDir, projectRoot) || isSymlink(proposalsFile) {
 		return writeFixProposalJSON(w, fixProposalInjectorOutput{
-			SystemMessage: "⚠️ fix proposal state path が symlink のため処理を中止しました。",
+			SystemMessage: localizedHarnessMessage("ja", "Warning: fix proposal state path is a symlink; processing stopped.", "⚠️ fix proposal state path が symlink のため処理を中止しました。"),
 		})
 	}
 
@@ -72,7 +72,7 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	if _, err := os.Stat(plansPath); err == nil {
 		if hasFixSymlinkComponent(plansPath, projectRoot) {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: "⚠️ Plans.md path が symlink のため fix proposal を反映できません。",
+				SystemMessage: localizedHarnessMessage("ja", "Warning: Plans.md path is a symlink; fix proposal cannot be applied.", "⚠️ Plans.md path が symlink のため fix proposal を反映できません。"),
 			})
 		}
 	}
@@ -94,7 +94,9 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	if action != "" && targetID == "" && pendingCount != 1 {
 		return writeFixProposalJSON(w, fixProposalInjectorOutput{
 			SystemMessage: fmt.Sprintf(
-				"⚠️ 未処理の fix proposal が %d 件あります。approve fix <task_id> または reject fix <task_id> を使って対象を明示してください。",
+				localizedHarnessMessage("ja",
+					"Warning: %d pending fix proposals exist. Use approve fix <task_id> or reject fix <task_id> to specify the target.",
+					"⚠️ 未処理の fix proposal が %d 件あります。approve fix <task_id> または reject fix <task_id> を使って対象を明示してください。"),
 				pendingCount,
 			),
 		})
@@ -105,7 +107,7 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	if !found {
 		if targetID != "" {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: fmt.Sprintf("⚠️ 指定された fix proposal が見つかりません: %s", targetID),
+				SystemMessage: fmt.Sprintf(localizedHarnessMessage("ja", "Warning: specified fix proposal not found: %s", "⚠️ 指定された fix proposal が見つかりません: %s"), targetID),
 			})
 		}
 		return nil
@@ -119,15 +121,15 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 				_ = err
 			}
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: fmt.Sprintf("✅ fix proposal を反映しました: %s\n内容: %s", proposal.FixTaskID, proposal.ProposalSubject),
+				SystemMessage: fmt.Sprintf(localizedHarnessMessage("ja", "Applied fix proposal: %s\nContent: %s", "✅ fix proposal を反映しました: %s\n内容: %s"), proposal.FixTaskID, proposal.ProposalSubject),
 			})
 		} else if applyResult == "plans_missing" {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: "⚠️ fix proposal を反映できませんでした。Plans.md が見つかりません。",
+				SystemMessage: localizedHarnessMessage("ja", "Warning: fix proposal could not be applied because Plans.md was not found.", "⚠️ fix proposal を反映できませんでした。Plans.md が見つかりません。"),
 			})
 		} else {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: fmt.Sprintf("⚠️ fix proposal の反映に失敗しました。対象タスク %s が Plans.md で見つかりません。", proposal.SourceTaskID),
+				SystemMessage: fmt.Sprintf(localizedHarnessMessage("ja", "Warning: failed to apply fix proposal. Target task %s was not found in Plans.md.", "⚠️ fix proposal の反映に失敗しました。対象タスク %s が Plans.md で見つかりません。"), proposal.SourceTaskID),
 			})
 		}
 	}
@@ -136,7 +138,7 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	if action == "reject" {
 		_ = consumeFixProposal(proposalsFile, proposal.SourceTaskID)
 		return writeFixProposalJSON(w, fixProposalInjectorOutput{
-			SystemMessage: fmt.Sprintf("ℹ️ fix proposal を却下しました: %s", proposal.FixTaskID),
+			SystemMessage: fmt.Sprintf(localizedHarnessMessage("ja", "Rejected fix proposal: %s", "ℹ️ fix proposal を却下しました: %s"), proposal.FixTaskID),
 		})
 	}
 
@@ -189,9 +191,9 @@ func parseFixProposalAction(lower, original string) (action, targetID string) {
 		if m := re.FindStringSubmatch(original); m != nil {
 			targetID = strings.TrimSpace(m[1])
 		}
-	case lower == "yes" || lower == "はい" || lower == "承認":
+	case lower == "yes" || lower == localizedHarnessMessage("ja", "yes", "はい") || lower == localizedHarnessMessage("ja", "approve", "承認"):
 		action = "approve"
-	case lower == "no" || lower == "いいえ" || lower == "却下":
+	case lower == "no" || lower == localizedHarnessMessage("ja", "no", "いいえ") || lower == localizedHarnessMessage("ja", "reject", "却下"):
 		action = "reject"
 	}
 	return action, targetID
@@ -345,15 +347,15 @@ func applyFixProposalToPlans(plansPath string, proposal fixProposal) string {
 // buildFixProposalReminder はリマインダーメッセージを構築する。
 func buildFixProposalReminder(proposal fixProposal, pendingCount int) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("[FIX PROPOSAL] 未処理の修正タスク案があります (%d件)\n", pendingCount))
-	sb.WriteString(fmt.Sprintf("対象: %s — %s\n", proposal.FixTaskID, proposal.ProposalSubject))
-	sb.WriteString(fmt.Sprintf("失敗カテゴリ: %s\n", proposal.FailureCategory))
+	sb.WriteString(fmt.Sprintf(localizedHarnessMessage("ja", "[FIX PROPOSAL] Pending fix proposals exist (%d)\n", "[FIX PROPOSAL] 未処理の修正タスク案があります (%d件)\n"), pendingCount))
+	sb.WriteString(fmt.Sprintf(localizedHarnessMessage("ja", "Target: %s — %s\n", "対象: %s — %s\n"), proposal.FixTaskID, proposal.ProposalSubject))
+	sb.WriteString(fmt.Sprintf(localizedHarnessMessage("ja", "Failure category: %s\n", "失敗カテゴリ: %s\n"), proposal.FailureCategory))
 	sb.WriteString(fmt.Sprintf("DoD: %s\n", proposal.DoD))
 	if proposal.RecommendedAction != "" {
-		sb.WriteString(fmt.Sprintf("推奨アクション: %s\n", proposal.RecommendedAction))
+		sb.WriteString(fmt.Sprintf(localizedHarnessMessage("ja", "Recommended action: %s\n", "推奨アクション: %s\n"), proposal.RecommendedAction))
 	}
-	sb.WriteString(fmt.Sprintf("承認: approve fix %s\n", proposal.SourceTaskID))
-	sb.WriteString(fmt.Sprintf("却下: reject fix %s", proposal.SourceTaskID))
+	sb.WriteString(fmt.Sprintf(localizedHarnessMessage("ja", "Approve: approve fix %s\n", "承認: approve fix %s\n"), proposal.SourceTaskID))
+	sb.WriteString(fmt.Sprintf(localizedHarnessMessage("ja", "Reject: reject fix %s", "却下: reject fix %s"), proposal.SourceTaskID))
 	return sb.String()
 }
 

@@ -185,7 +185,7 @@ func (h *taskCompletedHandler) handle(input taskCompletedInput, rawData []byte, 
 
 	// プログレスサマリー付き承認レスポンス
 	if totalTasks > 0 && taskSubject != "" {
-		progressMsg := fmt.Sprintf("Progress: Task %d/%d 完了 — %q", completedCount, totalTasks, taskSubject)
+		progressMsg := fmt.Sprintf(localizedHarnessMessage("ja", "Progress: Task %d/%d completed — %q", "Progress: Task %d/%d 完了 — %q"), completedCount, totalTasks, taskSubject)
 		resp := map[string]interface{}{
 			"decision":      "approve",
 			"reason":        "TaskCompleted tracked",

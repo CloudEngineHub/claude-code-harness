@@ -118,7 +118,9 @@ func HandlePostToolUseFileLease(in io.Reader, out io.Writer) error {
 	if len(holderShort) > 8 {
 		holderShort = holderShort[:8]
 	}
-	reason := fmt.Sprintf("session %s が `%s` を編集中。完了を待つか別ファイルへ", holderShort, relPath)
+	reason := fmt.Sprintf(localizedHarnessMessage("ja",
+		"session %s is editing `%s`; wait for completion or use another file",
+		"session %s が `%s` を編集中。完了を待つか別ファイルへ"), holderShort, relPath)
 
 	resp := fileLeaseDenyOutput{}
 	resp.HookSpecificOutput.HookEventName = "PostToolUse"

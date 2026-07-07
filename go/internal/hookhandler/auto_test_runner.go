@@ -554,13 +554,19 @@ func runTestsAndReport(out io.Writer, projectRoot, stateDir, changedFile, testCm
 
 	switch status {
 	case "passed":
-		contextMsg = fmt.Sprintf("[Auto Test Runner] Tests passed / テスト成功\nCommand: %s\nFile: %s\nStatus: PASSED (exit=0)",
+		contextMsg = fmt.Sprintf(localizedHarnessMessage("ja",
+			"[Auto Test Runner] Tests passed\nCommand: %s\nFile: %s\nStatus: PASSED (exit=0)",
+			"[Auto Test Runner] Tests passed / テスト成功\nCommand: %s\nFile: %s\nStatus: PASSED (exit=0)"),
 			testCmd, changedFile)
 	case "timeout":
-		contextMsg = fmt.Sprintf("[Auto Test Runner] Tests timed out / テストがタイムアウトしました (60s)\nCommand: %s\nFile: %s\nStatus: TIMEOUT\n\nOutput:\n%s",
+		contextMsg = fmt.Sprintf(localizedHarnessMessage("ja",
+			"[Auto Test Runner] Tests timed out (60s)\nCommand: %s\nFile: %s\nStatus: TIMEOUT\n\nOutput:\n%s",
+			"[Auto Test Runner] Tests timed out / テストがタイムアウトしました (60s)\nCommand: %s\nFile: %s\nStatus: TIMEOUT\n\nOutput:\n%s"),
 			testCmd, changedFile, outputSnippet)
 	default:
-		contextMsg = fmt.Sprintf("[Auto Test Runner] Tests failed / テスト失敗\nCommand: %s\nFile: %s\nStatus: FAILED (exit=%d)\n\nOutput:\n%s\n\nFix the implementation to make the tests pass. / テストが通るように実装を修正してください。",
+		contextMsg = fmt.Sprintf(localizedHarnessMessage("ja",
+			"[Auto Test Runner] Tests failed\nCommand: %s\nFile: %s\nStatus: FAILED (exit=%d)\n\nOutput:\n%s\n\nFix the implementation to make the tests pass.",
+			"[Auto Test Runner] Tests failed / テスト失敗\nCommand: %s\nFile: %s\nStatus: FAILED (exit=%d)\n\nOutput:\n%s\n\nFix the implementation to make the tests pass. / テストが通るように実装を修正してください。"),
 			testCmd, changedFile, exitCode, outputSnippet)
 	}
 
@@ -580,7 +586,7 @@ func writeTestRecommendation(out io.Writer, stateDir, changedFile, testCmd, rela
 		ChangedFile:    changedFile,
 		TestCommand:    testCmd,
 		RelatedTest:    relatedTest,
-		Recommendation: "テストの実行を推奨します",
+		Recommendation: localizedHarnessMessage("ja", "Running tests is recommended", "テストの実行を推奨します"),
 	}
 	if err := autoTestWriteJSONFile(recPath, rec); err != nil {
 		fmt.Fprintf(os.Stderr, "[auto-test-runner] write recommendation: %v\n", err)

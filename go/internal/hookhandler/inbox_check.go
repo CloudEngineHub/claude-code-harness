@@ -466,14 +466,18 @@ func buildSafeInboxContext(messages []broadcastMessage, locale string) string {
 		}
 		line := ""
 		if path != "" {
-			line = fmt.Sprintf("- [%s ago] %s が `%s` を編集\n",
+			line = fmt.Sprintf(localizedHarnessMessage(locale,
+				"- [%s ago] %s edited `%s`\n",
+				"- [%s ago] %s が `%s` を編集\n"),
 				formatAgeSeconds(m.AgeSeconds), sender, path)
 		} else {
 			// Path missing means the content line did not match the
 			// expected `<path>` structure. We still want to surface that a
 			// sibling session is active, but we deliberately omit any free
 			// text — only the structured sender/age remain.
-			line = fmt.Sprintf("- [%s ago] %s が編集 (path 非構造化のため省略)\n",
+			line = fmt.Sprintf(localizedHarnessMessage(locale,
+				"- [%s ago] %s edited something (omitted because path is unstructured)\n",
+				"- [%s ago] %s が編集 (path 非構造化のため省略)\n"),
 				formatAgeSeconds(m.AgeSeconds), sender)
 		}
 		if b.Len()+len(line) > inboxInjectByteCap {
@@ -481,7 +485,7 @@ func buildSafeInboxContext(messages []broadcastMessage, locale string) string {
 			// knows additional messages exist but were dropped.
 			remaining := len(messages) - emitted
 			if remaining > 0 {
-				b.WriteString(fmt.Sprintf("- (… %d 件省略 / byte cap)\n", remaining))
+				b.WriteString(fmt.Sprintf(localizedHarnessMessage(locale, "- (… %d omitted / byte cap)\n", "- (… %d 件省略 / byte cap)\n"), remaining))
 			}
 			break
 		}
@@ -507,7 +511,7 @@ func buildLegacyInboxContext(lines []string, locale string) string {
 		}
 		entry := "- " + clean + "\n"
 		if b.Len()+len(entry) > inboxInjectByteCap {
-			b.WriteString("- (…省略 / byte cap)\n")
+			b.WriteString(localizedHarnessMessage(locale, "- (… omitted / byte cap)\n", "- (…省略 / byte cap)\n"))
 			break
 		}
 		b.WriteString(entry)

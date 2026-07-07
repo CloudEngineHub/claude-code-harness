@@ -136,7 +136,9 @@ func (h *StopFailureHandler) Handle(in io.Reader, out io.Writer) error {
 	// 429 レート制限時: systemMessage で Lead に通知
 	if errorCode == "429" || errorCode == "rate_limit" {
 		msg := fmt.Sprintf(
-			"[StopFailure] Worker %s がレート制限 (429) で停止。Breezing Lead は指数バックオフ後に自動再開を試みてください。",
+			localizedHarnessMessage("ja",
+				"[StopFailure] Worker %s stopped due to rate limit (429). Breezing Lead should retry automatic resume after exponential backoff.",
+				"[StopFailure] Worker %s がレート制限 (429) で停止。Breezing Lead は指数バックオフ後に自動再開を試みてください。"),
 			sessionID,
 		)
 		if err := writeJSON(out, stopFailureSystemMessage{SystemMessage: msg}); err != nil {
