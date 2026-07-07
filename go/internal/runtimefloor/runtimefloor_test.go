@@ -2,6 +2,7 @@ package runtimefloor
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -375,4 +376,67 @@ func TestCheckSecretRead_UnsetEnvKeepsDenyByDefault(t *testing.T) {
 	if !d.Stopped || d.Category != CategorySecretRead {
 		t.Fatalf("unset allowlist must deny-by-default, got Stopped=%v", d.Stopped)
 	}
+}
+
+func TestCheckSecretRead_ConfigAllowlistedPathPasses(t *testing.T) {
+	root := testWorktreeRoot(t)
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"secretAllow":[".env"]}}`)
+
+	d := CheckCommand("cat "+filepath.Join(root, ".env"), Context{WorktreeRoot: root})
+	if d.Stopped {
+		t.Fatalf("config-declared secret path should pass, got category %s reason %q", d.Category, d.Reason)
+	}
+}
+
+func TestCheckSecretRead_ConfigAbsolutePathOutsideProjectIsIgnored(t *testing.T) {
+	root := testWorktreeRoot(t)
+	other := t.TempDir()
+	outsideDotenv := filepath.Join(other, ".env")
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"secretAllow":[`+quoteJSON(outsideDotenv)+`]}}`)
+
+	d := CheckCommand("cat "+outsideDotenv, Context{WorktreeRoot: root})
+	if !d.Stopped || d.Category != CategorySecretRead {
+		t.Fatalf("outside-project config declaration must deny, got Stopped=%v Category=%s", d.Stopped, d.Category)
+	}
+}
+
+func TestCheckSecretRead_EnvAndConfigAllowlistsAreUnioned(t *testing.T) {
+	root := testWorktreeRoot(t)
+	envRoot := t.TempDir()
+	configSecret := filepath.Join(root, "secrets", "service.key")
+	envSecret := filepath.Join(envRoot, ".env")
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"secretAllow":["secrets/service.key"]}}`)
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", envRoot)
+
+	for _, cmd := range []string{"cat " + configSecret, "cat " + envSecret} {
+		t.Run(cmd, func(t *testing.T) {
+			d := CheckCommand(cmd, Context{WorktreeRoot: root})
+			if d.Stopped {
+				t.Fatalf("env+config union should allow %q, got category %s reason %q", cmd, d.Category, d.Reason)
+			}
+		})
+	}
+}
+
+func TestCheckSecretRead_InvalidConfigFailsSafeDeny(t *testing.T) {
+	root := testWorktreeRoot(t)
+	dotenv := filepath.Join(root, ".env")
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"secretAllow":[".env"]}`)
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", root)
+
+	d := CheckCommand("cat "+dotenv, Context{WorktreeRoot: root})
+	if !d.Stopped || d.Category != CategorySecretRead {
+		t.Fatalf("invalid config must be treated as no declarations, got Stopped=%v Category=%s", d.Stopped, d.Category)
+	}
+}
+
+func writeRuntimeFloorConfig(t *testing.T, root, body string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(root, ".claude-code-harness.config.json"), []byte(body), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+}
+
+func quoteJSON(s string) string {
+	return `"` + strings.ReplaceAll(s, `\`, `\\`) + `"`
 }

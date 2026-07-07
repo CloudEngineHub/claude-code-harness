@@ -5,6 +5,7 @@
 package runtimefloor
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -201,7 +202,7 @@ func isAllowlistedHost(host string) bool {
 	return false
 }
 
-func checkSecretRead(cmd string, _ Context) Decision {
+func checkSecretRead(cmd string, ctx Context) Decision {
 	// Scan only the executable portion of the command, not heredoc bodies or
 	// comments. A secret filename that appears purely as document text (e.g.
 	// inside a `<<'EOF' ... EOF` block, or after `#`) is not an actual read and
@@ -227,7 +228,7 @@ func checkSecretRead(cmd string, _ Context) Decision {
 	// Phase 108: an operator can pre-authorize known-safe secret paths so a
 	// declared pipeline is not stalled mid-run. Deny unless EVERY matched secret
 	// path is explicitly allowlisted; an unlisted secret still denies.
-	allow := secretAllowPatterns()
+	allow := secretAllowPatterns(ctx)
 	for _, item := range indicators {
 		for _, loc := range item.re.FindAllStringIndex(scannable, -1) {
 			token := enclosingToken(scannable, loc[0])
@@ -241,11 +242,23 @@ func checkSecretRead(cmd string, _ Context) Decision {
 }
 
 // secretAllowPatterns returns the operator-declared secret-read allowlist from
-// HARNESS_RUNTIME_FLOOR_SECRET_ALLOW (comma-separated path prefixes / globs),
-// mirroring the egress isAllowlistedHost owner-scoped exemption. Empty entries
-// and blanket wildcards ("*" / "**") are dropped: the allowlist only relaxes
-// EXPLICITLY declared paths and never turns the whole category off.
-func secretAllowPatterns() []string {
+// HARNESS_RUNTIME_FLOOR_SECRET_ALLOW (comma-separated path prefixes / globs)
+// plus project-local .claude-code-harness.config.json runtimefloor.secretAllow.
+// Empty entries and blanket wildcards ("*" / "**") are dropped: the allowlist
+// only relaxes EXPLICITLY declared paths and never turns the whole category off.
+// If a project config exists but cannot be parsed, fail safe by ignoring all
+// declarations, including env, so secret-read stays deny-by-default.
+func secretAllowPatterns(ctx Context) []string {
+	if configAllow, found, ok := configSecretAllowPatterns(ctx); found {
+		if !ok {
+			return nil
+		}
+		return append(envSecretAllowPatterns(), configAllow...)
+	}
+	return envSecretAllowPatterns()
+}
+
+func envSecretAllowPatterns() []string {
 	raw := os.Getenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW")
 	if raw == "" {
 		return nil
@@ -259,6 +272,84 @@ func secretAllowPatterns() []string {
 		out = append(out, p)
 	}
 	return out
+}
+
+type runtimeFloorConfig struct {
+	RuntimeFloor struct {
+		SecretAllow []string `json:"secretAllow"`
+	} `json:"runtimefloor"`
+}
+
+func configSecretAllowPatterns(ctx Context) ([]string, bool, bool) {
+	projectRoot, configPath, found := resolveProjectRoot(ctx)
+	if !found {
+		return nil, false, true
+	}
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, true, false
+	}
+	var cfg runtimeFloorConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, true, false
+	}
+	rootAbs, err := filepath.Abs(projectRoot)
+	if err != nil {
+		rootAbs = filepath.Clean(projectRoot)
+	}
+	rootAbs = filepath.Clean(rootAbs)
+
+	var out []string
+	for _, raw := range cfg.RuntimeFloor.SecretAllow {
+		p := strings.TrimSpace(strings.Trim(strings.TrimSpace(raw), `"'`))
+		if p == "" || p == "*" || p == "**" || p == "/" {
+			continue
+		}
+		if filepath.IsAbs(p) {
+			abs, err := filepath.Abs(p)
+			if err != nil {
+				abs = filepath.Clean(p)
+			}
+			abs = filepath.Clean(abs)
+			if !pathUnderWorktree(abs, rootAbs) {
+				continue
+			}
+			out = append(out, abs)
+			continue
+		}
+		out = append(out, filepath.Join(rootAbs, filepath.Clean(p)))
+	}
+	return out, true, true
+}
+
+func resolveProjectRoot(ctx Context) (string, string, bool) {
+	start := strings.TrimSpace(ctx.WorktreeRoot)
+	if start == "" {
+		var err error
+		start, err = os.Getwd()
+		if err != nil {
+			return "", "", false
+		}
+	}
+	abs, err := filepath.Abs(start)
+	if err != nil {
+		abs = filepath.Clean(start)
+	}
+	info, err := os.Stat(abs)
+	if err == nil && !info.IsDir() {
+		abs = filepath.Dir(abs)
+	}
+	for {
+		candidate := filepath.Join(abs, ".claude-code-harness.config.json")
+		if _, err := os.Stat(candidate); err == nil {
+			return abs, candidate, true
+		}
+		parent := filepath.Dir(abs)
+		if parent == abs {
+			return "", "", false
+		}
+		abs = parent
+	}
 }
 
 // isAllowlistedSecretPath reports whether a secret path token is covered by an
@@ -312,7 +403,7 @@ var heredocOpen = regexp.MustCompile(`<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)(['"
 func stripNonExecutableText(cmd string) string {
 	lines := strings.Split(cmd, "\n")
 	out := make([]string, 0, len(lines))
-	var terminator string      // non-empty while inside a heredoc body
+	var terminator string       // non-empty while inside a heredoc body
 	var inSingle, inDouble bool // shell quote state carried ACROSS lines
 
 	for _, line := range lines {

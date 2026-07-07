@@ -3,11 +3,13 @@ package nightwatch
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/eventstore"
@@ -46,14 +48,13 @@ func writeNightWatchConfig(t *testing.T, home string, enabled bool) {
 
 func startUnixSocket(t *testing.T) string {
 	t.Helper()
-	socketDir, err := os.MkdirTemp("/tmp", "nw")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(socketDir) })
+	socketDir := t.TempDir()
 	path := filepath.Join(socketDir, "b.sock")
 	ln, err := net.Listen("unix", path)
 	if err != nil {
+		if os.IsPermission(err) || errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EACCES) {
+			t.Skipf("unix socket bind is not permitted in this sandbox: %v", err)
+		}
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = ln.Close() })
