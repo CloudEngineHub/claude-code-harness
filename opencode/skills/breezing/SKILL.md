@@ -149,6 +149,16 @@ resolver 出力が `claude`、または resolver 未経由で backend が `claud
 4. **Auto Mode は opt-in 扱い** — `--auto-mode` は互換な親セッションでの rollout 用フラグとして受け付ける
 5. **Advisor は必要時のみ** — Worker が `advisor-request.v1` を返した時だけ Lead が advisor を呼ぶ
 
+### Plan-time 事前確認の扱い
+
+Breezing run 開始時は、Lead が `harness-work` と同じ preapproval preflight を実行する。
+
+- `.claude/state/plan-preapprovals.json` があれば `templates/schemas/plan-preapproval.v1.json` で validate する。
+- 実行対象 task の `decision: approved` 事項だけを宣言済みとして扱い、Worker briefing に渡す。
+- `secret-read` は `bash "${HARNESS_PLUGIN_ROOT}/scripts/plan-preapproval.sh" apply-secret-allow "$PROJECT_ROOT"` で project config `.claude-code-harness.config.json` の `runtimefloor.secretAllow` に per-run 反映し、108.2 の project config floor と接続する。
+- 宣言済み事項では途中停止せず、work 中の宣言済み事項起因 `AskUserQuestion` はゼロにする。確認は plan 承認時の 1 回のみ。
+- 記録に無い未計画の secret-read / 外部送信 / 破壊的操作は従来どおり runtime floor / ask で停止する。安全網を狭めない。
+
 ### `harness-work` との違い
 
 | 特徴 | `harness-work` | `breezing` (このスキル) |

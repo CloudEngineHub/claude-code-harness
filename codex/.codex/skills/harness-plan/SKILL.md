@@ -164,7 +164,40 @@ See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 7. 優先度マトリクス（Required / Recommended / Optional / Reject）
 8. TDD 採用判断（テスト設計）
 9. Plans.md 生成（`cc:TODO` マーカー付き）
-10. 次のアクション案内
+10. **事前確認セクション生成**（plan-time pre-approval）
+11. 次のアクション案内
+
+### create — 事前確認セクション（plan-time pre-approval）
+
+`create` で計画を確定する時は、Plans.md task を出したあと、承認前に **事前確認セクション**を必ず生成する。
+目的は、常設 allowlist で何でも許可するのではなく、作業スコープごとに「発生しそうな stop / ask」を plan 承認時に 1 回だけ前倒しで確認すること。
+
+抽出対象:
+
+- 各 task の対象ファイル、関連 path、想定変更範囲
+- DoD に書いた検証コマンド、PR closeout コマンド、外部 API / CLI 呼び出し
+- `secret-read path`（`.env*`, `secrets/**`, `*.pem`, `*.key`, `.ssh/**`, `.aws/**`, `credentials` など）
+- 外部送信（`git push`, `gh pr create`, `gh api`, `curl` / API call, release / publish / deploy）
+- 破壊的操作（`rm -rf`, migration destructive step, force push, production apply）
+
+固定 format:
+
+```text
+## 事前確認
+- 事項: <secret-read / external-send / destructive の具体操作>
+  理由: <DoD または task 実行上必要な理由を 1 行>
+  scope: Phase <phase> / Task <task>
+```
+
+出力ルール:
+
+- 1 行の `理由` は secret 値を含めない。path / コマンド名 / 対象サービスまでに留める。
+- plan 承認時に、事前確認セクションの全事項を一括提示し、ユーザーから承認 / 否認を得る。
+- 承認結果は `.claude/state/plan-preapprovals.json` に `plan-preapproval.v1` として記録する。schema は `templates/schemas/plan-preapproval.v1.json`。
+- 記録は `事項 + 理由 1 行 + scope (phase/task)` を維持し、`operations` には `secret-read` / `external-send` / `destructive` の列挙、`paths` / `commands` / `targets` には対象を列挙、`decision` と `approved_at` を入れる。
+- 確認は plan 承認時の 1 回のみ。`harness-work` / `breezing` 実行中、宣言済み事項だけを理由に `AskUserQuestion` を出してはいけない。
+- 記録に無い未計画の secret-read / 外部送信 / 破壊的操作は、従来どおり runtime floor / ask で停止する。安全網を狭めない。
+- secret-read の承認は secret 値の表示許可ではない。必要最小の path を宣言し、work 開始時に project config の `runtimefloor.secretAllow` へ per-run 反映するための入力として扱う。
 
 ### spec.md / Plans.md 二正本チェック（デフォルト）
 

@@ -403,6 +403,13 @@ backend=`cursor` / `codex` の場合は native Worker spawn を使わず、task 
    - spec が古い、または task と矛盾する場合は、実装前に spec を更新する
    - typo / format / dependency bump / docs-only / 動作変更なし refactor は skip 理由を残して続行する
    - Worker / Reviewer へ渡す context には `spec_path` または `spec_skip_reason` を含める
+1.7. **plan-time 事前確認の読み込み**:
+   - run 開始時に `.claude/state/plan-preapprovals.json` があれば読み、`templates/schemas/plan-preapproval.v1.json` で validate する（helper: `bash "${HARNESS_PLUGIN_ROOT}/scripts/plan-preapproval.sh" validate .claude/state/plan-preapprovals.json`）。
+   - 対象 task の `scope.phase` / `scope.task` に一致し、`decision: approved` の事項だけを今回の宣言済み事項として扱う。
+   - 宣言済みの `secret-read` は `bash "${HARNESS_PLUGIN_ROOT}/scripts/plan-preapproval.sh" apply-secret-allow "$PROJECT_ROOT"` で project config `.claude-code-harness.config.json` の `runtimefloor.secretAllow` に per-run 反映してから実装へ進む。これは 108.2 の project config 経由 runtime floor と接続する手順であり、広域常設 env allow ではない。
+   - 宣言済みの外部送信 / 破壊的操作は worker briefing と sprint-contract context に「plan 承認済み」として渡し、同一事項を理由に work 中の AskUserQuestion を出さない。
+   - 確認は plan 承認時 1 回のみ。work 中の宣言済み事項起因 `AskUserQuestion` はゼロにする。
+   - 記録に無い未計画の secret-read / 外部送信 / 破壊的操作は従来どおり runtime floor / ask で停止する。未宣言を黙って allowlist に追加しない。
 2. タスクを `cc:WIP` に更新
 3. **TDD フェーズ**（`[skip:tdd]` なし & テストFW存在時）:
    a. テストファイルを先に作成（Red）
@@ -529,9 +536,12 @@ Lead (this agent)
 **Phase A: Pre-delegate（準備）**:
 1. Plans.md を読み込み、対象タスクを特定
 2. 依存グラフを解析し、実行順序を決定（Depends カラム）
-3. 各タスクの effort スコアリング（effort tier 判定 — high/xhigh）
-4. `node "${HARNESS_PLUGIN_ROOT}/scripts/generate-sprint-contract.js"` で `sprint-contract.json` を生成
-5. `bash "${HARNESS_PLUGIN_ROOT}/scripts/enrich-sprint-contract.sh"` で Reviewer 観点を加え、`bash "${HARNESS_PLUGIN_ROOT}/scripts/ensure-sprint-contract-ready.sh"` で未承認なら停止
+3. `.claude/state/plan-preapprovals.json` を読み、存在する場合は `bash "${HARNESS_PLUGIN_ROOT}/scripts/plan-preapproval.sh" validate .claude/state/plan-preapprovals.json` で validate する
+4. 実行対象 task の `decision: approved` 事項を worker briefing に渡す。`secret-read` は `bash "${HARNESS_PLUGIN_ROOT}/scripts/plan-preapproval.sh" apply-secret-allow "$PROJECT_ROOT"` で project config の `runtimefloor.secretAllow` へ per-run 反映する。宣言済み事項では途中停止せず、同一事項起因の `AskUserQuestion` は出さない
+5. 記録に無い未計画の secret-read / 外部送信 / 破壊的操作は従来どおり runtime floor / ask で停止する
+6. 各タスクの effort スコアリング（effort tier 判定 — high/xhigh）
+7. `node "${HARNESS_PLUGIN_ROOT}/scripts/generate-sprint-contract.js"` で `sprint-contract.json` を生成
+8. `bash "${HARNESS_PLUGIN_ROOT}/scripts/enrich-sprint-contract.sh"` で Reviewer 観点を加え、`bash "${HARNESS_PLUGIN_ROOT}/scripts/ensure-sprint-contract-ready.sh"` で未承認なら停止
 
 **Phase B: Delegate（Worker spawn → 必要時 Advisor → レビュー → cherry-pick）**:
 
