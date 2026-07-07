@@ -453,6 +453,12 @@ else
     fail_test "3 CLI hook runtime floor parity に問題があります — 'bash tests/test-3cli-hook-floor.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-runtimefloor-secret-allowlist-e2e.sh" >/dev/null 2>&1; then
+    pass_test "secret-read allowlist e2e pipeline と他4カテゴリ deny 非退行が維持されています (test-runtimefloor-secret-allowlist-e2e.sh)"
+else
+    fail_test "secret-read allowlist e2e pipeline に問題があります — 'bash tests/test-runtimefloor-secret-allowlist-e2e.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-plan-preapproval.sh" >/dev/null 2>&1; then
     pass_test "plan-preapproval.v1 schema と secret-read runtimefloor bridge が動作します (test-plan-preapproval.sh)"
 else
