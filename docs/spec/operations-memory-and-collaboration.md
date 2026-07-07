@@ -267,3 +267,16 @@ hook wrapper around the canonical fragment remains the only legitimate
 per-host variation.
 
 ### auto-approve scope
+
+`HARNESS_AUTO_APPROVE=on` records the enablement gate and prerequisite-check
+result in the orchestration ledger only. It does **not** skip approval prompts:
+every risk gate, external-send confirmation, and review approval still fires.
+The strict env value is `on` (any other value is treated as off), and the
+default is off.
+
+Approval automation (actually skipping prompts) is **deferred**, not implemented.
+It is gated on HOTL governance verification — the Phase 101 U0–U7 evidence must
+prove the harness is safe to run unattended before any approval-skip behavior
+ships. This reflects the verification-first stance in `GOD_plans.md` §1:
+autonomy is an output of a proven harness, not a starting point. Until that
+evidence exists, the only observable effect of the flag is a ledger entry.
