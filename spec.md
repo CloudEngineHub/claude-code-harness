@@ -79,6 +79,19 @@ enabled):
    allowlist. Out-of-scope writes raise an alarm/escalation; declared-but-
    untouched scope (dropped work) is flagged. This catches task drift and silent
    failures that a terminal review structurally cannot see.
+   The same Runtime Floor has a symmetric secret-read allowlist contract for
+   local files, matching the egress allowlist enforced by `isAllowlistedHost`:
+   network egress is denied unless the destination host is explicitly declared,
+   and secret reads are denied unless the exact path is explicitly declared.
+   The only relaxation secret-read allowlisting provides is for named paths; it
+   must never mean broad filesystem access. Empty strings, a bare `*`, or any
+   other all-open declaration are invalid and resolve to deny. Effective
+   declarations are the union of `HARNESS_RUNTIME_FLOOR_SECRET_ALLOW` and the
+   project config `.claude-code-harness.config.json` key
+   `runtimefloor.secretAllow`. If project config is unreadable, malformed, or
+   has an invalid `runtimefloor.secretAllow` shape, the fail-safe behavior is an
+   empty allowlist (all secret reads denied). Relative paths resolve under the
+   project root; absolute paths outside the project root are invalid and ignored.
 5. **Bounded, externally-anchored review.** The OK-until-clean loop is capped
    (e.g. 3 rounds) with human escalation on repeated same-cause failure. Severity
    is a fixed taxonomy: security / data-loss / correctness findings always block
