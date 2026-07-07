@@ -319,3 +319,60 @@ func TestCheckSecretRead_GenuineCommentStillStripped(t *testing.T) {
 		t.Fatalf("single-line comment mentioning a secret filename must not stop, got %s", d.Category)
 	}
 }
+
+func TestCheckSecretRead_AllowlistedPathPasses(t *testing.T) {
+	// Phase 108: an operator-declared secret path is not stalled mid-pipeline.
+	dotenv := "/Users/op/proj/.env"
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", "/Users/op/proj/")
+	d := CheckCommand("cat "+dotenv, Context{})
+	if d.Stopped {
+		t.Fatalf("declared secret path should pass, got category %s", d.Category)
+	}
+}
+
+func TestCheckSecretRead_NonAllowlistedStillDenies(t *testing.T) {
+	// A secret path NOT covered by the allowlist still denies.
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", "/Users/op/proj/")
+	d := CheckCommand("cat /Users/other/secret/.env", Context{})
+	if !d.Stopped || d.Category != CategorySecretRead {
+		t.Fatalf("undeclared secret path must still deny, got Stopped=%v Category=%s", d.Stopped, d.Category)
+	}
+}
+
+func TestCheckSecretRead_MixedAllowedAndDeniedDenies(t *testing.T) {
+	// If any matched secret path is undeclared, the command denies.
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", "/Users/op/proj/")
+	d := CheckCommand("cat /Users/op/proj/.env && cat /Users/other/.env", Context{})
+	if !d.Stopped {
+		t.Fatalf("a mix with an undeclared secret path must deny")
+	}
+}
+
+func TestCheckSecretRead_BlanketWildcardIsIgnored(t *testing.T) {
+	// "*" / "**" must NOT turn the whole category off (deny stays).
+	for _, v := range []string{"*", "**", "/", " * , ** "} {
+		t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", v)
+		d := CheckCommand("cat /Users/op/proj/.env", Context{})
+		if !d.Stopped {
+			t.Fatalf("blanket wildcard %q must not open the category; got pass", v)
+		}
+	}
+}
+
+func TestCheckSecretRead_BasenameGlobAllows(t *testing.T) {
+	// A basename glob like ".env" allows any .env by name (operator's choice).
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", ".env")
+	d := CheckCommand("cat /Users/op/proj/.env", Context{})
+	if d.Stopped {
+		t.Fatalf("basename glob .env should allow a declared .env read")
+	}
+}
+
+func TestCheckSecretRead_UnsetEnvKeepsDenyByDefault(t *testing.T) {
+	// Phase 108 regression guard: with no declaration, behavior is unchanged.
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", "")
+	d := CheckCommand("cat /Users/op/proj/.env", Context{})
+	if !d.Stopped || d.Category != CategorySecretRead {
+		t.Fatalf("unset allowlist must deny-by-default, got Stopped=%v", d.Stopped)
+	}
+}

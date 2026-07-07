@@ -224,13 +224,82 @@ func checkSecretRead(cmd string, _ Context) Decision {
 		{"credentials", regexp.MustCompile(`(?i)\bcredentials\b`)},
 	}
 
+	// Phase 108: an operator can pre-authorize known-safe secret paths so a
+	// declared pipeline is not stalled mid-run. Deny unless EVERY matched secret
+	// path is explicitly allowlisted; an unlisted secret still denies.
+	allow := secretAllowPatterns()
 	for _, item := range indicators {
-		if item.re.MatchString(scannable) {
-			return stop(CategorySecretRead, item.pattern,
-				"credential or secret read requires human approval")
+		for _, loc := range item.re.FindAllStringIndex(scannable, -1) {
+			token := enclosingToken(scannable, loc[0])
+			if !isAllowlistedSecretPath(token, allow) {
+				return stop(CategorySecretRead, item.pattern,
+					"credential or secret read requires human approval")
+			}
 		}
 	}
 	return Decision{}
+}
+
+// secretAllowPatterns returns the operator-declared secret-read allowlist from
+// HARNESS_RUNTIME_FLOOR_SECRET_ALLOW (comma-separated path prefixes / globs),
+// mirroring the egress isAllowlistedHost owner-scoped exemption. Empty entries
+// and blanket wildcards ("*" / "**") are dropped: the allowlist only relaxes
+// EXPLICITLY declared paths and never turns the whole category off.
+func secretAllowPatterns() []string {
+	raw := os.Getenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW")
+	if raw == "" {
+		return nil
+	}
+	var out []string
+	for _, p := range strings.Split(raw, ",") {
+		p = strings.TrimSpace(strings.Trim(strings.TrimSpace(p), `"'`))
+		if p == "" || p == "*" || p == "**" || p == "/" {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// isAllowlistedSecretPath reports whether a secret path token is covered by an
+// operator-declared allowlist entry. A match is a path prefix, a full-path glob,
+// or a basename glob. An empty allowlist never matches (deny-by-default).
+func isAllowlistedSecretPath(token string, patterns []string) bool {
+	if token == "" || len(patterns) == 0 {
+		return false
+	}
+	token = strings.Trim(token, `"'`)
+	for _, pat := range patterns {
+		if strings.HasPrefix(token, pat) {
+			return true
+		}
+		if ok, _ := filepath.Match(pat, token); ok {
+			return true
+		}
+		if ok, _ := filepath.Match(pat, filepath.Base(token)); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// enclosingToken extracts the whitespace-delimited token of s that contains byte
+// position idx. Used to recover the concrete secret file path around an indicator
+// match so it can be checked against the allowlist.
+func enclosingToken(s string, idx int) string {
+	if idx < 0 || idx >= len(s) {
+		return ""
+	}
+	isSep := func(b byte) bool { return b == ' ' || b == '\t' || b == '\n' || b == '=' }
+	start := idx
+	for start > 0 && !isSep(s[start-1]) {
+		start--
+	}
+	end := idx
+	for end < len(s) && !isSep(s[end]) {
+		end++
+	}
+	return s[start:end]
 }
 
 var heredocOpen = regexp.MustCompile(`<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)(['"]?)`)
