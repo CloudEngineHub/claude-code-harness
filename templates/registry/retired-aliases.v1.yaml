@@ -66,3 +66,27 @@ entries:
       - "Plans.md"
       - "CLAUDE.md"
       - "templates/registry/"
+
+  - id: skill-harness-orchestration
+    kind: path
+    pattern: "skills/harness-orchestration"
+    removed_in: "Phase 107"
+    reason: "Jobs 視点レビュー (2026-07-07) で vanity scorecard (backend 利用量の自慢) と判定、判断に寄与しないため削除"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - "Plans.md"
+      - "templates/registry/"
+      - "docs/reports/"
+
+  - id: skill-cursor-rescue
+    kind: path
+    pattern: "skills/cursor-rescue"
+    removed_in: "Phase 107"
+    reason: "Jobs 視点レビューで 1 backend の例外復旧を top command にするのは過剰と判定、cursor-setup / docs へ集約し削除"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - "Plans.md"
+      - "templates/registry/"
+      - "docs/reports/"
