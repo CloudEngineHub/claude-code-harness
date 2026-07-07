@@ -655,7 +655,7 @@ Purpose: Phase 105.2 で i18n ratchet gate (baseline 117) と inbox_check.go 参
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | 106.1 | `[lane:gate]` `[tdd:required]` user-facing 上位 4 ファイル (plans_watcher/setup_hook/posttooluse_quality_pack/userprompt_inject_policy) の裸日本語を localizedHarnessMessage へ移行。移行後 ratchet baseline を実測値へ下げる | (a) 4 ファイルの user-facing 日本語が localizer 経由、(b) baseline 更新、(c) `go test ./internal/hookhandler/...` PASS、(d) check-consistency [23/23] PASS | 105.2 | cc:done [1775311f] |
-| 106.2 | `[lane:gate]` `[tdd:required]` 残り 8 ファイルの移行完了 + ratchet baseline を 0 にし gate を「裸日本語 0 件必須」へ昇格 | (a) 全 hookhandler の user-facing 日本語が localizer 経由、(b) baseline=0、(c) 新規裸日本語で gate fail の test、(d) `go test ./...` PASS | 106.1 | cc:todo |
+| 106.2 | `[lane:gate]` `[tdd:required]` 残り 8 ファイルの移行完了 + ratchet baseline を 0 にし gate を「裸日本語 0 件必須」へ昇格 | (a) 全 hookhandler の user-facing 日本語が localizer 経由、(b) baseline=0、(c) 新規裸日本語で gate fail の test、(d) `go test ./...` PASS | 106.1 | cc:done [7d5aa3d4] |
 
 ---
 
