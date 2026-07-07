@@ -22,7 +22,7 @@ HANDLER_DIR="$ROOT/go/internal/hookhandler"
 
 # Baseline recorded 2026-07-06 after migrating inbox_check.go. Only lower this
 # number as more files are migrated; never raise it to accommodate new debt.
-BASELINE=117
+BASELINE=73
 
 if [ ! -d "$HANDLER_DIR" ]; then
   echo "i18n ratchet: hookhandler dir not found ($HANDLER_DIR) — skipping (not-configured)"

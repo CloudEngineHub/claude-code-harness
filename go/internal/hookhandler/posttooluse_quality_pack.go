@@ -77,6 +77,7 @@ func HandlePostToolUseQualityPack(in io.Reader, out io.Writer) error {
 	if cwd != "" && strings.HasPrefix(filePath, cwd+"/") {
 		filePath = strings.TrimPrefix(filePath, cwd+"/")
 	}
+	locale := resolveHarnessLocale(cwd)
 
 	// JS/TS ファイルのみ対象
 	if !isJSTSFile(filePath) {
@@ -98,21 +99,21 @@ func HandlePostToolUseQualityPack(in io.Reader, out io.Writer) error {
 	var feedbacks []string
 
 	if cfg.Prettier {
-		msg := runPrettierCheck(filePath, cfg.Mode)
+		msg := runPrettierCheck(filePath, cfg.Mode, locale)
 		if msg != "" {
 			feedbacks = append(feedbacks, msg)
 		}
 	}
 
 	if cfg.TSC {
-		msg := runTSCCheck(cfg.Mode)
+		msg := runTSCCheck(cfg.Mode, locale)
 		if msg != "" {
 			feedbacks = append(feedbacks, msg)
 		}
 	}
 
 	if cfg.ConsoleLog {
-		msg := detectConsoleLogs(filePath)
+		msg := detectConsoleLogs(filePath, locale)
 		if msg != "" {
 			feedbacks = append(feedbacks, msg)
 		}
@@ -228,49 +229,51 @@ func readQualityPackConfig(configPath string) qualityPackConfig {
 // runPrettierCheck は Prettier チェックを実行する。
 // mode=run: prettier --write を実行
 // mode=warn: 推奨メッセージを返す
-func runPrettierCheck(filePath, mode string) string {
+func runPrettierCheck(filePath, mode, locale string) string {
 	if mode == "run" {
 		prettierBin := "./node_modules/.bin/prettier"
 		if _, statErr := os.Stat(prettierBin); statErr != nil {
-			return "Prettier: 未実行（prettier が見つかりません）"
+			return localizedHarnessMessage(locale, "Prettier: not run (prettier not found)", "Prettier: 未実行（prettier が見つかりません）")
 		}
 		cmd := exec.Command(prettierBin, "--write", filePath)
 		var errBuf bytes.Buffer
 		cmd.Stderr = &errBuf
 		if runErr := cmd.Run(); runErr != nil {
-			return "Prettier: 未実行（prettier が見つかりません）"
+			return localizedHarnessMessage(locale, "Prettier: not run (prettier not found)", "Prettier: 未実行（prettier が見つかりません）")
 		}
-		return "Prettier: 実行済み"
+		return localizedHarnessMessage(locale, "Prettier: ran", "Prettier: 実行済み")
 	}
 	// warn モード
-	return fmt.Sprintf("Prettier: 推奨（例: npx prettier --write \"%s\"）", filePath)
+	return localizedHarnessMessage(locale,
+		fmt.Sprintf("Prettier: recommended (example: npx prettier --write %q)", filePath),
+		fmt.Sprintf("Prettier: 推奨（例: npx prettier --write \"%s\"）", filePath))
 }
 
 // runTSCCheck は TypeScript 型チェックを実行する。
 // mode=run: tsc --noEmit を実行
 // mode=warn: 推奨メッセージを返す
-func runTSCCheck(mode string) string {
+func runTSCCheck(mode, locale string) string {
 	if mode == "run" {
 		// tsconfig.json の存在確認
 		if _, statErr := os.Stat("tsconfig.json"); statErr != nil {
-			return "tsc --noEmit: 未実行（tsconfig/tsc 未検出）"
+			return localizedHarnessMessage(locale, "tsc --noEmit: not run (tsconfig/tsc not found)", "tsc --noEmit: 未実行（tsconfig/tsc 未検出）")
 		}
 		tscBin := "./node_modules/.bin/tsc"
 		if _, statErr := os.Stat(tscBin); statErr != nil {
-			return "tsc --noEmit: 未実行（tsconfig/tsc 未検出）"
+			return localizedHarnessMessage(locale, "tsc --noEmit: not run (tsconfig/tsc not found)", "tsc --noEmit: 未実行（tsconfig/tsc 未検出）")
 		}
 		cmd := exec.Command(tscBin, "--noEmit")
 		if runErr := cmd.Run(); runErr != nil {
-			return "tsc --noEmit: 未実行（tsconfig/tsc 未検出）"
+			return localizedHarnessMessage(locale, "tsc --noEmit: not run (tsconfig/tsc not found)", "tsc --noEmit: 未実行（tsconfig/tsc 未検出）")
 		}
-		return "tsc --noEmit: 実行済み"
+		return localizedHarnessMessage(locale, "tsc --noEmit: ran", "tsc --noEmit: 実行済み")
 	}
 	// warn モード
-	return "tsc --noEmit: 推奨"
+	return localizedHarnessMessage(locale, "tsc --noEmit: recommended", "tsc --noEmit: 推奨")
 }
 
 // detectConsoleLogs はファイル内の console.log の個数を検出する。
-func detectConsoleLogs(filePath string) string {
+func detectConsoleLogs(filePath, locale string) string {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return ""
@@ -285,7 +288,9 @@ func detectConsoleLogs(filePath string) string {
 	}
 
 	if count > 0 {
-		return fmt.Sprintf("console.log が %d 件見つかりました", count)
+		return localizedHarnessMessage(locale,
+			fmt.Sprintf("Found %d console.log call(s)", count),
+			fmt.Sprintf("console.log が %d 件見つかりました", count))
 	}
 	return ""
 }

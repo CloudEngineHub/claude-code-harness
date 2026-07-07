@@ -266,8 +266,8 @@ func TestHandleSetupHook_UnknownMode(t *testing.T) {
 	}
 	hookOut := resp["hookSpecificOutput"].(map[string]interface{})
 	ctx := hookOut["additionalContext"].(string)
-	if !strings.Contains(ctx, "不明なモード") {
-		t.Errorf("expected 不明なモード in %q", ctx)
+	if !strings.Contains(ctx, "unknown mode") {
+		t.Errorf("expected unknown mode in %q", ctx)
 	}
 }
 
