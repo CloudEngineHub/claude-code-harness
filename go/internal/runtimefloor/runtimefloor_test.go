@@ -132,6 +132,26 @@ func TestCheckCommand_NotOverridableByEnv(t *testing.T) {
 	}
 }
 
+func TestCheckCommand_EgressOwnerScopedOptOut(t *testing.T) {
+	root := testWorktreeRoot(t)
+	t.Setenv("HARNESS_RUNTIME_FLOOR_EGRESS", "off")
+
+	decision := CheckCommand("curl -s https://example.com/research", Context{WorktreeRoot: root})
+	if decision.Stopped {
+		t.Fatalf("owner-scoped egress opt-out should pass, got category=%s reason=%s", decision.Category, decision.Reason)
+	}
+}
+
+func TestCheckCommand_EgressOwnerScopedOptOutDoesNotDisableSecretRead(t *testing.T) {
+	root := testWorktreeRoot(t)
+	t.Setenv("HARNESS_RUNTIME_FLOOR_EGRESS", "off")
+
+	decision := CheckCommand("cat .env", Context{WorktreeRoot: root})
+	if !decision.Stopped || decision.Category != CategorySecretRead {
+		t.Fatalf("egress opt-out must not disable secret-read, got Stopped=%v Category=%s", decision.Stopped, decision.Category)
+	}
+}
+
 func TestCheckCommand_EmptyCommand(t *testing.T) {
 	decision := CheckCommand("", Context{WorktreeRoot: os.TempDir()})
 	if decision.Stopped {

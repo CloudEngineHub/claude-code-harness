@@ -1241,32 +1241,95 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     fi
 
     if [ "$COMMIT_GUARD_ENABLED" = "true" ]; then
-      # レビュー承認状態をチェック
-      REVIEW_APPROVED="false"
-      if command -v jq >/dev/null 2>&1; then
-        if [ -f "$REVIEW_RESULT_FILE" ]; then
-          RESULT_VERDICT=$(jq -r '.verdict // empty' "$REVIEW_RESULT_FILE" 2>/dev/null)
-          if [ "$RESULT_VERDICT" = "APPROVE" ]; then
-            REVIEW_APPROVED="true"
-          fi
-        fi
-
-        if [ "$REVIEW_APPROVED" = "false" ] && [ -f "$REVIEW_STATE_FILE" ]; then
-          APPROVED_AT=$(jq -r '.approved_at // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
-          JUDGMENT=$(jq -r '.judgment // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
-          if [ -n "$APPROVED_AT" ] && [ "$JUDGMENT" = "APPROVE" ]; then
-            REVIEW_APPROVED="true"
+      # Bookkeeping-only commits (VERSION / .claude-plugin/plugin.json /
+      # harness.toml / CHANGELOG.md) are release metadata, not reviewed work.
+      # Exempt them only when the command is a pure git commit and the already
+      # staged index contains only those files.
+      BOOKKEEPING_ONLY="false"
+      if echo "$COMMAND" | grep -Eq '(^|[[:space:]])git[[:space:]]+(add|restore|reset|rm)([[:space:]]|$)' \
+         || echo "$COMMAND" | grep -Eq '(&&|\|\||\;|^\||[[:space:]]\|[[:space:]])'; then
+        BOOKKEEPING_ONLY="false"
+      elif echo "$COMMAND" | grep -Eq '(^|[[:space:]])git[[:space:]]+commit[[:space:]]+([^|&;]*[[:space:]])?(-[a-zA-Z]*a[a-zA-Z]*|--all|--include(=[^[:space:]]*)?|--only|--)([[:space:]]|$)' \
+         || echo "$COMMAND" | grep -Eq '(^|[[:space:]])git[[:space:]]+commit[[:space:]]+[^-[:space:]]' \
+         || echo "$COMMAND" | grep -Eq -e '-m[[:space:]]+"[^"]*"[[:space:]]+[^-[:space:]]' -e "-m[[:space:]]+'[^']*'[[:space:]]+[^-[:space:]]"; then
+        BOOKKEEPING_ONLY="false"
+      elif command -v git >/dev/null 2>&1; then
+        PATHSPEC_SUSPECT="false"
+        case "$COMMAND" in
+          *$'\n'*|*'$('*) PATHSPEC_SUSPECT="true" ;;
+          *)
+            if TOKENS=$(printf '%s' "$COMMAND" | xargs -n1 printf '%s\n' 2>/dev/null); then
+              SKIP_NEXT="false"; SEEN_COMMIT="false"
+              while IFS= read -r t; do
+                [ -z "$t" ] && continue
+                if [ "$SKIP_NEXT" = "true" ]; then SKIP_NEXT="false"; continue; fi
+                if [ "$SEEN_COMMIT" != "true" ]; then
+                  [ "$t" = "commit" ] && SEEN_COMMIT="true"
+                  continue
+                fi
+                case "$t" in
+                  -m|--message|-F|--file|-c|-C|--reuse-message|--reedit-message|--author|--date|--cleanup|-t|--template|--trailer) SKIP_NEXT="true" ;;
+                  --message=*|--file=*|--author=*|--date=*|--cleanup=*|--template=*|--trailer=*|--fixup=*|--squash=*|--gpg-sign=*) : ;;
+                  --pathspec-from-file*|--|--patch|--interactive) PATHSPEC_SUSPECT="true"; break ;;
+                  -*p*) PATHSPEC_SUSPECT="true"; break ;;
+                  --*) : ;;
+                  -*) : ;;
+                  *) PATHSPEC_SUSPECT="true"; break ;;
+                esac
+              done <<< "$TOKENS"
+            else
+              PATHSPEC_SUSPECT="true"
+            fi
+            ;;
+        esac
+        if [ "$PATHSPEC_SUSPECT" = "false" ]; then
+          STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
+          if [ -n "$STAGED_FILES" ]; then
+            BOOKKEEPING_ONLY="true"
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                "VERSION"|".claude-plugin/plugin.json"|"harness.toml"|"CHANGELOG.md") ;;
+                *) BOOKKEEPING_ONLY="false"; break ;;
+              esac
+            done <<< "$STAGED_FILES"
           fi
         fi
       fi
 
-      if [ "$REVIEW_APPROVED" = "false" ]; then
-        emit_deny "$(msg deny_git_commit_no_review)"
-        exit 0
-      fi
+      if [ "$BOOKKEEPING_ONLY" = "true" ]; then
+        mkdir -p .claude/state 2>/dev/null || true
+        printf '{"ts":"%s","scope":"pretool-commit-guard","reason":"bookkeeping-only","approval_required":false}\n' \
+          "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          >> ".claude/state/commit-cleanup-audit.jsonl" 2>/dev/null || true
+      else
+        # レビュー承認状態をチェック
+        REVIEW_APPROVED="false"
+        if command -v jq >/dev/null 2>&1; then
+          if [ -f "$REVIEW_RESULT_FILE" ]; then
+            RESULT_VERDICT=$(jq -r '.verdict // empty' "$REVIEW_RESULT_FILE" 2>/dev/null)
+            if [ "$RESULT_VERDICT" = "APPROVE" ]; then
+              REVIEW_APPROVED="true"
+            fi
+          fi
 
-      # コミット後に承認状態をクリア（次回コミット前に再レビューを要求）
-      # Note: これは PostToolUse で行うべきだが、ここでは警告のみ
+          if [ "$REVIEW_APPROVED" = "false" ] && [ -f "$REVIEW_STATE_FILE" ]; then
+            APPROVED_AT=$(jq -r '.approved_at // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
+            JUDGMENT=$(jq -r '.judgment // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
+            if [ -n "$APPROVED_AT" ] && [ "$JUDGMENT" = "APPROVE" ]; then
+              REVIEW_APPROVED="true"
+            fi
+          fi
+        fi
+
+        if [ "$REVIEW_APPROVED" = "false" ]; then
+          emit_deny "$(msg deny_git_commit_no_review)"
+          exit 0
+        fi
+
+        # コミット後に承認状態をクリア（次回コミット前に再レビューを要求）
+        # Note: これは PostToolUse で行うべきだが、ここでは警告のみ
+      fi
     fi
   fi
 

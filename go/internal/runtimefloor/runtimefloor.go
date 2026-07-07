@@ -113,6 +113,9 @@ func checkEgress(cmd string, _ Context) Decision {
 	if !egressToolPattern.MatchString(cmd) {
 		return Decision{}
 	}
+	if egressFloorExempted() {
+		return Decision{}
+	}
 
 	lower := strings.ToLower(cmd)
 
@@ -156,6 +159,10 @@ func checkEgress(cmd string, _ Context) Decision {
 	}
 
 	return Decision{}
+}
+
+func egressFloorExempted() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("HARNESS_RUNTIME_FLOOR_EGRESS")), "off")
 }
 
 func checkCurlWgetSchemelessHosts(cmd string) Decision {

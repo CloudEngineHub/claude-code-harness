@@ -694,6 +694,9 @@ func runSubagentStop() {
 	if err := tracker.HandleStop(input); err != nil {
 		fmt.Fprintf(os.Stderr, "subagent-stop handler error: %v\n", err)
 	}
+	if err := persistReviewerResultBackstop(input); err != nil {
+		fmt.Fprintf(os.Stderr, "subagent-stop reviewer persist error: %v\n", err)
+	}
 	// SubagentStop は出力不要（通過フック）
 }
 
