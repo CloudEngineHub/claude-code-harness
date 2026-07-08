@@ -411,9 +411,9 @@ if [ "$SUBCOMMAND" = "task" ]; then
           done < <(build_codex_task_model_args "$@")
           # stdin を再セットアップ（here-string 経由で companion に渡す）
           if [ "${STRUCTURED_TASK_EXEC}" -eq 1 ]; then
-            run_structured_task_exec "$@" "${MODEL_ARGS[@]}" --effort "${COMPUTED_EFFORT}" <<< "$STDIN_CONTENT"
+            run_structured_task_exec "$@" "${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"}" --effort "${COMPUTED_EFFORT}" <<< "$STDIN_CONTENT"
           else
-            run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]}" --effort "${COMPUTED_EFFORT}" <<< "$STDIN_CONTENT"
+            run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"}" --effort "${COMPUTED_EFFORT}" <<< "$STDIN_CONTENT"
           fi
         fi
         # stdin が空の場合（</dev/null 等）はフォールスルーして通常フローへ
@@ -435,9 +435,9 @@ if [ "$SUBCOMMAND" = "task" ]; then
     done < <(build_codex_task_model_args "$@")
 
     if [ "${STRUCTURED_TASK_EXEC}" -eq 1 ]; then
-      run_structured_task_exec "$@" "${MODEL_ARGS[@]}" --effort "$COMPUTED_EFFORT"
+      run_structured_task_exec "$@" "${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"}" --effort "$COMPUTED_EFFORT"
     else
-      run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]}" --effort "$COMPUTED_EFFORT"
+      run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"}" --effort "$COMPUTED_EFFORT"
     fi
   fi
 fi
@@ -451,7 +451,7 @@ if [ "$SUBCOMMAND" = "task" ]; then
   while IFS= read -r arg; do
     MODEL_ARGS+=("$arg")
   done < <(build_codex_task_model_args "$@")
-  run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]}"
+  run_task_with_fingerprint node "$COMPANION" "$@" "${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"}"
 fi
 
 exec node "$COMPANION" "$@"

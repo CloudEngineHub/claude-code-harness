@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -50,24 +51,35 @@ type Invocation struct {
 	Installed bool
 }
 
+var (
+	goosForInvocation     = runtime.GOOS
+	lookPathForInvocation = exec.LookPath
+)
+
 // ResolveInvocation finds an installed harness-mem CLI. If allowNpx is true,
 // it falls back to npx so setup/update can bootstrap a missing companion.
 func ResolveInvocation(allowNpx bool) (Invocation, bool) {
 	if cli := os.Getenv("HARNESS_MEM_CLI"); cli != "" {
-		return Invocation{Name: cli, Installed: true}, true
+		return wrapScriptInvocation(Invocation{Name: cli, Installed: true}), true
 	}
 
 	home, _ := os.UserHomeDir()
 	if home != "" {
 		candidate := filepath.Join(home, ".harness-mem", "runtime", "harness-mem", "scripts", "harness-mem")
+		if goosForInvocation == "windows" {
+			jsCandidate := candidate + ".js"
+			if info, err := os.Stat(jsCandidate); err == nil && !info.IsDir() {
+				return wrapScriptInvocation(Invocation{Name: jsCandidate, Installed: true}), true
+			}
+		}
 		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return Invocation{Name: candidate, Installed: true}, true
+			return wrapScriptInvocation(Invocation{Name: candidate, Installed: true}), true
 		}
 	}
 
 	if os.Getenv("HARNESS_MEM_DISABLE_PATH_LOOKUP") != "1" {
-		if path, err := exec.LookPath("harness-mem"); err == nil {
-			return Invocation{Name: path, Installed: true}, true
+		if path, err := lookPathForInvocation("harness-mem"); err == nil {
+			return wrapScriptInvocation(Invocation{Name: path, Installed: true}), true
 		}
 	}
 
@@ -88,6 +100,82 @@ func ResolveInvocation(allowNpx bool) (Invocation, bool) {
 		ArgPrefix: []string{"-y", "--package", pkg, "harness-mem"},
 		Installed: false,
 	}, true
+}
+
+func wrapScriptInvocation(inv Invocation) Invocation {
+	needs, runtimeOrder := scriptRuntimePreference(inv.Name)
+	if !needs {
+		return inv
+	}
+	runtimeBin := findJSRuntime(runtimeOrder)
+	if runtimeBin == "" {
+		return inv
+	}
+	return Invocation{
+		Name:      runtimeBin,
+		ArgPrefix: append([]string{inv.Name}, inv.ArgPrefix...),
+		Installed: inv.Installed,
+	}
+}
+
+func scriptRuntimePreference(name string) (bool, []string) {
+	nodeFirst := []string{"node", "bun"}
+	bunFirst := []string{"bun", "node"}
+
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".js", ".mjs", ".cjs":
+		if shebangRuntime(name) == "bun" {
+			return true, bunFirst
+		}
+		return true, nodeFirst
+	}
+
+	if goosForInvocation == "windows" && filepath.Ext(name) == "" {
+		switch shebangRuntime(name) {
+		case "node":
+			return true, nodeFirst
+		case "bun":
+			return true, bunFirst
+		}
+	}
+
+	return false, nil
+}
+
+func shebangRuntime(name string) string {
+	f, err := os.Open(name)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+
+	buf := make([]byte, 128)
+	n, _ := f.Read(buf)
+	line := string(buf[:n])
+	if !strings.HasPrefix(line, "#!") {
+		return ""
+	}
+	if idx := strings.IndexAny(line, "\r\n"); idx >= 0 {
+		line = line[:idx]
+	}
+	for _, field := range strings.Fields(line[2:]) {
+		switch strings.ToLower(filepath.Base(field)) {
+		case "node":
+			return "node"
+		case "bun":
+			return "bun"
+		}
+	}
+	return ""
+}
+
+func findJSRuntime(order []string) string {
+	for _, bin := range order {
+		if path, err := lookPathForInvocation(bin); err == nil {
+			return path
+		}
+	}
+	return ""
 }
 
 func Run(ctx context.Context, command string, args []string, allowNpx bool) (CommandResult, error) {

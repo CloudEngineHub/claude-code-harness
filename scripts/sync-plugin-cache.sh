@@ -71,6 +71,20 @@ sync_file() {
   fi
 }
 
+copy_hook_script_closure() {
+  local hooks_file="$1"
+  local rel_path
+
+  if [ ! -f "${PROJECT_ROOT}/${hooks_file}" ]; then
+    return 0
+  fi
+
+  while IFS= read -r rel_path; do
+    [ -n "$rel_path" ] || continue
+    sync_file "$rel_path"
+  done < <(grep -Eoh 'scripts/[A-Za-z0-9_./-]+\.sh' "${PROJECT_ROOT}/${hooks_file}" | sort -u)
+}
+
 sync_dir_to_dir() {
   local rel_path="$1"
   local target_dir="$2"
@@ -149,6 +163,10 @@ cleanup_private_paths_in_dir() {
 # Critical files to sync to distribution cache
 critical_files=(
   "scripts/lib/harness-mem-bridge.sh"
+  "scripts/codex-companion.sh"
+  "scripts/cursor-companion.sh"
+  "scripts/model-routing.sh"
+  "scripts/resolve-impl-backend.sh"
   "scripts/hook-handlers/memory-bridge.sh"
   "scripts/hook-handlers/memory-session-start.sh"
   "scripts/hook-handlers/memory-user-prompt.sh"
@@ -166,6 +184,9 @@ critical_files=(
 for file in "${critical_files[@]}"; do
   sync_file "$file"
 done
+
+copy_hook_script_closure ".claude-plugin/hooks.json"
+copy_hook_script_closure "hooks/hooks.json"
 
 # plugin.json currently declares these directories. If they are missing from the
 # versioned install cache, Claude lists the plugin as enabled but failed to load.

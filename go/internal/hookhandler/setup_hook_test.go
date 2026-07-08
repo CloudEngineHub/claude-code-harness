@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/scaffold"
 )
 
 func TestMain(m *testing.M) {
@@ -43,6 +45,13 @@ func assertSetupOutput(t *testing.T, output, wantSubstr string) {
 }
 
 func TestHandleSetupHookInit_EmptyInput(t *testing.T) {
+	dir := t.TempDir()
+	origWD, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origWD)
+
 	var out bytes.Buffer
 	err := HandleSetupHookInit(strings.NewReader(""), &out)
 	if err != nil {
@@ -63,6 +72,59 @@ func TestHandleSetupHookInit_EmptyInput(t *testing.T) {
 	}
 	if hookOut["hookEventName"] != "Setup" {
 		t.Errorf("hookEventName = %q, want Setup", hookOut["hookEventName"])
+	}
+}
+
+func TestHandleSetupHookInit_CreatesHarnessToml(t *testing.T) {
+	dir := t.TempDir()
+	origWD, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origWD)
+
+	var out bytes.Buffer
+	if err := HandleSetupHookInit(strings.NewReader(""), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "harness.toml"))
+	if err != nil {
+		t.Fatalf("harness.toml was not created: %v", err)
+	}
+	if string(data) != scaffold.HarnessTomlTemplate {
+		t.Errorf("harness.toml content does not match scaffold.HarnessTomlTemplate")
+	}
+	assertSetupOutput(t, out.String(), "harness.toml created")
+}
+
+func TestHandleSetupHookInit_PreservesExistingHarnessToml(t *testing.T) {
+	dir := t.TempDir()
+	origWD, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origWD)
+
+	existing := "[project]\nname = \"user-edited\"\n"
+	if err := os.WriteFile(filepath.Join(dir, "harness.toml"), []byte(existing), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	if err := HandleSetupHookInit(strings.NewReader(""), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(dir, "harness.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != existing {
+		t.Errorf("existing harness.toml was overwritten:\ngot:  %q\nwant: %q", data, existing)
+	}
+	if strings.Contains(out.String(), "harness.toml created") || strings.Contains(out.String(), "harness.toml 生成完了") {
+		t.Errorf("output should not report harness.toml creation when it already exists: %s", out.String())
 	}
 }
 
