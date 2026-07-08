@@ -29,6 +29,8 @@ func runGit(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
+	// CI runners have no EDITOR/TERM; keep rebase --continue non-interactive.
+	cmd.Env = append(os.Environ(), "GIT_EDITOR=true")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %v: %v\n%s", args, err, out)
@@ -39,6 +41,7 @@ func runGit(t *testing.T, dir string, args ...string) string {
 func runGitAllowFail(dir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GIT_EDITOR=true")
 	out, err := cmd.CombinedOutput()
 	return strings.TrimSpace(string(out)), err
 }

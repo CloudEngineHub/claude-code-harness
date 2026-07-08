@@ -50,6 +50,9 @@ type defaultGitRunner struct{}
 func (defaultGitRunner) Run(ctx context.Context, repoRoot string, args ...string) (string, string, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = repoRoot
+	// Headless integration must never open an editor (rebase --continue on a
+	// dumb terminal without EDITOR aborts the whole integrate otherwise).
+	cmd.Env = append(os.Environ(), "GIT_EDITOR=true")
 	out, err := cmd.CombinedOutput()
 	combined := string(out)
 	if err != nil {
