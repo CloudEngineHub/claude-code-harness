@@ -77,10 +77,6 @@ jobs:
       - name: Run ShellCheck high-risk subset
         run: bash ./tests/test-shell-lint.sh
 
-      - name: Build harness binary for validation scripts
-        working-directory: go
-        run: go build -o ../bin/harness-linux-amd64 ./cmd/harness/
-
       - name: Check i18n regression suite
         run: |
           bash ./scripts/i18n/check-translations.sh
