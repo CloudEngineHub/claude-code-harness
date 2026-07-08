@@ -38,6 +38,17 @@ built="$tmpdir/$(basename "$target")"
 )
 
 if ! cmp -s "$built" "$target"; then
+  # CI pre-steps may overwrite the working-tree binary with a plain dev
+  # build (validate-plugin.yml "Build harness binary for validation
+  # scripts"). The gate's contract is committed-binary == source, so fall
+  # back to the HEAD blob before declaring drift. A tampered commit still
+  # fails: neither the working file nor the HEAD blob matches the rebuild.
+  committed="$tmpdir/committed-$(basename "$target")"
+  if git -C "$ROOT" cat-file blob "HEAD:${target#$ROOT/}" >"$committed" 2>/dev/null \
+    && cmp -s "$built" "$committed"; then
+    echo "binary/source drift OK (via HEAD blob; working-tree copy was overwritten): ${target#$ROOT/}"
+    exit 0
+  fi
   echo "binary/source drift detected for ${target#$ROOT/}" >&2
   echo "rebuild with: cd go && GOTOOLCHAIN=go${GO_DIRECTIVE:-<go.mod go directive>} CGO_ENABLED=0 GOOS=$GOOS_VALUE GOARCH=$GOARCH_VALUE go build -trimpath -buildvcs=false -ldflags '-s -w -X main.version=$version' -o ../${target#$ROOT/} ./cmd/harness" >&2
   exit 1
