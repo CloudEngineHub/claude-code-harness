@@ -28,6 +28,12 @@ assert_file "$MANIFEST"
 assert_file "$AGENTS"
 assert_file "$EVIDENCE"
 assert_file "$INTEGRATION"
+# .cursor/hooks.json is a generated build artifact (gitignored, FACT-1);
+# clean checkouts (CI release preflight) must materialize it via the
+# generator before asserting existence (FACT-4: materialize, don't infer).
+if [ ! -f "${ROOT_DIR}/.cursor/hooks.json" ]; then
+  "${ROOT_DIR}/bin/harness" gen >/dev/null
+fi
 assert_file "${ROOT_DIR}/.cursor/hooks.json"
 assert_file "${ROOT_DIR}/.cursor/mcp.json"
 assert_file "${ROOT_DIR}/.cursor/agents/worker.md"
