@@ -6,6 +6,24 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### テーマ: 0 ベース再設計線の本流化 + 事前確認フローの導入
+
+**計画確定の段階で「途中で確認が要りそうな事項」をまとめて承認できるようになり、実装中に作業が止まらなくなりました。あわせて次世代設計（0 ベース再設計）を本流に統合しました。**
+
+---
+
+#### 1. plan-time 事前確認（作業スコープごとの前倒し承認）
+
+**今まで**: 秘密ファイルの読み取りや外部送信が必要な作業では、実装の途中でその都度確認が入って作業が止まっていました。事前に許可する手段は広域・常設の環境変数しかなく、「このプロジェクト全体を許可」のような粗い宣言しかできませんでした。
+
+**今後**: `/harness-plan` で計画を確定するときに「事前確認セクション」が生成され、その計画で発生しそうな確認事項（秘密ファイル読み取り / 外部送信 / 破壊的操作）を作業スコープ単位で一括提示します。計画承認と同時に承認すれば、`/harness-work` や `/breezing` は完走まで途中で止まりません。計画に無い未宣言の操作は従来どおり停止するので、安全網は狭まりません。
+
+#### 2. secret-read allowlist（floor の事前許可機構）
+
+**今まで**: runtime floor の 5 カテゴリのうち secret-read だけが事前許可機構を持たず、宣言済みのファイルでも毎回停止していました。
+
+**今後**: `HARNESS_RUNTIME_FLOOR_SECRET_ALLOW` とプロジェクト設定 `.claude-code-harness.config.json` の `runtimefloor.secretAllow` で許可 path を宣言でき、宣言済みの読み取りは停止しません。全開放は不可、設定不正時は fail-safe で全 deny、project 外の絶対 path は無効です。
+
 ### Added
 
 - **Harness worktree residue doctor check (Phase 105.7)**: `.harness-worktrees/` を git ignore 対象にし、`harness doctor` が 7 日以上未更新または git 管理外になった Harness worktree を advisory warning として検出するようにしました。新しい / 古い / 不在の 3 状態テストを追加しています。
