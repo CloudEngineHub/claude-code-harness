@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/channelswake"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/nightwatch"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/nightwatch"
 )
 
 // driftTailWindow は collectDrift が参照する末尾行数。

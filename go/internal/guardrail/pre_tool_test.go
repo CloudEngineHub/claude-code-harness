@@ -78,8 +78,8 @@ func TestEvaluatePreTool_RuntimeFloorHardStopBeforeRules(t *testing.T) {
 	dangerousCmd := "gh release create v9.9.9"
 
 	envVars := map[string]string{
-		"HARNESS_AUTO_APPROVE":    "on",
-		"HARNESS_RUNTIME_FLOOR":   "off",
+		"HARNESS_AUTO_APPROVE":      "on",
+		"HARNESS_RUNTIME_FLOOR":     "off",
 		"HARNESS_DISABLE_GUARDRAIL": "1",
 	}
 	for key, value := range envVars {

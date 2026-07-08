@@ -66,9 +66,9 @@ func TestBlastRadius_FileCountOverThreshold(t *testing.T) {
 func TestBlastRadius_NormalCommandPasses(t *testing.T) {
 	for _, c := range []string{
 		"go test ./...",
-		"git push origin main",      // ordinary push, no force/tags
+		"git push origin main", // ordinary push, no force/tags
 		"git commit -m 'feat: x'",
-		"rm file.txt",               // single-file rm, no -r
+		"rm file.txt", // single-file rm, no -r
 		"ls -la",
 	} {
 		if esc, reason := Detect(c, 0, 0); esc {

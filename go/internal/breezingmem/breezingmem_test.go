@@ -39,7 +39,7 @@ func newTestClient(t *testing.T, home string, server *httptest.Server, logger io
 		BaseURL:    server.URL,
 		HTTPClient: server.Client(),
 		Logger:     logger,
-		homeDir: func() (string, error) { return home, nil },
+		homeDir:    func() (string, error) { return home, nil },
 	}
 }
 

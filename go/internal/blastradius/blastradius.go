@@ -17,10 +17,10 @@ import "regexp"
 
 // Axis labels for the reason string.
 const (
-	AxisDelete      = "delete"
+	AxisDelete       = "delete"
 	AxisIrreversible = "irreversible"
-	AxisCrossRepo   = "cross-repo"
-	AxisFileCount   = "file-count"
+	AxisCrossRepo    = "cross-repo"
+	AxisFileCount    = "file-count"
 )
 
 var (

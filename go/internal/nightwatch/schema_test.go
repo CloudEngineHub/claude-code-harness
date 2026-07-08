@@ -35,9 +35,9 @@ func schemaPath(t *testing.T) string {
 
 func TestNightWatchReportSchema_Valid(t *testing.T) {
 	report := Report{
-		SchemaVersion: "night-watch-report.v1",
-		GeneratedAt:   time.Now().UTC().Format(time.RFC3339),
-		Health:        ReportHealth{Healthy: true, Reason: ReasonNotConfigured},
+		SchemaVersion:   "night-watch-report.v1",
+		GeneratedAt:     time.Now().UTC().Format(time.RFC3339),
+		Health:          ReportHealth{Healthy: true, Reason: ReasonNotConfigured},
 		UnresolvedLoops: []UnresolvedLoop{},
 		StaleTasks:      []StaleTask{},
 		OpenDecisions:   []OpenDecision{},

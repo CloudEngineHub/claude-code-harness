@@ -15,12 +15,12 @@ var (
 
 // PromoteOpts configures a promotion attempt (dry-run only in Phase 100).
 type PromoteOpts struct {
-	Rule           Rule
-	RepoRoot       string
-	HumanApproved  bool
-	DryRun         bool
-	PatternsPath   string
-	DecisionsPath  string
+	Rule          Rule
+	RepoRoot      string
+	HumanApproved bool
+	DryRun        bool
+	PatternsPath  string
+	DecisionsPath string
 }
 
 // Promote attempts SSOT promotion. Auto-promotion is structurally forbidden:

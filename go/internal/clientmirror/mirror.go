@@ -17,11 +17,11 @@ import (
 )
 
 const (
-	SchemaRelPath  = "templates/schemas/mirror-state.v1.json"
-	SchemaVersion  = "mirror-state.v1"
-	SchemaURL      = "mirror-state.v1"
-	SharedSSOTRel  = "skills"
-	CodexSSOTRel   = "skills-codex"
+	SchemaRelPath       = "templates/schemas/mirror-state.v1.json"
+	SchemaVersion       = "mirror-state.v1"
+	SchemaURL           = "mirror-state.v1"
+	SharedSSOTRel       = "skills"
+	CodexSSOTRel        = "skills-codex"
 	ReasonNotConfigured = "not-configured"
 	ReasonInSync        = "in-sync"
 	ReasonDrift         = "drift"
@@ -34,12 +34,12 @@ var mirrorRoots = []string{
 }
 
 var opencodeSkipSkills = map[string]struct{}{
-	"allow1":                        {},
-	"cc-update-review":              {},
-	"claude-codex-upstream-update":  {},
-	"harness-release-internal":      {},
-	"zz-review-empty":               {},
-	"zz-review-escape":              {},
+	"allow1":                       {},
+	"cc-update-review":             {},
+	"claude-codex-upstream-update": {},
+	"harness-release-internal":     {},
+	"zz-review-empty":              {},
+	"zz-review-escape":             {},
 }
 
 var compareExclude = map[string]struct{}{

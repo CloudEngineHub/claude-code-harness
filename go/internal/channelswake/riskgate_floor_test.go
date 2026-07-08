@@ -33,7 +33,7 @@ func TestRiskGateFiveCategoryFloorUnchanged(t *testing.T) {
 	aliases := map[string]string{
 		string(runtimefloor.CategoryMoneyBilling):   "money",
 		string(runtimefloor.CategoryEgress):         "egress",
-		string(runtimefloor.CategorySecretRead):       "secret",
+		string(runtimefloor.CategorySecretRead):     "secret",
 		string(runtimefloor.CategoryProdDeploy):     "prod-deploy",
 		string(runtimefloor.CategoryWorktreeEscape): "worktree-escape",
 	}
