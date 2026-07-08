@@ -2,6 +2,15 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+# Byte-identical comparison requires an environment-independent build:
+# pin the toolchain to go.mod's go directive and drop VCS stamping
+# (vcs.revision can never match a binary committed one commit earlier).
+GO_DIRECTIVE="$(sed -n 's/^go //p' "$ROOT/go/go.mod" | head -1 | tr -d '[:space:]')"
+if [ -n "$GO_DIRECTIVE" ]; then
+  export GOTOOLCHAIN="go${GO_DIRECTIVE}"
+fi
+
 GOOS_VALUE="$(go env GOOS)"
 GOARCH_VALUE="$(go env GOARCH)"
 case "$GOOS_VALUE/$GOARCH_VALUE" in
@@ -25,12 +34,12 @@ built="$tmpdir/$(basename "$target")"
 (
   cd "$ROOT/go"
   CGO_ENABLED=0 GOOS="$GOOS_VALUE" GOARCH="$GOARCH_VALUE" \
-    go build -trimpath -ldflags "-s -w -X main.version=$version" -o "$built" ./cmd/harness
+    go build -trimpath -buildvcs=false -ldflags "-s -w -X main.version=$version" -o "$built" ./cmd/harness
 )
 
 if ! cmp -s "$built" "$target"; then
   echo "binary/source drift detected for ${target#$ROOT/}" >&2
-  echo "rebuild with: cd go && CGO_ENABLED=0 GOOS=$GOOS_VALUE GOARCH=$GOARCH_VALUE go build -trimpath -ldflags '-s -w -X main.version=$version' -o ../${target#$ROOT/} ./cmd/harness" >&2
+  echo "rebuild with: cd go && GOTOOLCHAIN=go${GO_DIRECTIVE:-<go.mod go directive>} CGO_ENABLED=0 GOOS=$GOOS_VALUE GOARCH=$GOARCH_VALUE go build -trimpath -buildvcs=false -ldflags '-s -w -X main.version=$version' -o ../${target#$ROOT/} ./cmd/harness" >&2
   exit 1
 fi
 
