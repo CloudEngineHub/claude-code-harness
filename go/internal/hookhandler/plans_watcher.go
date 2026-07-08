@@ -269,12 +269,13 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 	}
 
 	// PM 通知ファイルを生成
-	if err := writePMNotification(cwd, current, hasNewTasks, hasCompletedTasks); err != nil {
+	locale := resolveHarnessLocale(cwd)
+	if err := writePMNotification(cwd, current, hasNewTasks, hasCompletedTasks, locale); err != nil {
 		fmt.Fprintf(os.Stderr, "[plans-watcher] write notification: %v\n", err)
 	}
 
 	// systemMessage で通知サマリを出力
-	summary := buildSummaryMessage(current, hasNewTasks, hasCompletedTasks)
+	summary := buildSummaryMessage(current, hasNewTasks, hasCompletedTasks, locale)
 	o := postToolOutput{}
 	o.HookSpecificOutput.HookEventName = "PostToolUse"
 	o.HookSpecificOutput.AdditionalContext = summary
@@ -336,11 +337,11 @@ func collectPlansState(plansFile string) (plansState, error) {
 		return plansState{}, fmt.Errorf("plans file not found: %w", err)
 	}
 
-	pmPending := countMarker(plansFile, "pm:依頼中") + countMarker(plansFile, "cursor:依頼中")
+	pmPending := countMarker(plansFile, localizedHarnessMessage("ja", "pm:pending", "pm:依頼中")) + countMarker(plansFile, localizedHarnessMessage("ja", "cursor:pending", "cursor:依頼中"))
 	ccTodo := countMarker(plansFile, "cc:TODO")
 	ccWip := countMarker(plansFile, "cc:WIP")
-	ccDone := countMarker(plansFile, "cc:完了")
-	pmConfirmed := countMarker(plansFile, "pm:確認済") + countMarker(plansFile, "cursor:確認済")
+	ccDone := countMarker(plansFile, localizedHarnessMessage("ja", "cc:done", "cc:完了"))
+	pmConfirmed := countMarker(plansFile, localizedHarnessMessage("ja", "pm:confirmed", "pm:確認済")) + countMarker(plansFile, localizedHarnessMessage("ja", "cursor:confirmed", "cursor:確認済"))
 
 	return plansState{
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
@@ -377,36 +378,46 @@ func savePlansState(stateFilePath string, state plansState) {
 }
 
 // buildSummaryMessage は通知サマリ文字列を構築する。
-func buildSummaryMessage(state plansState, hasNewTasks, hasCompletedTasks bool) string {
+func buildSummaryMessage(state plansState, hasNewTasks, hasCompletedTasks bool, locale string) string {
 	var sb strings.Builder
 
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString("Plans.md 更新検知\n")
+	sb.WriteString(localizedHarnessMessage(locale,
+		"Plans.md update detected\n",
+		"Plans.md 更新検知\n"))
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
 	if hasNewTasks {
-		sb.WriteString("新規タスク: PM から依頼あり\n")
-		sb.WriteString("   → /sync-status で状況を確認し、/work で着手してください\n")
+		sb.WriteString(localizedHarnessMessage(locale,
+			"New task: PM requested work\n",
+			"新規タスク: PM から依頼あり\n"))
+		sb.WriteString(localizedHarnessMessage(locale,
+			"   -> Check the status with /sync-status, then start with /work\n",
+			"   → /sync-status で状況を確認し、/work で着手してください\n"))
 	}
 
 	if hasCompletedTasks {
-		sb.WriteString("タスク完了: PM へ報告可能\n")
-		sb.WriteString("   → /handoff-to-pm-claude（または /handoff-to-cursor）で報告してください\n")
+		sb.WriteString(localizedHarnessMessage(locale,
+			"Task completed: ready to report to PM\n",
+			"タスク完了: PM へ報告可能\n"))
+		sb.WriteString(localizedHarnessMessage(locale,
+			"   -> Report with /handoff-to-pm-claude (or /handoff-to-cursor)\n",
+			"   → /handoff-to-pm-claude（または /handoff-to-cursor）で報告してください\n"))
 	}
 
-	sb.WriteString("\n現在のステータス:\n")
-	sb.WriteString("   pm:依頼中      : " + strconv.Itoa(state.PmPending) + " 件\n")
-	sb.WriteString("   cc:TODO        : " + strconv.Itoa(state.CcTodo) + " 件\n")
-	sb.WriteString("   cc:WIP         : " + strconv.Itoa(state.CcWip) + " 件\n")
-	sb.WriteString("   cc:完了        : " + strconv.Itoa(state.CcDone) + " 件\n")
-	sb.WriteString("   pm:確認済      : " + strconv.Itoa(state.PmConfirmed) + " 件\n")
+	sb.WriteString(localizedHarnessMessage(locale, "\nCurrent status:\n", "\n現在のステータス:\n"))
+	sb.WriteString(localizedHarnessMessage(locale, "   pm:pending    : ", "   pm:依頼中      : ") + strconv.Itoa(state.PmPending) + localizedHarnessMessage(locale, "\n", " 件\n"))
+	sb.WriteString("   cc:TODO        : " + strconv.Itoa(state.CcTodo) + localizedHarnessMessage(locale, "\n", " 件\n"))
+	sb.WriteString("   cc:WIP         : " + strconv.Itoa(state.CcWip) + localizedHarnessMessage(locale, "\n", " 件\n"))
+	sb.WriteString(localizedHarnessMessage(locale, "   cc:done       : ", "   cc:完了        : ") + strconv.Itoa(state.CcDone) + localizedHarnessMessage(locale, "\n", " 件\n"))
+	sb.WriteString(localizedHarnessMessage(locale, "   pm:confirmed  : ", "   pm:確認済      : ") + strconv.Itoa(state.PmConfirmed) + localizedHarnessMessage(locale, "\n", " 件\n"))
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	return sb.String()
 }
 
 // writePMNotification は PM 通知ファイルを生成する。
-func writePMNotification(cwd string, state plansState, hasNewTasks, hasCompletedTasks bool) error {
+func writePMNotification(cwd string, state plansState, hasNewTasks, hasCompletedTasks bool, locale string) error {
 	pmPath := pmNotificationFile
 	cursorPath := cursorNotificationFile
 	if cwd != "" {
@@ -420,26 +431,7 @@ func writePMNotification(cwd string, state plansState, hasNewTasks, hasCompleted
 	}
 
 	ts := time.Now().Format("2006-01-02 15:04:05")
-
-	var sb strings.Builder
-	sb.WriteString("# PM への通知\n\n")
-	sb.WriteString("**生成日時**: " + ts + "\n\n")
-	sb.WriteString("## ステータス変更\n\n")
-
-	if hasNewTasks {
-		sb.WriteString("### 新規タスク\n\n")
-		sb.WriteString("PM から新しいタスクが依頼されました（pm:依頼中 / 互換: cursor:依頼中）。\n\n")
-	}
-
-	if hasCompletedTasks {
-		sb.WriteString("### 完了タスク\n\n")
-		sb.WriteString("Impl Claude がタスクを完了しました。レビューをお願いします（cc:完了）。\n\n")
-	}
-
-	sb.WriteString("---\n\n")
-	sb.WriteString("**次のアクション**: PM Claude でレビューし、必要なら再依頼（/handoff-to-impl-claude）。\n")
-
-	content := []byte(sb.String())
+	content := []byte(buildPMNotificationContent(state, hasNewTasks, hasCompletedTasks, ts, locale))
 	if err := os.WriteFile(pmPath, content, 0o644); err != nil {
 		return fmt.Errorf("write pm-notification.md: %w", err)
 	}
@@ -448,4 +440,31 @@ func writePMNotification(cwd string, state plansState, hasNewTasks, hasCompleted
 	_ = os.WriteFile(cursorPath, content, 0o644)
 
 	return nil
+}
+
+func buildPMNotificationContent(_ plansState, hasNewTasks, hasCompletedTasks bool, ts, locale string) string {
+	var sb strings.Builder
+	sb.WriteString(localizedHarnessMessage(locale, "# Notification for PM\n\n", "# PM への通知\n\n"))
+	sb.WriteString(localizedHarnessMessage(locale, "**Generated at**: ", "**生成日時**: ") + ts + "\n\n")
+	sb.WriteString(localizedHarnessMessage(locale, "## Status changes\n\n", "## ステータス変更\n\n"))
+
+	if hasNewTasks {
+		sb.WriteString(localizedHarnessMessage(locale, "### New task\n\n", "### 新規タスク\n\n"))
+		sb.WriteString(localizedHarnessMessage(locale,
+			"PM requested a new task (pm:pending / compat: cursor:pending).\n\n",
+			"PM から新しいタスクが依頼されました（pm:依頼中 / 互換: cursor:依頼中）。\n\n"))
+	}
+
+	if hasCompletedTasks {
+		sb.WriteString(localizedHarnessMessage(locale, "### Completed task\n\n", "### 完了タスク\n\n"))
+		sb.WriteString(localizedHarnessMessage(locale,
+			"Impl Claude completed a task. Please review it (cc:done).\n\n",
+			"Impl Claude がタスクを完了しました。レビューをお願いします（cc:完了）。\n\n"))
+	}
+
+	sb.WriteString("---\n\n")
+	sb.WriteString(localizedHarnessMessage(locale,
+		"**Next action**: Review in PM Claude, then re-request if needed (/handoff-to-impl-claude).\n",
+		"**次のアクション**: PM Claude でレビューし、必要なら再依頼（/handoff-to-impl-claude）。\n"))
+	return sb.String()
 }

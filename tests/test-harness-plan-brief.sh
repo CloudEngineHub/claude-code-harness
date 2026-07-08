@@ -47,13 +47,13 @@ else
   pass "SKILL.md exists"
 
   # frontmatter line range (between two `---` markers at top)
-  FM_END_LINE="$(awk '/^---$/{c++; if(c==2){print NR; exit}}' "$SKILL_PATH")"
+  FM_END_LINE="$(awk '/^---$/{c++; if(c==2 && NR>1){print NR; exit}}' "$SKILL_PATH")"
   if [[ -z "$FM_END_LINE" ]]; then
     fail "SKILL.md frontmatter has no closing '---' marker"
   else
     FM_CONTENT="$(sed -n "1,${FM_END_LINE}p" "$SKILL_PATH")"
     for required in "name: harness-plan-brief" "user-invocable: true" "argument-hint:" "allowed-tools:" "description:"; do
-      if printf '%s' "$FM_CONTENT" | grep -q "$required"; then
+      if grep -Fq -- "$required" <<< "$FM_CONTENT"; then
         pass "SKILL.md frontmatter has '$required'"
       else
         fail "SKILL.md frontmatter missing '$required'"
@@ -83,6 +83,15 @@ if [[ -f "$SKILL_PATH" ]]; then
     fail "SKILL.md does not instruct strict_project: true (DoD c)"
   fi
 fi
+
+  if grep -Fq "plan_readiness" "$SKILL_PATH" && \
+     grep -Fq "DoD 明確度" "$SKILL_PATH" && \
+     grep -Fq "依存解決率" "$SKILL_PATH" && \
+     grep -Fq 'options` / `risks` / `acceptance_criteria` は常に 1 件以上生成' "$SKILL_PATH"; then
+    pass "SKILL.md documents plan_readiness and non-empty Plan Brief sections (Phase 105.3)"
+  else
+    fail "SKILL.md missing plan_readiness / non-empty generation instructions (Phase 105.3)"
+  fi
 
 # ---- 3. NO cross-project search ----
 

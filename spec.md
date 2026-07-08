@@ -1,7 +1,7 @@
 # Claude Code Harness V2 Spec
 
-Status: draft SSOT for Phase 72 through Phase 87
-Last updated: 2026-05-28
+Status: draft SSOT for Phase 72 through Phase 105
+Last updated: 2026-07-05
 
 This file is the root product contract for Claude Code Harness V2.
 Plans.md is the task ledger. `spec.md` is the product contract.
@@ -18,11 +18,112 @@ The goal is to reduce human planning and verification load by letting Harness:
 - require TDD evidence when behavior changes,
 - route review depth by risk,
 - create PR-ready evidence packs,
-- preserve release-grade checks for public artifacts.
+- preserve release-grade checks for public artifacts,
 - onboard users through the tool they already use, while only claiming support
-  that has adapter evidence.
+  that has adapter evidence,
 - keep repo-health gates such as formatting, linting, release preflight, and
   host runtime smoke aligned with the support tier being claimed.
+
+### North Star (3 layers)
+
+The ambition stacks oldest-foundation-first; each layer is the ground for the next.
+
+- **L1 Judgment-only operation**: AI prepares the plan, implementation,
+  comparison, and verification evidence; the operator (human) makes only the
+  final judgment. (Foundation, already the Purpose above.)
+- **L2 Tool-agnostic enforcement**: one Harness (R01-R13 guardrails +
+  plan/work/review/release) applies from *any* of Claude / Codex / Cursor.
+  A single policy engine adjudicates all three hosts through their native hooks
+  — routing, not duplication. Two directions are equal first-class:
+  (#1) harness-driven (Lead spawns another tool as an execution engine) and
+  (#2) host-from (using Harness *from* Codex / Cursor).
+- **L3 Collaboration (future north star)**: multiple tools co-drive the same
+  project without making the human a copy-paste courier. Mode 1 = full
+  autonomous orchestration (v1 keeps Lead = Claude fixed; Codex / Cursor have no
+  outward spawn API yet). Mode 2 = human-present peer co-drive via live notice
+  messaging. Full peer-Lead collaboration is staged in later.
+
+## HOTL Governance Contract
+
+This contract makes North Star **L3** concrete for the **personal harness** (this
+repo). Organization-scope governance (shared constitution, team standards) lives
+in **ContextHarness V2**; CCH inherits that constitution and governs only one
+operator's autonomous loop. The goal is **Human-on-the-Loop**: the operator
+supervises from outside the loop instead of approving every gate (HITL).
+
+Status: **verification-first**. No autonomy rollout — and no phased adoption
+ladder — until the prerequisites in `Plans.md` Phase 101 (U0-U7) are proven with
+evidence. Autonomy is the *output* of a proven harness, not the starting point.
+
+Invariants (each must become machine-checkable before the matching autonomy is
+enabled):
+
+1. **Deterministic-first judiciary.** Deterministic checks (tests, R01-R14, RTM
+   coverage) hold the binding verdict (veto). LLM semantic review is advisory
+   only and can never raise a gate above the deterministic layer. A unanimous
+   cross-model APPROVE is corroborating advice, not proof (judge errors are
+   correlated; verdicts are non-deterministic even at temperature 0).
+2. **SSOT vs derived separation.** Human-approved sources (rules, spec, tests)
+   are the only judgment basis. Derived artifacts (provenance maps, graphs,
+   generated HTML, summaries) are navigation only, carry a `derived` marker, are
+   git-ignored where generated, and must never feed back into the executor's
+   decisions.
+3. **Three-axis escalation.** The loop escalates to the human on (a) final
+   spec/UX change, (b) security risk, OR (c) blast-radius / irreversibility
+   (deletes, file/dir count over threshold, cross-repo, non-revertible ops).
+   Axis (c) is machine-detectable and is the outer backstop, because (a)/(b) are
+   semantic and an agent self-classifies them unreliably.
+4. **In-run scope leash (zero human-load).** During execution every tool-use is
+   checked against the task's declared scope. The scope is **auto-inferred** from
+   the plan (task target files + RTM) — the operator never hand-declares a file
+   allowlist. Out-of-scope writes raise an alarm/escalation; declared-but-
+   untouched scope (dropped work) is flagged. This catches task drift and silent
+   failures that a terminal review structurally cannot see.
+   The same Runtime Floor has a symmetric secret-read allowlist contract for
+   local files, matching the egress allowlist enforced by `isAllowlistedHost`:
+   network egress is denied unless the destination host is explicitly declared,
+   and secret reads are denied unless the exact path is explicitly declared.
+   The only relaxation secret-read allowlisting provides is for named paths; it
+   must never mean broad filesystem access. Empty strings, a bare `*`, or any
+   other all-open declaration are invalid and resolve to deny. Effective
+   declarations are the union of `HARNESS_RUNTIME_FLOOR_SECRET_ALLOW` and the
+   project config `.claude-code-harness.config.json` key
+   `runtimefloor.secretAllow`. If project config is unreadable, malformed, or
+   has an invalid `runtimefloor.secretAllow` shape, the fail-safe behavior is an
+   empty allowlist (all secret reads denied). Relative paths resolve under the
+   project root; absolute paths outside the project root are invalid and ignored.
+5. **Bounded, externally-anchored review.** The OK-until-clean loop is capped
+   (e.g. 3 rounds) with human escalation on repeated same-cause failure. Severity
+   is a fixed taxonomy: security / data-loss / correctness findings always block
+   and are never eligible for "stop nitpicking, move on"; only style/preference
+   may be suppressed. Cross-family review (Claude-Lead reviewed by Codex and vice
+   versa, plus fresh-context) is required; when the cross-family leg is
+   unavailable it is a named reduced-autonomy state, not a silent same-family
+   fallback.
+6. **Constitution and self-modification protection.** Rule definitions
+   (`rules.go`), `deny-baseline`, settings files, and `self-audit` policy are an
+   untouchable class: no AI path may modify them; human-only. The audit trail of
+   autonomous decisions is derived mechanically from an immutable event log, not
+   from agent self-narration. A kill switch (`~/.harness/HALT`) denies all tool
+   use ahead of any LLM judgment.
+
+Prose-quality governance is scoped, not universal. Writing-norms enforcement
+(derived from the Japanese technical-writing standard validated in Phase 101)
+applies only to the **Japanese opt-in surface**; English is the shipped default
+and stays untouched. Only the deterministic banned-phrase subset (empty LLM-filler
+strings) is eligible to become a gate, proven first as the reference instance of
+rule↔check provenance (invariant 1). Semantic writing rules (causal-mechanism,
+hedge-preservation, single-cause reduction) stay advisory and never veto.
+Orthographic preferences such as the em-dash ban are loose recommendations, never
+gates — a prose gate that fired on the agent's own output would deadlock the
+in-run leash with no slack. There is one prose SSOT, not three overlapping ones.
+
+Reuse over reinvention: rule↔check and feature→requirement→proof traceability is
+the mature discipline of policy-as-code (OPA/Conftest) and Requirements
+Traceability Matrices (DO-178C / ISO 26262); tamper-evidence is in-toto / SLSA.
+CCH adopts these rather than rebuilding them. The genuinely novel scope is
+**self-referential governance**: an agent that edits its own harness and could
+game its own grader.
 
 ## Users And Workflows
 
@@ -33,809 +134,77 @@ Primary user:
 
 Core workflows:
 
-- Plan from an ambiguous request into a spec-backed `Plans.md` task contract.
-- Execute `Plans.md` tasks with lane-aware effort and TDD gates.
-- Review implementation against `spec.md`, `Plans.md`, tests, and evidence.
-- Produce PR closeout artifacts without silently pushing or merging.
-- Release only after version, tag, GitHub Release, CI, and public-surface checks.
-- Strengthen lint/format and host-runtime smoke without confusing static
-  compatibility with public support.
+- Plan: turn intent into a scoped, reviewable contract.
+- Work: implement only approved slices, with deterministic checks.
+- Review: route review depth by risk and preserve evidence.
+- Sync: reconcile Plans, git state, mirrors, and distribution surfaces.
+- Release: package evidence and publish only after release-grade gates pass.
 
 ## SSOT Layers
 
-The source-of-truth order is:
+`spec.md` is the root product contract and keeps the stable core readable.
+Detailed contracts live under `docs/spec/` and are part of the same product
+contract. `Plans.md` records scheduled work and evidence, but it does not weaken
+or override the spec.
 
-1. `spec.md`: root product contract for this repository.
-2. Sub-specs for specialized domains:
-   - `docs/architecture/hokage-core.md` for reusable core architecture.
-   - `go/SPEC.md` for Go runtime behavior.
-   - Other clearly named docs under `docs/` for scoped contracts.
-3. `Plans.md`: task ledger, dependencies, DoD, status, and evidence trail.
-4. Runtime evidence: tests, review artifacts, PR body, CI, release output.
+SSOT precedence:
 
-`Plans.md` must not replace `spec.md`. A task can be complete only if its DoD
-passes and the result does not contradict the applicable spec.
+Anchor: spec.md > sub-spec > Plans.md.
+
+1. `spec.md` core: North Star, HOTL governance, global invariants, SSOT order,
+   non-goals, and open decisions.
+2. `docs/spec/*` sub-specs: detailed contract chapters linked from this file.
+3. `Plans.md`: task ledger, implementation sequencing, and verification notes.
+4. `CHANGELOG.md` / README / skill prose: distribution-facing summaries.
+
+When a detail moves from `spec.md` into `docs/spec/*`, it remains spec material.
+If a sub-spec conflicts with this core, this core wins until a human-approved spec
+update changes the order.
 
 ## Planning Surface Contract
 
-`/harness-plan` owns co-required planning output between the spec.md product contract and Plans.md task contract.
-It must not behave as a Plans.md-only generator, and it must not flatten the
-precedence order. The order remains `spec.md > sub-spec > Plans.md`:
-`spec.md` is the product contract, sub-specs refine scoped domains, and
-Plans.md is the task ledger.
+Planning produces co-required planning output: the `spec.md` product contract and Plans.md task contract.
+Anchor: spec.md product contract and Plans.md task contract.
+Every `create` output and every product-impacting `/harness-plan add` must produce either `Spec delta` or `Spec skip reason`, and must produce the spec result before producing task rows. Harness generates the spec result; the consumer approves or edits it.
+Unknown data follows `not_observed != absent`; do not infer absence from missing evidence.
 
-`/harness-plan create` and product-impacting `/harness-plan add` must produce
-both:
+Non-trivial planning must be team-validated. TeamAgent or sub-agent perspectives are required when available, and the output must record `team_validation_mode`. Non-trivial work must use `native`, `subagent`, or `manual-pass`; Product / Architecture / Security / QA / Skeptic are perspectives, not required runtime `agent_type` names. Planning must include a project-scoped harness-mem / harness-recall / repo-memory wheel check, security validation for permissions, secrets, external sends, supply chain, and works-in-practice validation. Security validation must not require reading secrets.
 
-- `Spec delta` when the product contract changes, with the root `spec.md` or
-  fallback spec path and the rules being added or changed.
-- `Spec skip reason` when the task does not change the product contract, with
-  the reason preserved in task context or the sprint contract.
-- `Plans.md` task contract rows with DoD, dependencies, status, and evidence
-  expectations.
+Related sub-spec anchors: `docs/architecture/hokage-core.md`, `go/SPEC.md`, Host Adapter Boundary, Support Tiers And Host Claims, Onboarding Contract, New Session Bootstrap Rule, and `future/unsupported` host claim handling.
 
-For `create` and product-impacting `add`, agents must read the root `spec.md`
-and produce the spec result before producing task rows. Only when a consumer
-repository has no root `spec.md` may the agent fall back to an existing project
-spec or `docs/spec/00-project-spec.md`.
+## Sub-Spec Index
 
-The agent drafts the spec delta from the request, current repo evidence, memory,
-and tests. The user is not expected to write a product spec from scratch before
-Harness can plan. If the correct delta is ambiguous, the agent should offer the
-smallest decision branch and keep unverified facts as `unknown` or
-`not observed`.
+- [Planning and host adapter](docs/spec/planning-and-host-adapter.md): Planning Surface Contract, Hokage Core And Host Adapter Boundary.
+- [Execution backends and distribution](docs/spec/execution-backends-and-distribution.md): Support Tiers And Host Claims, Execution Backend Contract, Orchestration Visibility Contract, Onboarding Contract, Host Distribution Contract, Clean Mode And Compatibility Mode.
+- [Workflow, review, and release](docs/spec/workflow-review-and-release.md): New Session Bootstrap Rule, Lane Taxonomy, Stage Gate Flow, Unknown Data Contract, Review Contract, PR And Release Boundary, Release Workflow Delegation Contract, README Product Surface Contract, I18n And Status Marker Contract.
+- [Operations, memory, and collaboration](docs/spec/operations-memory-and-collaboration.md): Supply Chain Alert Contract, Memory Contract, Upstream Tracking Contract, Session Coordination Contract, Worktree Root Discipline, Tri-Tool Parallel Collaboration Contract, risk gate distribution, auto-approve scope.
+- [Breezing and bridge](docs/spec/breezing-and-bridge.md): Breezing Brief Contract, memory lifecycle events, Bridge Daemon Contract, delivery layer, Channels-Wake, workgraph signal boundary.
+- [Decision card surface](docs/spec/decision-card-surface.md): Decision Card Surface Contract, `judgment-card.v1`, past decision reference accuracy, fail-open memory behavior.
 
-Harness generates the spec result. Consumers approve or edit `Spec delta` /
-`Spec skip reason`; they are not expected to write the spec from scratch.
-
-Non-trivial planning must be team-validated before it becomes implementation
-work. A request is non-trivial when it spans multiple tasks, files, sessions,
-or changes product behavior, APIs, data models, permissions, billing, external
-integrations, distribution, or security posture. For those requests,
-`/harness-plan` must use TeamAgent or sub-agent perspectives when available.
-If the runtime cannot spawn sub-agents, the plan must explicitly say
-`サブエージェント未使用` and run the same checks in separated sections.
-The plan must include `team_validation_mode`, one of
-`not_required_lightweight`, `native`, `subagent`, `manual-pass`, or
-`unavailable`. Lightweight work may use `not_required_lightweight`.
-Non-trivial work must use `native`, `subagent`, or `manual-pass`; `unavailable`
-cannot be marked Required.
-
-Product, Architecture, Security, QA, and Skeptic are validation perspectives,
-not required runtime `agent_type` names. Harness should pass those perspectives
-to the available TeamAgent or Task mechanism rather than requiring arbitrary
-agent spawning.
-
-Every non-trivial plan must show:
-
-- alignment with root `spec.md`, applicable sub-specs, and `Plans.md`,
-- a project-scoped harness-mem / harness-recall / repo-memory wheel check,
-- product-fit validation against the primary operator workflow,
-- security validation for permissions, secrets, external sends, supply chain,
-  branch protection, and release gates,
-- works-in-practice validation that maps the plan to test, smoke, CI, review,
-  and release or closeout evidence.
-
-If any of those gates cannot pass, the plan must not mark the work Required
-until it adds a spike, narrows scope, updates the product contract, or rejects
-the idea.
-
-Security validation must not require reading secrets. If a plan would need to
-inspect `.env`, tokens, private keys, or customer data, it must stop at a Risk
-Gate and use non-secret evidence such as guardrail rules, config shape, audit
-metadata, tests, or CI/GitHub state.
-
-## Hokage Core And Host Adapter Boundary
-
-Hokage Core defines workflow contracts. Host adapters translate those contracts
-into a specific agent runtime.
-
-Core may define:
-
-- workflow intent,
-- user-facing triggers,
-- inputs and outputs,
-- required evidence,
-- acceptance criteria,
-- review and completion rules,
-- generic capability requirements.
-
-Core must not depend directly on Claude hook names, Claude-only tools,
-Codex-only tools, OpenCode config shape, Cursor rule shape, GitHub Copilot CLI
-command shape, Antigravity CLI command shape, or marketplace packaging details.
-
-Adapters own the host-specific mechanics:
-
-| Adapter | Owns | Must Not Claim |
-|---------|------|----------------|
-| Claude Code | Claude plugin manifest, hooks, settings, output styles, runtime guardrails | That non-Claude hosts have identical hook enforcement |
-| Codex CLI / Codex app | Codex skills, `AGENTS.md` guidance, companion wrapper, local plugin marketplace path, post-exec quality gates | That Codex can always stop unsafe actions before execution |
-| OpenCode | native skill packaging, OpenCode config, `AGENTS.md` guidance, setup docs, package validation, bootstrap injection when verified | That mirror sync alone proves runtime parity |
-| Cursor | `.cursor-plugin/plugin.json`, `.cursor/AGENTS.md`, project rules/skills/agents, optional hooks/MCP config shape, `scripts/model-routing.sh --host cursor`, `scripts/setup-cursor.sh`, host-specific dist + static adapter smoke | Internal compatibility via setup route + observed Desktop skill loading; not public supported claim; PM handoff docs are not adapter support; runtime guard / hook / Cloud Agent parity unproven |
-| GitHub Copilot CLI | CLI command investigation, tool mapping candidate, smoke proof when available | Support based only on Superpowers evidence |
-| Antigravity CLI | CLI/rules investigation, manual profile candidate if no plugin contract exists | Adapter support without an official or verified bootstrap route |
-
-An adapter manifest or support document may be added only when setup, docs
-generation, release preflight, or an adapter smoke test consumes it in the same
-phase.
-
-## Support Tiers And Host Claims
-
-Public support wording must use support tiers.
-
-| Tier | Meaning | Claim Allowed |
-|------|---------|---------------|
-| `supported` | Install/update path, bootstrap proof, skill loading, one workflow smoke, compatibility checks, and release/preflight gate all pass. | Public support claim for the verified host and version range. |
-| `internal-compatible` | Repo mirror, setup docs, static validation, or local tooling exists, but runtime proof is incomplete. | Internal compatibility or experimental wording only. |
-| `candidate` | Current official docs and local evidence suggest a viable adapter path, but no complete smoke proof exists. | Research or spike wording only. |
-| `future/unsupported` | No verified adapter path or no current proof. | No setup docs, README support claim, or release support claim. |
-
-Current default stance:
-
-| Host | Default Tier | Reason |
-|------|--------------|--------|
-| Claude Code | `supported` for Claude-first Harness | Primary product surface and distribution payload. |
-| Codex CLI | `internal-compatible` until direct plugin install and companion smoke are verified together | Existing Codex mirror and setup path exist; direct plugin path must be proven separately. |
-| Codex app | `candidate` under the Codex adapter | App behavior must be verified separately from CLI help output. |
-| OpenCode | `internal-compatible` until runtime bootstrap smoke passes | Existing mirror/setup validation exists; runtime parity is not yet proven. |
-| Cursor | `internal-compatible` | Host-specific dist build, `scripts/setup-cursor.sh` real-directory install, CI-gated package smoke, and observed Desktop skill loading (`/breezing` etc.) justify internal compatibility; CI-gated workflow smoke and runtime guard/hook parity are not proven; no public supported claim |
-| GitHub Copilot CLI | `candidate` | Current CLI docs must be verified and Harness-specific bootstrap proof is missing. |
-| Antigravity CLI | `future/unsupported` until an official/verified adapter route exists | No local Harness or Superpowers adapter evidence has been observed. |
-
-Phase 73.1.2 freezes this stance from
-`docs/research/superpowers-cherrypick.md`. These tiers are authoritative until
-the relevant host-specific setup route, bootstrap proof, workflow smoke, and
-release/preflight gate all pass in the same claim path.
-
-README, onboarding, and release wording must not imply that `candidate` or
-`future/unsupported` hosts are supported. Candidate hosts may appear only as
-research, spike, or adapter-candidate work. `future/unsupported` hosts may
-appear only as future scope, unsupported scope, or unknown/unobserved research.
-
-If a host is not observed in the current runtime, Harness must say `unknown` or
-`not observed`, not `unsupported`, unless the relevant source of truth was
-checked.
-
-## Execution Backend Contract
-
-The harness has three implementation execution backends:
-
-- `claude` (default): the Claude Task subagent.
-- `codex` (existing): whole-task delegation via `scripts/codex-companion.sh`.
-- `cursor` (internal-compatible): whole-task delegation to
-  `cursor-agent --model composer-2.5-fast` via `scripts/cursor-companion.sh`.
-  This is the same delegation pattern as `codex`, not a model-provider bridge.
-
-Backend selection precedence (highest first): a per-command flag (e.g.
-`--backend cursor`) > the `HARNESS_IMPL_BACKEND` env var > the project
-`env.local` entry > the user-scope `~/.config/claude-harness/impl-backend.env`
-entry > the call-site default. The global call-site default remains `claude`,
-and shipped workflow skills must not hard-code Cursor as their call-site
-fallback. A project or user can opt in to Cursor by setting
-`HARNESS_IMPL_BACKEND=cursor`; that default must affect all Cursor-capable
-surfaces, not only Breezing. Project scope overrides user scope.
-
-Backend resolution must go through `scripts/resolve-impl-backend.sh`. Skills
-and hosts must not infer the backend from `HARNESS_IMPL_BACKEND` alone, because
-env-only checks skip project `env.local`, user-scope defaults, and call-site
-defaults.
-
-Backend is role-scoped: the implementation (worker) role uses the selected
-backend. The primary review and advisor roles stay on the brain (Opus /
-`claude` host) so the implementing backend never reviews its own output.
-When the resolved backend is `cursor`, review flows may add Cursor as a
-read-only second opinion, but Cursor remains advisory and never owns the
-primary verdict.
-
-Cursor-capable host packages must expose the Cursor namespace as first-class
-commands. This surface is pre-release, so Harness does not provide legacy
-aliases for the earlier `cursor-do` / `cursor-ask` naming:
-
-- `cursor:setup`: configure or verify the Cursor package, `cursor-agent`, and
-  local/project backend defaults.
-- `cursor:do`: write delegation through an isolated worktree, Lead diff review,
-  and cherry-pick.
-- `cursor:ask`: read-only delegation through `cursor-companion.sh task` without
-  `--write`, worktree, or cherry-pick.
-- `cursor:review`: read-only advisory Cursor review; primary verdict remains
-  on the host brain.
-- `cursor:rescue`: diagnose Cursor backend setup, resolution, and companion
-  failure paths.
-
-Skill frontmatter `name` fields remain validator-safe lowercase hyphen ids
-(`cursor-do`, `cursor-ask`, `cursor-setup`, `cursor-review`, `cursor-rescue`).
-Codex defaultPrompt uses those registered `$cursor-<verb>` skill ids for
-name-based invocation; descriptions and prose retain the `cursor:<verb>`
-namespace as the user-facing mental model.
-
-The concrete model for any host+role is resolved by
-`scripts/model-routing.sh --host <backend> --role <role>`. This contract does
-not reimplement model selection.
-
-Cursor remains `internal-compatible`, not a public `supported` claim. Shipped
-Claude Code and Codex plugin surfaces keep Cursor opt-in by default; individual
-local environments may set `HARNESS_IMPL_BACKEND=cursor` in env, project
-`env.local`, or user-scope config to make Cursor the resolved default. If Cursor
-is selected but not configured, the workflow must fail with setup guidance
-rather than silently claiming Claude/Codex parity.
-
-Containment for cursor write delegation relies on a dedicated-`.git` worktree
-plus Lead diff review and cherry-pick as the real boundary. Per Cursor's
-official security docs (cursor.com/docs/agent/security), file writes have no
-project-folder confinement and command allowlists are "best-effort, not a
-security guarantee", so containment cannot be delegated to Cursor.
-
-## Orchestration Visibility Contract
-
-Backend selection is invisible at runtime: a user cannot tell whether work was
-delegated to Codex, Cursor, or kept on Claude. The harness must make the
-session's actual backend mix observable, so a user can answer "am I really
-orchestrating, or did everything fall back to Claude?" and can show the result
-to others.
-
-The contract separates recording from display. Recording is always on; display
-is on demand. The harness keeps two scopes: a per-session ledger of the current
-session's delegations, and a lifetime accumulator that persists cumulative
-per-backend totals across sessions in `.claude/state/orchestration-totals.json`
-(project-scoped). Session delegations roll up into the accumulator when the session's tasks are
-all complete, and again at session end as a safety net; the rollup always runs
-and is never gated behind display. The rollup must
-be idempotent per `session_id` so a session counted once is never
-double-counted. A user-scope total across all projects is an optional extension,
-not required here.
-
-Per-task completion never triggers display; that would spam a multi-task
-session. The one allowed automatic surface is a single compact terminal summary,
-emitted once when the session's tasks are all complete (the rollup runs first,
-so the summary reflects the updated lifetime totals). The HTML scorecard is
-never emitted automatically. Surfaces report both the current session mix and
-the lifetime totals; the lifetime totals are the primary shareable figure.
-
-The authoritative record is a companion-written ledger. `codex-companion.sh` and
-`cursor-companion.sh` append one structured line per delegation to
-`.claude/state/orchestration-ledger.jsonl`. Each entry carries only
-non-sensitive fields: timestamp, backend, subcommand, write flag, exit code,
-duration, session id, and a `counts` flag. The ledger must never contain prompt
-text, file contents, or secrets. Only delegation subcommands (`task`, `review`,
-`adversarial-review`) set `counts: true`; status/setup/result/cancel calls are
-recorded with `counts: false` so polling does not inflate the score.
-
-Claude-side work is not companion-driven, so the scorecard derives Claude
-delegation counts from the existing worker spawn trace
-(`.claude/state/agent-trace.jsonl`, role `worker`) and merges them with the
-ledger. The merged result is an `orchestration-scorecard.v1` snapshot reporting,
-per backend: the used count, and a tri-state status — `used` (count > 0),
-`available` (backend resolves/configures but unused this session), or
-`not-configured` (companion setup fails or binary absent). `not-configured` is a
-neutral state, never a failure or warning. The snapshot also reports backend
-diversity (how many distinct backends were actually used) and a multi-backend
-utilization ratio (non-Claude delegations over total delegations) with a one-line
-note stating what the ratio measures.
-
-Two surfaces consume the snapshot: a standalone HTML scorecard rendered through
-`scripts/render-html.sh` (redaction layers applied as defense-in-depth, so it is
-shareable), produced only on demand; and a compact terminal summary, produced on
-demand and additionally emitted once at full-session completion. Neither is
-emitted on every task completion. Both report session mix plus lifetime totals.
-
-If the ledger or trace is missing or unreadable, the scorecard degrades to
-"no delegations observed" rather than erroring; absent observation is not the
-same as absence of work.
-
-## Onboarding Contract
-
-Onboarding is not complete when files are copied. It is complete when the first
-useful session can be verified.
-
-New-user onboarding must provide:
-
-- a tool-first front door: "which agent are you using now?",
-- an install or setup route for that host,
-- the first command or first prompt to try,
-- what successful bootstrap looks like,
-- a verification command or smoke transcript,
-- the support tier and known asymmetries.
-
-Existing-user migration must provide:
-
-- a before-state inventory,
-- backup locations outside skill scan paths,
-- stale plugin/cache/residue detection,
-- duplicate local skill detection,
-- harness-mem state handling that never deletes memory by default,
-- rollback instructions that avoid destructive cleanup unless explicitly
-  confirmed.
-
-Superpowers is the reference pattern for multi-host onboarding: common skills,
-thin host adapters, bootstrap guidance, skill-trigger tests, and explicit host
-tool mapping. Harness may cherry-pick that pattern, but every copied idea must
-be translated into Harness lanes, Plans.md tasks, TDD/review gates, and support
-tier evidence.
-
-## Host Distribution Contract
-
-Host-specific distribution packages must not cross-contaminate adapter surfaces.
-
-Rules:
-
-- A Claude Code distribution payload must not include `.codex-plugin/`,
-  `.cursor-plugin/`, `codex/`, `.cursor/`, or other non-Claude adapter
-  manifests.
-- A Codex distribution package must expose only Codex skills and a Codex plugin
-  manifest whose component paths stay inside the package root. It may carry
-  non-manifest setup source assets used by `cursor:setup`, but must not include
-  `.cursor-plugin/` or `.cursor/` at the Codex package root.
-- A Cursor distribution package must expose only Cursor skills, agents, and a
-  Cursor plugin manifest whose component paths stay inside the package root.
-- Distribution manifests must not use `..` relative paths. Source-repo adapter
-  metadata may use sibling paths for development, but generated install
-  packages must normalize paths to `./skills/`, `./agents/`, or equivalent
-  in-package locations.
-- A host distribution package must normalize component metadata so the target
-  host actually surfaces it. Skills authored for the Claude Code slash-only
-  convention (`user-invocable: true`) are dropped by Cursor; the Cursor package
-  must rewrite them to `user-invocable: false` so they register as
-  Agent-Decides skills invokable via `/skill-name`. The Claude package must keep
-  the original `user-invocable: true` slash contract.
-- A Cursor local install must be a real directory under
-  `~/.cursor/plugins/local/<name>`. Cursor rejects symlinks whose target is
-  outside that directory, so distribution tooling must copy the package in
-  rather than linking to an external build path.
-- Cursor, Codex CLI, and OpenCode remain below Claude Code in support tier
-  until their own workflow smoke and release gates pass. Distribution cleanup
-  does not by itself promote a host to `supported`.
-
-## Clean Mode And Compatibility Mode
-
-Harness defines two user-facing environment profiles. These are Harness
-diagnostic and guidance profiles, not host-native global toggles. Cursor may
-still load Claude/Codex skill directories when the user enables host
-compatibility import in the Desktop app.
-
-| Profile | Meaning | Expected UX |
-|---------|---------|-------------|
-| `clean` (default) | One host, one Harness route. Cursor users should see Cursor package skills only after cleanup. | Fewer duplicate skills/plugins; explicit host-specific invocation. |
-| `compatibility` | Cross-host skill import remains enabled. Harness warns about duplicates but does not force-disable host import settings. | More skills visible; Harness recommends namespaced or explicit invocation. |
-
-Harness must not delete user home configuration by default. Environment cleanup
-uses dry-run inventory first, then user-confirmed archive or disable actions.
-Compatibility import in Cursor Desktop can reintroduce duplicate skills even
-after clean distribution packages are installed; Harness documents that limit
-and detects duplicate origins before suggesting fixes.
-
-## New Session Bootstrap Rule
-
-A new agent session must be able to start from one task id without re-inventing
-the plan.
-
-Each startable task must make these visible:
-
-- source spec path,
-- current task id,
-- first action,
-- expected evidence artifact,
-- blocked conditions,
-- stop or handoff condition.
-
-If a phase is broad, the first task must be research/evidence or plan-freeze.
-Implementation must not begin until the evidence artifact narrows the files,
-tests, smoke commands, and claim boundaries for the next tasks.
-
-## Lane Taxonomy
-
-Harness V2 uses lanes as task metadata, not as separate primary skills.
-
-| Lane | Use When | Required Closeout |
-|------|----------|-------------------|
-| `[lane:fast]` | Low-risk local docs, narrow cleanup, small isolated fixes | focused checks, concise evidence pack, no full review by default |
-| `[lane:gate]` | Skill, workflow, guardrail, mirror, CI, spec, or shared behavior changes | spec alignment, TDD when required, major-only or full review, re-review until clean |
-| `[lane:release]` | Public artifact, version, tag, GitHub Release, CI, binary/package surface | release preflight, version sync, tags, GitHub Release, CI/latest verification |
-
-Fast lane is not a bypass. It still needs a scope, DoD, focused verification,
-and an explicit residual-risk statement.
-
-## Stage Gate Flow
-
-Every non-trivial V2 plan follows this path:
-
-1. Research and verification
-   - Read current repo state, relevant docs, `Plans.md`, memory, and available
-     runtime evidence.
-   - Treat failed searches, unavailable APIs, missing fixtures, and unseen data
-     as `unknown`.
-2. Implementation plan freeze
-   - Record lane, scope, DoD, dependencies, TDD tag, risk gates, and evidence
-     expectations in `Plans.md`.
-3. Implementation with TDD
-   - For `[tdd:required]`, create or update a failing test first and keep red
-     evidence via red-log or literal failing output.
-   - Use `[tdd:skip:<reason>]` only when the reason is explicit and reviewable.
-4. Review
-   - `harness-review` stays read-only by default.
-   - `APPROVE` means the quality gate passed. It does not mean commit, push,
-     PR, merge, or release may happen automatically.
-5. PR closeout
-   - PR artifacts include base/head refs, spec path, lane, stage, tests, review
-     result, accepted/rejected findings, residual risk, and warnings handled.
-   - Push and PR creation are external side effects and require an explicit
-     flag or confirmation gate.
-6. Release closeout
-   - Release lane is complete only after version surfaces, tags, GitHub Release,
-     CI, and public artifact checks are verified.
-
-## Unknown Data Contract
-
-Harness V2 must distinguish unobserved data from absent data.
-
-Required rule:
-
-```text
-not_observed != absent
-```
-
-If an agent cannot see a file, API response, memory record, CI run, GitHub
-object, fixture, or runtime output, it must report `unknown`, `unavailable`, or
-`not observed`. It must not claim the data does not exist unless it has checked
-the relevant source of truth.
-
-Examples:
-
-- Search timed out: `unknown`, not `no results exist`.
-- Fixture was not loaded: `not observed`, not `fixture missing`.
-- harness-mem was unavailable: `memory unavailable`, not `no memory`.
-- Local tests passed: `local checks passed`, not `PR/release ready`.
-
-## Review Contract
-
-`harness-review` checks:
-
-- spec alignment,
-- `Plans.md` scope and DoD,
-- TDD evidence when required,
-- regression risk,
-- accepted and rejected findings,
-- unknown data handling,
-- evidence pack completeness.
-
-Critical or major findings produce `REQUEST_CHANGES`.
-Minor or recommendation-only findings can still produce `APPROVE` when the
-acceptance bar is met.
-
-## PR And Release Boundary
-
-PR closeout belongs to `harness-work`, not `harness-review`.
-
-Release belongs to `harness-release`, not PR closeout.
-
-Do not merge these stages:
-
-- PR ready means the change has a reviewable branch and evidence pack.
-- Release ready means the public release path has passed preflight and the
-  release artifacts are verified.
-
-## Release Workflow Delegation Contract
-
-The release path is split between the `harness-release` skill and the GitHub
-Actions release workflow:
-
-- The skill is responsible up to tag push only. It does not call the GitHub CLI
-  release subcommand family.
-- GitHub Release publication is the single responsibility of
-  `.github/workflows/release.yml`, triggered by `push: tags: ['v*']`.
-- The skill runs a verify step after tag push to confirm publication:
-  release must have `draft=false` and at least 4 platform binary assets.
-- The verify step uses the GitHub CLI API endpoint
-  `repos/<owner>/<repo>/releases/tags/<tag>`. The release subcommand prefix is
-  excluded from skill output to avoid Claude Code runtime hard floor deny on the
-  `prod-deploy` category.
-- On verify timeout the skill emits a WARN and does not abort — the tag
-  is already pushed, so a human can inspect the workflow run.
-
-## Plugin Runtime Closure Contract
-
-Installed plugin caches and host-specific distribution packages must be able to
-run every hook and adapter skill without depending on an adjacent source
-checkout.
-
-For Claude Code hooks:
-
-- every `scripts/*.sh` path referenced by `hooks/hooks.json` or
-  `.claude-plugin/hooks.json` must exist in the source checkout, generated
-  Claude host distribution, versioned plugin cache, and local marketplace copy;
-- cache sync must derive this script set from the hook files instead of relying
-  only on a hand-maintained memory-wrapper list;
-- direct script hook commands must treat a plugin root as valid only when the
-  exact script they will execute is present, so a stale versioned cache falls
-  back to the marketplace or source root instead of failing with `No such file`;
-- shell execution of direct hook scripts should not depend on copied executable
-  bits when `/bin/bash <script>` is sufficient.
-
-For Codex and Cursor adapter skills:
-
-- generated host distributions must include the runtime helper scripts invoked
-  by shipped skills, including backend resolver, model routing, Codex
-  companion, Cursor companion, and Cursor setup helpers;
-- Codex `breezing --cursor` and composer-triggered flows are complete only when
-  both the skill surface and the installed plugin cache contain those helpers;
-- `--cursor` is an explicit worker-backend override and must continue to resolve
-  through `resolve-impl-backend.sh`, not by direct environment-only branching.
-
-Release readiness requires tests that build host distributions, simulate cache
-sync, and verify the installed-cache file presence for these runtime helpers.
-
-## README Product Surface Contract
-
-The root README and Japanese README are public product surfaces, not internal
-closeout notes.
-
-They must lead with:
-
-- the user pain Harness solves,
-- what changes after install,
-- the fastest verified setup path,
-- the first command or first prompt,
-- the workflow Harness actually enforces,
-- the proof boundary for supported and candidate hosts,
-- links to deeper docs only after the quick path is clear.
-
-README copy must not lead with internal code names, release archaeology,
-operator-only HTML artifacts, or product-history explanations. Those may live
-in architecture docs, research docs, or changelog entries when useful.
-
-Command descriptions must explain what the command does inside in one concise
-line, so a new user understands the work being delegated without reading the
-skill source.
-
-Visual assets used by README / README_ja must follow the same claim boundary:
-
-- text-bearing images require separate English and Japanese assets,
-- generated images must use the current official Claude Harness logo tone on a
-  white background,
-- no image may imply support tiers or host parity beyond verified evidence,
-- generated prompts, source files, dimensions, and alt text must be recorded in
-  an asset manifest before release,
-- stale images that carry obsolete product names, dark hero styling, or
-  unsupported support claims must be removed or replaced.
-
-When multiple generated-image directions are plausible, README copy may ship
-without those images, but final image generation and integration require an
-explicit user approval gate for the chosen direction.
-
-## I18n And Status Marker Contract
-
-Harness ships with English as the default user-facing locale, while Japanese
-remains available through explicit opt-in.
-
-Status markers are both protocol values and visible user-facing text. New or
-updated Plans.md rows, templates, summaries, and generated notification files
-must not mix Japanese and English within the same status marker family. Writer
-paths must emit the English marker family, especially `cc:done` for completed
-work, alongside `cc:todo`, `cc:wip`, `pm:requested`, and `pm:approved`.
-
-Backward compatibility is mandatory:
-
-- existing `cc:TODO`, `cc:WIP`, `cc:完了`, `pm:依頼中`, and `pm:確認済` rows remain
-  valid input,
-- Japanese opt-in may preserve surrounding Japanese prose, but new and updated
-  status marker writes still use the English marker family,
-- readers, sync, loop, sprint-contract, and Plans validation must accept both
-  legacy canonical markers and English aliases,
-- bulk migration of existing Plans.md files is never implicit; it requires an
-  explicit migration command or user approval.
-
-User-facing runtime reasons, guardrail messages, status summaries, and generated
-state notifications should follow the same locale resolver as other Harness
-messages for prose. Status marker writes are the exception: new/update writer
-paths use the English marker family while legacy Japanese markers remain
-read-compatible.
-
-## Supply Chain Alert Contract
-
-Open Dependabot alerts on tracked source, tooling, benchmark, or distribution
-lockfiles are repo-health findings, not release noise.
-
-Harness must handle them with evidence:
-
-- enumerate the live GitHub alert set before planning remediation,
-- group alerts by manifest path, dependency, severity, and advisory,
-- prefer supported upgrades that keep the current tool line moving forward over
-  security downgrades suggested only by `npm audit fix`,
-- use package-manager-native override mechanisms only when the direct owner
-  package has not yet published a patched dependency range,
-- verify the affected tool still starts or runs an equivalent smoke command,
-- add or update Dependabot configuration and CI/audit checks when a tracked
-  manifest can otherwise accumulate alerts without PR automation,
-- keep GitHub alert closeout, local `npm audit`, CI, and release gates separate.
-
-Benchmark-only manifests may use focused smoke evidence instead of full
-benchmark execution when model keys, Docker, or sandbox services are unavailable,
-but the unavailable part must be recorded as a residual risk rather than treated
-as success.
-
-## Memory Contract
-
-When a planning or design decision is made, Harness should record why it was
-chosen, not only what changed.
-
-Preferred memory targets:
-
-- `harness-mem` project-scoped ingest/search when available.
-- `.claude/memory/decisions.md` and `.claude/memory/patterns.md` when present.
-- `Plans.md` and spec documents as local, reviewable SSOTs.
-
-If harness-mem is unavailable, the agent must say so and keep the local SSOT
-updated instead of pretending memory was written.
-
-## Upstream Tracking Contract
-
-Claude Code and Codex updates must be turned into Harness changes through an
-evidence gate, not by copying release notes into docs.
-
-Every non-trivial upstream refresh must:
-
-- compare the local installed versions with the latest official upstream
-  versions,
-- use official Anthropic, OpenAI, or first-party GitHub release sources,
-- record a dated snapshot document with release URLs, local version output, and
-  observed gaps,
-- classify each relevant item as `A: adopt now`, `C: inherit upstream`,
-  `P: plan/spike`, or `Reject`,
-- keep `B: explanation only` at zero unless the plan explicitly explains why a
-  non-actionable note is still worth preserving,
-- connect adopted items to `Plans.md`, tests, docs, CHANGELOG, and review gates,
-- avoid support-tier upgrades until host bootstrap, runtime smoke, and release
-  gates prove the claim.
-
-The following upstream surfaces are product-affecting and must not be treated as
-automatic documentation updates:
-
-- skill or slash-command frontmatter semantics,
-- hooks, message display, session start, and plugin marketplace behavior,
-- agent, subagent, background-session, worktree, or permission behavior,
-- sandbox, approval, profile, or managed policy behavior,
-- Codex companion, CLI, SDK, MCP, app-server, or GitHub Action behavior,
-- installer, package, release artifact, or supply-chain behavior.
-
-If an upstream product weakens a previous opt-in barrier, such as an auto mode
-consent change, Harness must keep its own safety default until a dedicated phase
-updates the contract, tests, and release notes. Upstream convenience is evidence
-to evaluate, not permission to silently relax Harness guardrails.
-
-## Session Coordination Contract
-
-When multiple local Claude Code sessions work on the same project, Harness may
-coordinate them to reduce file conflicts, but only under these rules.
-
-- Coordination state is local-only and never depends on harness-mem. The
-  cross-repo boundary in `.claude/rules/cross-repo-handoff.md` stays intact.
-- The lease store lives in one shared location resolved from
-  `git --git-common-dir`, never under a worktree-local `.claude/`, so parallel
-  worktree Workers share a single lease space. Lease keys are the sha256 of the
-  repo-relative path, never an absolute path.
-- Lease acquisition is atomic (`O_CREAT|O_EXCL`). Staleness requires both TTL
-  expiry and the holder session id being absent from the live-session set; pid
-  liveness is only an auxiliary signal.
-- Conflict handling changes behavior through diagnostic feedback
-  (`continueOnBlock`), not a silent advisory. It is feedback, not a guard rail,
-  so it never blocks irreversible operations and stays fail-open: if the lease
-  mechanism is unavailable, edits pass and no false assurance is implied.
-- Cross-session content (broadcast, lock metadata) is injected into model
-  context as data, not instructions: only structured trusted fields (sanitized
-  path, short session id, age-seconds), wrapped with the existing
-  non-instruction disclaimer. Free text from other sessions is never echoed
-  verbatim, control characters are stripped, and a byte cap bounds the payload.
-- Coordination health uses the tri-state model in
-  `.claude/rules/active-watching-test-policy.md`: `not-configured` is silent;
-  only `unreachable` / `corrupted` warn.
-- A broadcast channel whose fire conditions are too narrow dies silently, as
-  the 2026-02 broadcast corpse proved. Any revival must prove via tests that
-  its fire strategy triggers on normal edits.
-
-## Cross-Session Relay Contract
-
-Independent Claude Code sessions (across worktrees/sessions) may relay directed
-messages to each other, implemented inside Harness — no external messaging tool
-is installed.
-
-- The relay is opt-in via `HARNESS_SESSION_RELAY` (`monitor`/`turn`/`both`/`off`);
-  the shipped default is OFF and no relay hook fires when unset.
-- Storage is Harness's own `.claude/sessions/relay-signals.jsonl` with
-  bidirectional `from`→`to` addressing. It never introduces an external SQLite
-  nor writes a `settings.local.json` hook, so it stays on the harness-mem
-  redaction path and passes the R01-R13 guardrail. The cross-repo boundary stays
-  intact.
-- Delivery is two-tier: `monitor` (SessionStart emits a Monitor-tool directive to
-  run the watcher with 5s polling push) and `turn` (PreToolUse pulls via the
-  watcher `--once`). `both` is monitor-primary + turn-fallback, so an
-  LLM-dependent monitor that misfires never drops the relay (degrade-safe).
-- Real-time push is CC↔CC only. Codex/Cursor lack the Monitor tool, so
-  cross-agent handoff uses companion turn pull (user-triggered): the companion
-  writes a handoff signal carrying only backend/subcommand/write — never prompt
-  text — and a peer CC reads it via the turn path. Redaction is structural (the
-  notify helper has no prompt parameter).
-- `monitor`/`both` and `harness-loop` contend for the Monitor tool and are
-  mutually exclusive; a session must not run both.
-- Received bodies are injected as data, not instructions: wrapped with the
-  non-instruction disclaimer and bounded by the same byte cap as the inbox path.
-
-## Review Approval Persistence Contract
-
-Every review approval that the host runtime needs to honour is persisted to
-`.claude/state/review-result.json` regardless of which path produced it. The
-commit guard reads only that file, so any verdict that exists only in the
-conversation cannot pass the gate. This contract was codified in Phase 94
-(`#218` + `#219`).
-
-The contract has three parts:
-
-- **Coverage**: every review path persists the verdict. `harness-work`,
-  `breezing`, and `harness-loop` already wrote via `scripts/write-review-result.sh`
-  from a SKILL step. Phase 94.1.1 added the same step to `harness-review` (Output
-  Contract) and to `harness-release` (Review Gate delegation). Phase 94.1.2 added
-  a deterministic backstop: a `SubagentStop` hook handler
-  (`scripts/hook-handlers/subagentstop-reviewer-persist.sh`) that extracts the
-  `review-result.v1` JSON block from the reviewer subagent's final transcript
-  turn and persists it via the same writer. The backstop fires when the SKILL
-  step is skipped by the LLM. Coverage = SKILL step (intentional) ∪ hook
-  (fail-safe).
-- **Bookkeeping-only exemption**: a commit whose diff touches only
-  `VERSION`, `.claude-plugin/plugin.json`, `harness.toml`, or `CHANGELOG.md` is a
-  release bookkeeping commit, not a code change. The PreToolUse commit guard
-  (`scripts/pretooluse-guard.sh`) and the PostToolUse cleanup
-  (`go/internal/hookhandler/posttooluse_commit_cleanup.go`) both recognise this
-  taxonomy and exempt bookkeeping commits from the approval requirement and the
-  approval-clearing step. Merge commits are also exempt. Any other diff still
-  consumes the approval (= the pre-Phase 94 behaviour). Both sides must apply
-  the exemption — if only one side did, the next commit in a multi-commit flow
-  would still be blocked.
-- **Determinism over coordination**: the cleanup and the persistence layer do
-  not depend on the LLM following SKILL instructions. The hook layer must
-  produce the same outcome whether or not the agent remembered to invoke the
-  writer. Decisions about whether to keep or clear an approval are recorded in
-  `.claude/state/commit-cleanup-audit.jsonl` (append-only) so that the operator
-  can later see why a given commit kept or lost the prior approval.
-
-This contract closes the path that prevented `harness-review` standalone runs
-and `harness-release` bare invocations from progressing to the commit step.
+The chapter names above intentionally preserve the old `spec.md` headings so grep
+based audits can still find the contract location from the core file.
 
 ## Non-Goals
 
-V2 does not:
-
-- replace `Plans.md` with `spec.md`,
-- split Fast/Gate/Release into three new primary skills,
-- make every task a heavy Gate lane task,
-- break existing `cc:TODO`, `cc:WIP`, or `cc:完了` marker compatibility,
-- let review auto-commit, push, PR, merge, or release,
-- treat local green checks as PR-ready or release-ready by themselves,
-- weaken release verification to save time.
-- claim Cursor, GitHub Copilot CLI, Antigravity CLI, or generic cross-host
-  support before support-tier evidence exists.
-- copy Superpowers slogans or trigger rules when they conflict with Harness
-  verbs, lanes, or guardrails.
+1. No automatic implementation without an approved plan.
+2. No release claim without a matching support-tier gate.
+3. No silent fallback from cross-family review to same-family review.
+4. No derived artifact may become a judgment source.
+5. No host-specific distribution may load another host's private compatibility
+   surface by accident.
+6. No AI path may modify constitution files or self-audit policy.
 
 ## Open Decisions
 
-- Exact PR closeout command shape: `harness-work --pr` vs
-  `scripts/harness-pr-closeout.sh`.
-- Final machine-readable evidence schema for PR bodies and closeout artifacts.
-- Whether `.claude/memory/decisions.md` and `.claude/memory/patterns.md` should
-  be created in this repository or remain optional memory surfaces.
-- Whether Codex direct plugin installation becomes the default Codex path or
-  stays secondary to `scripts/setup-codex.sh --user`.
-- Which CI-gated Desktop workflow smoke is sufficient to promote Cursor from
-  `internal-compatible` to `supported`, and which host docs and smoke tests are
-  sufficient to promote GitHub Copilot CLI or Antigravity CLI from `candidate` /
-  `future/unsupported`.
+- Full peer-Lead collaboration remains staged; current L3 work is Mode 2 live
+  notice messaging plus generated delivery hooks where host APIs allow it.
+- Organization-scope governance remains outside this repo and belongs to
+  ContextHarness V2.
+- Broader prose-quality gates must prove deterministic value before promotion;
+  semantic prose rules stay advisory.
 
 ## Links
 
-- Task ledger: `Plans.md` Phase 72 through Phase 76.
-- Phase 76 closes the `harness-plan` planning-surface portion of Phase 72.1.2.
-  `harness-work`, review, and PR closeout follow-up remains in Phase 72.
-- Spec workflow policy: `docs/plans/spec-ssot.md`.
-- Review operating model: `docs/harness-review-operating-model.md`.
-- Architecture sub-spec: `docs/architecture/hokage-core.md`.
-- Host capability matrix: `docs/tool-capability-matrix.md`.
-- Spin-off readiness: `docs/hokage-spin-off-readiness.md`.
-- Go runtime sub-spec: `go/SPEC.md`.
+- `Plans.md` — task ledger and phase evidence.
+- `docs/spec/` — detailed sub-specs that remain part of this product contract.
+- `GOD_plans.md` — release and S3-S5 evidence tracking.

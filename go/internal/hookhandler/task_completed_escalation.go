@@ -143,19 +143,19 @@ func classifyFailure(output string) (category, action string) {
 	lower := strings.ToLower(output)
 	switch {
 	case containsAny(lower, "syntax", "syntaxerror", "parse error", "unexpected token"):
-		return "syntax_error", "構文エラーを修正してください。コードの文法を確認してください。"
+		return "syntax_error", localizedHarnessMessage("ja", "Fix the syntax error. Check the code grammar.", "構文エラーを修正してください。コードの文法を確認してください。")
 	case containsAny(lower, "cannot find module", "module not found", "import.*error", "modulenotfounderror"):
-		return "import_error", "モジュール/インポートエラーを修正してください。依存関係を確認してください（npm install / pip install）。"
+		return "import_error", localizedHarnessMessage("ja", "Fix the module/import error. Check dependencies (npm install / pip install).", "モジュール/インポートエラーを修正してください。依存関係を確認してください（npm install / pip install）。")
 	case containsAny(lower, "type.*error", "typeerror", "is not assignable", "property.*does not exist"):
-		return "type_error", "型エラーを修正してください。型定義と実装の不一致を確認してください。"
+		return "type_error", localizedHarnessMessage("ja", "Fix the type error. Check mismatches between type definitions and implementation.", "型エラーを修正してください。型定義と実装の不一致を確認してください。")
 	case containsAny(lower, "assertion", "assertionerror", "expect.*received", "tobe", "toequal", "fail", "failed"):
-		return "assertion_error", "テストアサーションが失敗しています。期待値と実際の値の差分を確認してください。"
+		return "assertion_error", localizedHarnessMessage("ja", "A test assertion failed. Check the difference between expected and actual values.", "テストアサーションが失敗しています。期待値と実際の値の差分を確認してください。")
 	case containsAny(lower, "timeout", "etimedout", "timed out"):
-		return "timeout", "タイムアウトが発生しました。非同期処理やネットワーク依存を確認してください。"
+		return "timeout", localizedHarnessMessage("ja", "A timeout occurred. Check asynchronous processing and network dependencies.", "タイムアウトが発生しました。非同期処理やネットワーク依存を確認してください。")
 	case containsAny(lower, "permission", "eacces", "eperm", "access denied"):
-		return "permission_error", "権限エラーが発生しています。ファイルのパーミッションを確認してください。"
+		return "permission_error", localizedHarnessMessage("ja", "A permission error occurred. Check file permissions.", "権限エラーが発生しています。ファイルのパーミッションを確認してください。")
 	default:
-		return "runtime_error", "ランタイムエラーが発生しています。テスト出力を詳しく確認してください。"
+		return "runtime_error", localizedHarnessMessage("ja", "A runtime error occurred. Inspect the test output in detail.", "ランタイムエラーが発生しています。テスト出力を詳しく確認してください。")
 	}
 }
 
@@ -188,20 +188,20 @@ func (h *taskCompletedHandler) emitEscalationResponse(out io.Writer, taskID, tas
 
 	// エスカレーションレポートを stderr に出力
 	fmt.Fprintf(os.Stderr, "\n==========================================\n")
-	fmt.Fprintf(os.Stderr, "[ESCALATION] 3回連続失敗を検知 - 自動修正ループを停止\n")
+	fmt.Fprint(os.Stderr, localizedHarnessMessage("ja", "[ESCALATION] Detected 3 consecutive failures - stopping automatic fix loop\n", "[ESCALATION] 3回連続失敗を検知 - 自動修正ループを停止\n"))
 	fmt.Fprintf(os.Stderr, "==========================================\n")
-	fmt.Fprintf(os.Stderr, "  タスク ID  : %s\n", taskID)
-	fmt.Fprintf(os.Stderr, "  タスク名   : %s\n", taskSubject)
-	fmt.Fprintf(os.Stderr, "  連続失敗数 : %d\n", failCount)
-	fmt.Fprintf(os.Stderr, "  検知時刻   : %s\n", ts)
+	fmt.Fprintf(os.Stderr, localizedHarnessMessage("ja", "  Task ID       : %s\n", "  タスク ID  : %s\n"), taskID)
+	fmt.Fprintf(os.Stderr, localizedHarnessMessage("ja", "  Task name     : %s\n", "  タスク名   : %s\n"), taskSubject)
+	fmt.Fprintf(os.Stderr, localizedHarnessMessage("ja", "  Failure count : %d\n", "  連続失敗数 : %d\n"), failCount)
+	fmt.Fprintf(os.Stderr, localizedHarnessMessage("ja", "  Detected at   : %s\n", "  検知時刻   : %s\n"), ts)
 	fmt.Fprintf(os.Stderr, "------------------------------------------\n")
-	fmt.Fprintf(os.Stderr, "  [原因分類]\n  カテゴリ   : %s\n\n", category)
-	fmt.Fprintf(os.Stderr, "  [推奨アクション]\n  %s\n\n", action)
+	fmt.Fprintf(os.Stderr, localizedHarnessMessage("ja", "  [Cause classification]\n  Category      : %s\n\n", "  [原因分類]\n  カテゴリ   : %s\n\n"), category)
+	fmt.Fprintf(os.Stderr, localizedHarnessMessage("ja", "  [Recommended action]\n  %s\n\n", "  [推奨アクション]\n  %s\n\n"), action)
 	if lastCmd != "" {
-		fmt.Fprintf(os.Stderr, "  [最後に実行したコマンド]\n  %s\n\n", lastCmd)
+		fmt.Fprintf(os.Stderr, localizedHarnessMessage("ja", "  [Last command]\n  %s\n\n", "  [最後に実行したコマンド]\n  %s\n\n"), lastCmd)
 	}
 	if lastOutput != "" {
-		fmt.Fprintf(os.Stderr, "  [テスト出力（最大20行）]\n")
+		fmt.Fprint(os.Stderr, localizedHarnessMessage("ja", "  [Test output (max 20 lines)]\n", "  [テスト出力（最大20行）]\n"))
 		scanner := bufio.NewScanner(strings.NewReader(lastOutput))
 		for scanner.Scan() {
 			fmt.Fprintf(os.Stderr, "    %s\n", scanner.Text())
@@ -222,7 +222,7 @@ func (h *taskCompletedHandler) emitEscalationResponse(out io.Writer, taskID, tas
 	// Fix Proposal を生成・保存
 	fixTaskID := buildFixTaskID(taskID)
 	proposalSubject := sanitizeInlineText("fix: " + taskSubject + " - " + category)
-	dod := sanitizeInlineText("失敗カテゴリ (" + category + ") を解消し、直近のテスト/CI が通ること")
+	dod := sanitizeInlineText(localizedHarnessMessage("ja", "Resolve failure category ("+category+") and make the latest test/CI pass", "失敗カテゴリ ("+category+") を解消し、直近のテスト/CI が通ること"))
 
 	proposal := fixProposal{
 		SourceTaskID:      taskID,
@@ -239,10 +239,12 @@ func (h *taskCompletedHandler) emitEscalationResponse(out io.Writer, taskID, tas
 
 	proposalSaved := h.upsertFixProposal(proposal)
 
-	fixMessage := fmt.Sprintf("[FIX PROPOSAL] タスク %s が3回連続で失敗しました。\n提案: %s — %s\nDoD: %s\n承認: approve fix %s\n却下: reject fix %s",
+	fixMessage := fmt.Sprintf(localizedHarnessMessage("ja",
+		"[FIX PROPOSAL] Task %s failed 3 consecutive times.\nProposal: %s — %s\nDoD: %s\nApprove: approve fix %s\nReject: reject fix %s",
+		"[FIX PROPOSAL] タスク %s が3回連続で失敗しました。\n提案: %s — %s\nDoD: %s\n承認: approve fix %s\n却下: reject fix %s"),
 		taskID, fixTaskID, proposalSubject, dod, taskID, taskID)
 	if !proposalSaved {
-		fixMessage += "\n警告: proposal 保存に失敗しました。手動で Plans.md に追加してください。"
+		fixMessage += localizedHarnessMessage("ja", "\nWarning: failed to save proposal. Add it to Plans.md manually.", "\n警告: proposal 保存に失敗しました。手動で Plans.md に追加してください。")
 	}
 
 	return writeJSON(out, map[string]string{

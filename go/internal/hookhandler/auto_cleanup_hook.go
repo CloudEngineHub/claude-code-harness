@@ -220,8 +220,8 @@ func containsArchiveSection(path string) bool {
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := sc.Text()
-		if strings.Contains(line, "📦 アーカイブ") ||
-			strings.Contains(line, "## アーカイブ") ||
+		if strings.Contains(line, localizedHarnessMessage("ja", "archive", "📦 アーカイブ")) ||
+			strings.Contains(line, localizedHarnessMessage("ja", "archive", "## アーカイブ")) ||
 			strings.Contains(line, "Archive") {
 			return true
 		}

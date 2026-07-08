@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-harness.local/schemas/brief-card.v1.json",
+  "title": "brief-card.v1",
+  "description": "Brief Composer v0 card — free-text breezing input decomposed into subtasks for user confirmation.",
+  "type": "object",
+  "required": [
+    "goal",
+    "subtasks",
+    "scope_files",
+    "risk_notes",
+    "confidence"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "goal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subtasks": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "dod"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dod": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scope_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    }
+  }
+}

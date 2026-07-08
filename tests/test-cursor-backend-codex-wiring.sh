@@ -16,7 +16,6 @@ CURSOR_DO_SKILL="${ROOT}/codex/.codex/skills/cursor-do/SKILL.md"
 CURSOR_ASK_SKILL="${ROOT}/codex/.codex/skills/cursor-ask/SKILL.md"
 CURSOR_SETUP_SKILL="${ROOT}/codex/.codex/skills/cursor-setup/SKILL.md"
 CURSOR_REVIEW_SKILL="${ROOT}/codex/.codex/skills/cursor-review/SKILL.md"
-CURSOR_RESCUE_SKILL="${ROOT}/codex/.codex/skills/cursor-rescue/SKILL.md"
 CODEX_MANIFEST="${ROOT}/.codex-plugin/plugin.json"
 
 fail() {
@@ -34,7 +33,6 @@ fail() {
 [ -f "$CURSOR_ASK_SKILL" ] || fail "missing ${CURSOR_ASK_SKILL}"
 [ -f "$CURSOR_SETUP_SKILL" ] || fail "missing ${CURSOR_SETUP_SKILL}"
 [ -f "$CURSOR_REVIEW_SKILL" ] || fail "missing ${CURSOR_REVIEW_SKILL}"
-[ -f "$CURSOR_RESCUE_SKILL" ] || fail "missing ${CURSOR_RESCUE_SKILL}"
 [ -f "$CODEX_MANIFEST" ] || fail "missing ${CODEX_MANIFEST}"
 
 # 1. harness-work (codex) must declare the backend section + resolver.
@@ -195,8 +193,6 @@ grep -q "^name: cursor-setup$" "$CURSOR_SETUP_SKILL" \
   || fail "cursor:setup: shipped skill frontmatter must use validator-safe cursor-setup id"
 grep -q "^name: cursor-review$" "$CURSOR_REVIEW_SKILL" \
   || fail "cursor:review: shipped skill frontmatter must use validator-safe cursor-review id"
-grep -q "^name: cursor-rescue$" "$CURSOR_RESCUE_SKILL" \
-  || fail "cursor:rescue: shipped skill frontmatter must use validator-safe cursor-rescue id"
 grep -q "cursor:do" "$CURSOR_DO_SKILL" \
   || fail "cursor:do: user-facing namespace must remain documented in the shipped skill"
 grep -q "cursor:ask" "$CURSOR_ASK_SKILL" \
@@ -205,8 +201,6 @@ grep -q "cursor:setup" "$CURSOR_SETUP_SKILL" \
   || fail "cursor:setup: user-facing namespace must remain documented in the shipped skill"
 grep -q "cursor:review" "$CURSOR_REVIEW_SKILL" \
   || fail "cursor:review: user-facing namespace must remain documented in the shipped skill"
-grep -q "cursor:rescue" "$CURSOR_RESCUE_SKILL" \
-  || fail "cursor:rescue: user-facing namespace must remain documented in the shipped skill"
 grep -q 'HARNESS_PLUGIN_ROOT="${HARNESS_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}"' "$CURSOR_DO_SKILL" \
   || fail "cursor:do: must derive HARNESS_PLUGIN_ROOT before helper use"
 grep -q '.codex-plugin/plugin.json' "$CURSOR_DO_SKILL" \
@@ -276,16 +270,7 @@ grep -q 'probe/scripts' "$CURSOR_SETUP_SKILL" \
   || fail "cursor:setup: CLAUDE_SKILL_DIR fallback must walk up to the real plugin root"
 grep -q 'HARNESS_PLUGIN_ROOT="${HARNESS_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}"' "$CURSOR_REVIEW_SKILL" \
   || fail "cursor:review: must derive HARNESS_PLUGIN_ROOT before helper use"
-grep -q 'HARNESS_PLUGIN_ROOT="${HARNESS_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}"' "$CURSOR_RESCUE_SKILL" \
-  || fail "cursor:rescue: must derive HARNESS_PLUGIN_ROOT before helper use"
-grep -q 'bash "${HARNESS_PLUGIN_ROOT}/scripts/setup-cursor.sh" --check' "$CURSOR_RESCUE_SKILL" \
-  || fail "cursor:rescue: setup script must be called through HARNESS_PLUGIN_ROOT"
-grep -q 'HOME/.local/bin/cursor-agent' "$CURSOR_RESCUE_SKILL" \
-  || fail "cursor:rescue: diagnostics must honor cursor-companion fallback cursor-agent path"
-if grep -q '^cursor-agent --version$' "$CURSOR_RESCUE_SKILL"; then
-  fail "cursor:rescue: diagnostics must not call cursor-agent directly without fallback resolution"
-fi
-if grep -q 'CLAUDE_SKILL_DIR}/../..' "$CURSOR_DO_SKILL" "$CURSOR_ASK_SKILL" "$CURSOR_SETUP_SKILL" "$CURSOR_REVIEW_SKILL" "$CURSOR_RESCUE_SKILL" "$REVIEW_SKILL" "$WORK_SKILL" "$SHARED_WORK_SKILL"; then
+if grep -q 'CLAUDE_SKILL_DIR}/../..' "$CURSOR_DO_SKILL" "$CURSOR_ASK_SKILL" "$CURSOR_SETUP_SKILL" "$CURSOR_REVIEW_SKILL" "$REVIEW_SKILL" "$WORK_SKILL" "$SHARED_WORK_SKILL"; then
   fail "CLAUDE_SKILL_DIR fallback must not assume a fixed two-level skill mirror depth"
 fi
 grep -q 'DIFF_TEXT="$(git diff "${BASE_REF}..HEAD")"' "$CURSOR_REVIEW_SKILL" \
@@ -294,7 +279,7 @@ grep -q -- "--base=*" "$CURSOR_REVIEW_SKILL" \
   || fail "cursor:review: must parse --base=<ref> from arguments"
 grep -q 'Diff:' "$CURSOR_REVIEW_SKILL" \
   || fail "cursor:review: must pass diff text into the Cursor prompt"
-grep -Fq '"Use $cursor-do / $cursor-ask / $cursor-review / $cursor-setup / $cursor-rescue for Cursor delegation."' "$CODEX_MANIFEST" \
+grep -Fq '"Use $cursor-do / $cursor-ask / $cursor-review / $cursor-setup for Cursor delegation."' "$CODEX_MANIFEST" \
   || fail "Codex manifest: missing combined Cursor default prompt"
 prompt_count="$(grep -F -c '"Use $' "$CODEX_MANIFEST")"
 [ "$prompt_count" -le 3 ] \

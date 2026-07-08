@@ -1,0 +1,53 @@
+{
+  "floor_policy": {
+    "categories": [
+      {
+        "id": "money-billing",
+        "name": "Money / Billing"
+      },
+      {
+        "id": "egress",
+        "name": "External Network Egress"
+      },
+      {
+        "id": "secret-read",
+        "name": "Secret / Credential Read"
+      },
+      {
+        "id": "prod-deploy",
+        "name": "Production Deploy"
+      },
+      {
+        "id": "worktree-escape",
+        "name": "Worktree Escape"
+      }
+    ],
+    "version": "floor.policy.v1"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "bin/harness hook pre-tool --host codex",
+            "timeout": 30,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "bin/harness inbox check --team {{TEAM}} --agent {{AGENT}}",
+            "timeout": 30,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ]
+  }
+}

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // UsageTrackerHandler は PostToolUse フックハンドラ（使用状況追跡）。
@@ -97,12 +98,11 @@ func (h *UsageTrackerHandler) resolveProjectRoot(cwd string) string {
 
 // gitRepoRoot は指定ディレクトリから git リポジトリルートを返す。
 func gitRepoRoot(dir string) (string, error) {
-	cmd := exec.Command("git", "-C", dir, "rev-parse", "--show-toplevel")
-	out, err := cmd.Output()
+	out, err := gitport.Output(dir, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(out)), nil
+	return strings.TrimSpace(out), nil
 }
 
 // track は tool_name に応じて使用状況を記録する。

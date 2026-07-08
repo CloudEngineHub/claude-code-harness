@@ -77,19 +77,10 @@ copy_runtime_helpers() {
     model-routing.sh \
     resolve-impl-backend.sh \
     set-impl-backend.sh \
-    setup-cursor.sh \
-    session-relay-watch.sh \
-    session-relay-send.sh; do
+    setup-cursor.sh; do
     if [ -f "${ROOT_DIR}/scripts/${script}" ]; then
       cp "${ROOT_DIR}/scripts/${script}" "${dst_root}/scripts/${script}"
       chmod +x "${dst_root}/scripts/${script}" 2>/dev/null || true
-    fi
-  done
-  # Relay helpers sourced by the relay scripts / companions (Phase 93).
-  mkdir -p "${dst_root}/scripts/lib"
-  for lib in relay-store.sh relay-notify.sh; do
-    if [ -f "${ROOT_DIR}/scripts/lib/${lib}" ]; then
-      cp "${ROOT_DIR}/scripts/lib/${lib}" "${dst_root}/scripts/lib/${lib}"
     fi
   done
 }
@@ -97,19 +88,18 @@ copy_runtime_helpers() {
 copy_hook_script_closure() {
   local dst_root="$1"
   local hooks_file="$2"
-  [ -f "${hooks_file}" ] || return 0
+  local rel_path
 
-  local rel
-  while IFS= read -r rel; do
-    [ -n "${rel}" ] || continue
-    if [ ! -f "${ROOT_DIR}/${rel}" ]; then
-      echo "hook script reference missing from source: ${rel}" >&2
-      exit 1
+  [ -f "${ROOT_DIR}/${hooks_file}" ] || return 0
+
+  while IFS= read -r rel_path; do
+    [ -n "$rel_path" ] || continue
+    if [ -f "${ROOT_DIR}/${rel_path}" ]; then
+      mkdir -p "$(dirname "${dst_root}/${rel_path}")"
+      cp "${ROOT_DIR}/${rel_path}" "${dst_root}/${rel_path}"
+      chmod +x "${dst_root}/${rel_path}" 2>/dev/null || true
     fi
-    mkdir -p "$(dirname "${dst_root}/${rel}")"
-    cp "${ROOT_DIR}/${rel}" "${dst_root}/${rel}"
-    chmod +x "${dst_root}/${rel}" 2>/dev/null || true
-  done < <(grep -Eoh 'scripts/[A-Za-z0-9_./-]+\.sh' "${hooks_file}" | sort -u)
+  done < <(grep -Eoh 'scripts/[A-Za-z0-9_./-]+\.sh' "${ROOT_DIR}/${hooks_file}" | sort -u)
 }
 
 write_normalized_manifest() {
@@ -255,9 +245,9 @@ build_claude() {
   copy_tree "${ROOT_DIR}/skills" "${OUT_DIR}/skills"
   copy_tree "${ROOT_DIR}/agents" "${OUT_DIR}/agents"
   copy_tree "${ROOT_DIR}/hooks" "${OUT_DIR}/hooks"
+  copy_hook_script_closure "${OUT_DIR}" ".claude-plugin/hooks.json"
+  copy_hook_script_closure "${OUT_DIR}" "hooks/hooks.json"
   copy_tree "${ROOT_DIR}/output-styles" "${OUT_DIR}/output-styles"
-  copy_hook_script_closure "${OUT_DIR}" "${ROOT_DIR}/.claude-plugin/hooks.json"
-  copy_hook_script_closure "${OUT_DIR}" "${ROOT_DIR}/hooks/hooks.json"
   mkdir -p "${OUT_DIR}/bin"
   for bin in harness harness-darwin-amd64 harness-darwin-arm64 harness-linux-amd64 harness-windows-amd64.exe; do
     if [ -f "${ROOT_DIR}/bin/${bin}" ]; then

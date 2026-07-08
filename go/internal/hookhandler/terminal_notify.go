@@ -4,7 +4,6 @@ package hookhandler
 // CC 2.1.141+ hook JSON output `terminalSequence` フィールドを構築する共有ヘルパー。
 // HARNESS_TERMINAL_NOTIFY env で opt-in。
 //
-// 詳細: .claude/rules/hooks-2.1.139-plus.md
 // shell 版参考実装: scripts/lib/terminal-notify.sh
 
 import (

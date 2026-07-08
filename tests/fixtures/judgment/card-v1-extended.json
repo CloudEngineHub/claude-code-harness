@@ -1,0 +1,29 @@
+{
+  "question": "Redis 導入と DB 最適化のどちらを優先するか？",
+  "options": [
+    {
+      "id": "redis",
+      "label": "Redis キャッシュを導入する",
+      "consequence": "新しいインフラ依存が増えるが、スケールしやすい"
+    },
+    {
+      "id": "db-opt",
+      "label": "DB クエリを最適化する",
+      "consequence": "追加インフラ不要だが、高負荷時の上限がある"
+    }
+  ],
+  "recommendation": "redis",
+  "confidence": "medium",
+  "impact": "API レイテンシと運用コストに影響",
+  "diff_summary": "src/rate-limit/ に分岐実装が入る",
+  "impact_score": 45,
+  "similar_past_decisions": [
+    {
+      "summary": "前回もレート制限で Redis を選んだ",
+      "decision": "redis",
+      "outcome": "レイテンシ改善、運用コスト増",
+      "decided_at": "2026-05-01T10:00:00Z",
+      "mem_id": "obs-abc123"
+    }
+  ]
+}

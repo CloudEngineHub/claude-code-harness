@@ -5,6 +5,7 @@
 package runtimefloor
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -112,16 +113,6 @@ func checkEgress(cmd string, _ Context) Decision {
 	if !egressToolPattern.MatchString(cmd) {
 		return Decision{}
 	}
-
-	// Owner-level scope control: HARNESS_RUNTIME_FLOOR_EGRESS=off lets the human
-	// who launches the session opt the egress category out of the hard floor —
-	// e.g. for user-driven research / dynamic-workflow runs that legitimately
-	// fetch many external URLs and where the human is the approval. This is NOT a
-	// worker-level override: the PreToolUse hook subprocess inherits Claude Code's
-	// process environment, so a sandboxed or prompt-injected worker cannot set
-	// this variable for the hook — only a shell export or ~/.claude/settings.json
-	// "env" by the owner can. The other four categories (money-billing,
-	// secret-read, prod-deploy, worktree-escape) stay non-overridable.
 	if egressFloorExempted() {
 		return Decision{}
 	}
@@ -170,10 +161,6 @@ func checkEgress(cmd string, _ Context) Decision {
 	return Decision{}
 }
 
-// egressFloorExempted reports whether the owner has explicitly scoped the egress
-// hard floor out of the current session via HARNESS_RUNTIME_FLOOR_EGRESS=off.
-// Only the literal value "off" (case-insensitive) exempts; any other value, or an
-// unset variable, keeps the egress floor enforced (fail-safe default).
 func egressFloorExempted() bool {
 	return strings.EqualFold(strings.TrimSpace(os.Getenv("HARNESS_RUNTIME_FLOOR_EGRESS")), "off")
 }
@@ -222,8 +209,14 @@ func isAllowlistedHost(host string) bool {
 	return false
 }
 
-func checkSecretRead(cmd string, _ Context) Decision {
-	if !secretReadVerbs.MatchString(cmd) {
+func checkSecretRead(cmd string, ctx Context) Decision {
+	// Scan only the executable portion of the command, not heredoc bodies or
+	// comments. A secret filename that appears purely as document text (e.g.
+	// inside a `<<'EOF' ... EOF` block, or after `#`) is not an actual read and
+	// must not trip the floor. The read verb + indicator still fire on real
+	// reads like `cat .env`.
+	scannable := stripNonExecutableText(cmd)
+	if !secretReadVerbs.MatchString(scannable) {
 		return Decision{}
 	}
 
@@ -239,13 +232,231 @@ func checkSecretRead(cmd string, _ Context) Decision {
 		{"credentials", regexp.MustCompile(`(?i)\bcredentials\b`)},
 	}
 
+	// Phase 108: an operator can pre-authorize known-safe secret paths so a
+	// declared pipeline is not stalled mid-run. Deny unless EVERY matched secret
+	// path is explicitly allowlisted; an unlisted secret still denies.
+	allow := secretAllowPatterns(ctx)
 	for _, item := range indicators {
-		if item.re.MatchString(cmd) {
-			return stop(CategorySecretRead, item.pattern,
-				"credential or secret read requires human approval")
+		for _, loc := range item.re.FindAllStringIndex(scannable, -1) {
+			token := enclosingToken(scannable, loc[0])
+			if !isAllowlistedSecretPath(token, allow) {
+				return stop(CategorySecretRead, item.pattern,
+					"credential or secret read requires human approval")
+			}
 		}
 	}
 	return Decision{}
+}
+
+// secretAllowPatterns returns the operator-declared secret-read allowlist from
+// HARNESS_RUNTIME_FLOOR_SECRET_ALLOW (comma-separated path prefixes / globs)
+// plus project-local .claude-code-harness.config.json runtimefloor.secretAllow.
+// Empty entries and blanket wildcards ("*" / "**") are dropped: the allowlist
+// only relaxes EXPLICITLY declared paths and never turns the whole category off.
+// If a project config exists but cannot be parsed, fail safe by ignoring all
+// declarations, including env, so secret-read stays deny-by-default.
+func secretAllowPatterns(ctx Context) []string {
+	if configAllow, found, ok := configSecretAllowPatterns(ctx); found {
+		if !ok {
+			return nil
+		}
+		return append(envSecretAllowPatterns(), configAllow...)
+	}
+	return envSecretAllowPatterns()
+}
+
+func envSecretAllowPatterns() []string {
+	raw := os.Getenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW")
+	if raw == "" {
+		return nil
+	}
+	var out []string
+	for _, p := range strings.Split(raw, ",") {
+		p = strings.TrimSpace(strings.Trim(strings.TrimSpace(p), `"'`))
+		if p == "" || p == "*" || p == "**" || p == "/" {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+type runtimeFloorConfig struct {
+	RuntimeFloor struct {
+		SecretAllow []string `json:"secretAllow"`
+	} `json:"runtimefloor"`
+}
+
+func configSecretAllowPatterns(ctx Context) ([]string, bool, bool) {
+	projectRoot, configPath, found := resolveProjectRoot(ctx)
+	if !found {
+		return nil, false, true
+	}
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, true, false
+	}
+	var cfg runtimeFloorConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, true, false
+	}
+	rootAbs, err := filepath.Abs(projectRoot)
+	if err != nil {
+		rootAbs = filepath.Clean(projectRoot)
+	}
+	rootAbs = filepath.Clean(rootAbs)
+
+	var out []string
+	for _, raw := range cfg.RuntimeFloor.SecretAllow {
+		p := strings.TrimSpace(strings.Trim(strings.TrimSpace(raw), `"'`))
+		if p == "" || p == "*" || p == "**" || p == "/" {
+			continue
+		}
+		if filepath.IsAbs(p) {
+			abs, err := filepath.Abs(p)
+			if err != nil {
+				abs = filepath.Clean(p)
+			}
+			abs = filepath.Clean(abs)
+			if !pathUnderWorktree(abs, rootAbs) {
+				continue
+			}
+			out = append(out, abs)
+			continue
+		}
+		out = append(out, filepath.Join(rootAbs, filepath.Clean(p)))
+	}
+	return out, true, true
+}
+
+func resolveProjectRoot(ctx Context) (string, string, bool) {
+	start := strings.TrimSpace(ctx.WorktreeRoot)
+	if start == "" {
+		var err error
+		start, err = os.Getwd()
+		if err != nil {
+			return "", "", false
+		}
+	}
+	abs, err := filepath.Abs(start)
+	if err != nil {
+		abs = filepath.Clean(start)
+	}
+	info, err := os.Stat(abs)
+	if err == nil && !info.IsDir() {
+		abs = filepath.Dir(abs)
+	}
+	for {
+		candidate := filepath.Join(abs, ".claude-code-harness.config.json")
+		if _, err := os.Stat(candidate); err == nil {
+			return abs, candidate, true
+		}
+		parent := filepath.Dir(abs)
+		if parent == abs {
+			return "", "", false
+		}
+		abs = parent
+	}
+}
+
+// isAllowlistedSecretPath reports whether a secret path token is covered by an
+// operator-declared allowlist entry. A match is a path prefix, a full-path glob,
+// or a basename glob. An empty allowlist never matches (deny-by-default).
+func isAllowlistedSecretPath(token string, patterns []string) bool {
+	if token == "" || len(patterns) == 0 {
+		return false
+	}
+	token = strings.Trim(token, `"'`)
+	for _, pat := range patterns {
+		if strings.HasPrefix(token, pat) {
+			return true
+		}
+		if ok, _ := filepath.Match(pat, token); ok {
+			return true
+		}
+		if ok, _ := filepath.Match(pat, filepath.Base(token)); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// enclosingToken extracts the whitespace-delimited token of s that contains byte
+// position idx. Used to recover the concrete secret file path around an indicator
+// match so it can be checked against the allowlist.
+func enclosingToken(s string, idx int) string {
+	if idx < 0 || idx >= len(s) {
+		return ""
+	}
+	isSep := func(b byte) bool { return b == ' ' || b == '\t' || b == '\n' || b == '=' }
+	start := idx
+	for start > 0 && !isSep(s[start-1]) {
+		start--
+	}
+	end := idx
+	for end < len(s) && !isSep(s[end]) {
+		end++
+	}
+	return s[start:end]
+}
+
+var heredocOpen = regexp.MustCompile(`<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)(['"]?)`)
+
+// stripNonExecutableText removes heredoc bodies and trailing line comments so
+// that secret indicators appearing only as document text do not trigger the
+// floor. It is deliberately conservative: it strips heredoc bodies between an
+// opener (`<<WORD`) and the matching terminator line, and removes `#` comments
+// that start at line-begin or after whitespace (not inside a token).
+func stripNonExecutableText(cmd string) string {
+	lines := strings.Split(cmd, "\n")
+	out := make([]string, 0, len(lines))
+	var terminator string       // non-empty while inside a heredoc body
+	var inSingle, inDouble bool // shell quote state carried ACROSS lines
+
+	for _, line := range lines {
+		if terminator != "" {
+			// Inside a heredoc body: drop lines until the terminator line.
+			// Quotes here are literal document text, so quote state is not
+			// touched while suppressing the body.
+			if strings.TrimSpace(line) == terminator {
+				terminator = ""
+			}
+			continue
+		}
+		// Detect a heredoc opener on this line; keep the line itself (the
+		// opener is part of the command) but suppress the following body.
+		if m := heredocOpen.FindStringSubmatch(line); m != nil {
+			terminator = m[2]
+		}
+		var stripped string
+		stripped, inSingle, inDouble = stripLineComment(line, inSingle, inDouble)
+		out = append(out, stripped)
+	}
+	return strings.Join(out, "\n")
+}
+
+// stripLineComment removes a `#` comment from a single line when the `#` is at
+// line start or preceded by whitespace and is not inside single/double quotes.
+// Quote state is threaded in and out so that a string opened on a previous line
+// keeps the `#` on a continuation line from being misread as a comment — without
+// this, a multi-line quoted string whose closing quote shares a line with `#`
+// would let stripLineComment delete real trailing code (e.g. `&& cat .env`),
+// silently defeating the secret-read floor.
+func stripLineComment(line string, inSingle, inDouble bool) (string, bool, bool) {
+	for i := 0; i < len(line); i++ {
+		c := line[i]
+		switch {
+		case c == '\'' && !inDouble:
+			inSingle = !inSingle
+		case c == '"' && !inSingle:
+			inDouble = !inDouble
+		case c == '#' && !inSingle && !inDouble:
+			if i == 0 || line[i-1] == ' ' || line[i-1] == '\t' {
+				return line[:i], inSingle, inDouble
+			}
+		}
+	}
+	return line, inSingle, inDouble
 }
 
 func checkProdDeploy(cmd string, _ Context) Decision {

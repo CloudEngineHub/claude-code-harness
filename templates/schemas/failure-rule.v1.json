@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-harness.local/schemas/failure-rule.v1.json",
+  "title": "failure-rule.v1",
+  "description": "Proposed failure pattern candidate for human-reviewed SSOT promotion (Phase 100).",
+  "type": "object",
+  "required": [
+    "rule_id",
+    "confidence",
+    "evidence_refs",
+    "proposed_ssot_target"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "rule_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "proposed_ssot_target": {
+      "type": "string",
+      "enum": ["patterns.md", "decisions.md"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "occurrence_count": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

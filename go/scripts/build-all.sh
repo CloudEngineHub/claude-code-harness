@@ -36,7 +36,7 @@ for platform in "${platforms[@]}"; do
     output="${output}.exe"
   fi
   echo "  Building ${output}..."
-  (cd "${GO_DIR}" && CGO_ENABLED=0 GOOS="${GOOS}" GOARCH="${GOARCH}" go build -ldflags="${LDFLAGS}" -o "${output}" ./cmd/harness/)
+  (cd "${GO_DIR}" && CGO_ENABLED=0 GOOS="${GOOS}" GOARCH="${GOARCH}" go build -trimpath -ldflags="${LDFLAGS}" -o "${output}" ./cmd/harness/)
 done
 
 echo ""

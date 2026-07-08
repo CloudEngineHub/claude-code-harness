@@ -193,7 +193,9 @@ func (h *CIStatusCheckerHandler) checkRecentCIFailure(stateDir, bashCmd string) 
 
 	conclusion, _ := sig["conclusion"].(string)
 	return fmt.Sprintf(
-		"[CI 失敗を検知しました]\nCI ステータス: %s\nトリガーコマンド: %s\n\n推奨アクション: /breezing または ci-cd-fixer エージェントを spawn して CI 障害を自動修復してください。\n  例: ci-cd-fixer に「CI が失敗しました。ログを確認して修正してください。」と依頼",
+		localizedHarnessMessage("ja",
+			"[CI failure detected]\nCI status: %s\nTrigger command: %s\n\nRecommended action: spawn /breezing or the ci-cd-fixer agent to repair the CI failure automatically.\n  Example: ask ci-cd-fixer to inspect the logs and fix the failed CI.",
+			"[CI 失敗を検知しました]\nCI ステータス: %s\nトリガーコマンド: %s\n\n推奨アクション: /breezing または ci-cd-fixer エージェントを spawn して CI 障害を自動修復してください。\n  例: ci-cd-fixer に「CI が失敗しました。ログを確認して修正してください。」と依頼"),
 		conclusion, bashCmd,
 	)
 }

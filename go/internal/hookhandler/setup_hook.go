@@ -82,7 +82,6 @@ func runTemplateTracker(scriptDir, action string) string {
 //  1. プラグインキャッシュの同期
 //  2. .claude/state/ ディレクトリの初期化
 //  3. デフォルト設定ファイルの生成（存在しない場合）
-//     3.5. harness.toml の生成（存在せず、自前の .claude-plugin/ 資産もない場合）
 //  4. CLAUDE.md の生成（存在しない場合）
 //  5. Plans.md の生成（存在しない場合）
 //  6. テンプレートトラッカーの初期化
@@ -135,15 +134,22 @@ func handleSetupHook(in io.Reader, out io.Writer, mode string) error {
 
 	// スクリプトディレクトリを推定（実行バイナリ基準。テスト時は cwd）
 	scriptDir := resolveSetupScriptDir()
+	locale := resolveHarnessLocale(resolveProjectRoot())
 
 	switch mode {
 	case "init":
-		return runSetupInit(out, scriptDir, simpleMode)
+		return runSetupInit(out, scriptDir, simpleMode, locale)
 	case "maintenance":
-		return runSetupMaintenance(out, scriptDir, simpleMode)
+		return runSetupMaintenance(out, scriptDir, simpleMode, locale)
 	default:
-		return writeSetupOutput(out, fmt.Sprintf("[Setup] 不明なモード: %s", mode))
+		return writeSetupOutput(out, setupUnknownModeMessage(mode, locale))
 	}
+}
+
+func setupUnknownModeMessage(mode, locale string) string {
+	return localizedHarnessMessage(locale,
+		fmt.Sprintf("[Setup] unknown mode: %s", mode),
+		fmt.Sprintf("[Setup] 不明なモード: %s", mode))
 }
 
 // resolveSetupScriptDir はスクリプトディレクトリのパスを解決する。
@@ -166,7 +172,7 @@ func resolveSetupScriptDir() string {
 }
 
 // runSetupInit は init モードの処理を実行する。
-func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
+func runSetupInit(out io.Writer, scriptDir string, simpleMode bool, locale string) error {
 	var messages []string
 
 	// 1. プラグインキャッシュの同期
@@ -174,7 +180,7 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 	if _, err := os.Stat(syncScript); err == nil {
 		cmd := exec.Command("bash", syncScript)
 		if err := cmd.Run(); err == nil {
-			messages = append(messages, "プラグインキャッシュ同期完了")
+			messages = append(messages, localizedHarnessMessage(locale, "plugin cache synced", "プラグインキャッシュ同期完了"))
 		}
 	}
 
@@ -190,26 +196,15 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 		templatePath := filepath.Join(scriptDir, "..", "templates", ".claude-code-harness.config.yaml.template")
 		if _, err := os.Stat(templatePath); err == nil {
 			if err := copyFile(templatePath, configFile); err == nil {
-				messages = append(messages, "設定ファイル生成完了")
+				messages = append(messages, localizedHarnessMessage(locale, "config file created", "設定ファイル生成完了"))
 			}
 		}
 	}
 
-	// 3.5. harness.toml の生成（`harness sync` の入力ファイル。
-	// これがないと Setup hook 後の auto-bootstrap で sync が失敗する）
-	//
-	// ただし、.claude-plugin/ を持つのに harness.toml を持たないリポジトリは、
-	// harness を SSOT として opt-in していない (例: ユーザー自身の CC plugin /
-	// marketplace リポジトリ)。そこへ harness.toml を生成すると、後続の
-	// `harness sync` が既存 plugin.json / settings.json をテンプレートで
-	// 上書き・混入してしまうため、生成をスキップする。
-	// (harness opt-in したリポジトリは sync が .claude-plugin/ を作る前に
-	// 必ず harness.toml を得るので、この条件で誤ってスキップされることはない)
-	if !fileExists("harness.toml") && !hasForeignPluginAssets() {
+	// 3.5. harness.toml の生成
+	if !fileExists("harness.toml") {
 		if err := os.WriteFile("harness.toml", []byte(scaffold.HarnessTomlTemplate), 0o644); err == nil {
-			messages = append(messages, "harness.toml 生成完了")
-		} else {
-			messages = append(messages, "警告: harness.toml 生成失敗")
+			messages = append(messages, localizedHarnessMessage(locale, "harness.toml created", "harness.toml 生成完了"))
 		}
 	}
 
@@ -218,7 +213,7 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 		templatePath := filepath.Join(scriptDir, "..", "templates", "CLAUDE.md.template")
 		if _, err := os.Stat(templatePath); err == nil {
 			if err := copyFile(templatePath, "CLAUDE.md"); err == nil {
-				messages = append(messages, "CLAUDE.md 生成完了")
+				messages = append(messages, localizedHarnessMessage(locale, "CLAUDE.md created", "CLAUDE.md 生成完了"))
 			}
 		}
 	}
@@ -233,7 +228,7 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 		templatePath := filepath.Join(scriptDir, "..", "templates", "Plans.md.template")
 		if _, err := os.Stat(templatePath); err == nil {
 			if err := copyFile(templatePath, plansPath); err == nil {
-				messages = append(messages, "Plans.md 生成完了")
+				messages = append(messages, localizedHarnessMessage(locale, "Plans.md created", "Plans.md 生成完了"))
 			}
 		}
 	}
@@ -259,19 +254,11 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 	}
 
 	if len(messages) == 0 {
-		return writeSetupOutput(out, "[Setup:init] ハーネスは既に初期化済みです")
+		return writeSetupOutput(out, localizedHarnessMessage(locale,
+			"[Setup:init] harness is already initialized",
+			"[Setup:init] ハーネスは既に初期化済みです"))
 	}
 	return writeSetupOutput(out, "[Setup:init] "+strings.Join(messages, ", "))
-}
-
-// hasForeignPluginAssets は CWD のリポジトリが harness 管理外の .claude-plugin/
-// ディレクトリを持つかを返す。`harness sync` は plugin.json / settings.json を
-// harness.toml から無条件に再生成するため、harness.toml を持たないのに
-// .claude-plugin/ を持つリポジトリ（自前 plugin・marketplace リポジトリ等）へ
-// harness.toml を自動生成してはならない（上書き・混入事故防止、#201 レビュー指摘）。
-func hasForeignPluginAssets() bool {
-	info, err := os.Stat(".claude-plugin")
-	return err == nil && info.IsDir()
 }
 
 func harnessMemAutoSetupMarkerPath() string {
@@ -280,7 +267,7 @@ func harnessMemAutoSetupMarkerPath() string {
 }
 
 // runSetupMaintenance は maintenance モードの処理を実行する。
-func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error {
+func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool, locale string) error {
 	var messages []string
 
 	// 1. プラグインキャッシュの同期
@@ -288,7 +275,7 @@ func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error
 	if _, err := os.Stat(syncScript); err == nil {
 		cmd := exec.Command("bash", syncScript)
 		if err := cmd.Run(); err == nil {
-			messages = append(messages, "キャッシュ同期完了")
+			messages = append(messages, localizedHarnessMessage(locale, "cache synced", "キャッシュ同期完了"))
 		}
 	}
 
@@ -312,7 +299,7 @@ func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error
 				}
 			}
 		}
-		messages = append(messages, "古いセッションアーカイブ削除")
+		messages = append(messages, localizedHarnessMessage(locale, "old session archives removed", "古いセッションアーカイブ削除"))
 	}
 
 	// 3. 一時ファイルのクリーンアップ
@@ -330,7 +317,9 @@ func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error
 				if count, ok := checkData["updatesCount"].(float64); ok {
 					updatesCount = int(count)
 				}
-				messages = append(messages, fmt.Sprintf("テンプレート更新あり: %d件", updatesCount))
+				messages = append(messages, localizedHarnessMessage(locale,
+					fmt.Sprintf("template updates available: %d", updatesCount),
+					fmt.Sprintf("テンプレート更新あり: %d件", updatesCount)))
 			}
 		}
 	}
@@ -344,12 +333,16 @@ func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error
 	configFile := ".claude-code-harness.config.yaml"
 	if fileExists(configFile) {
 		if err := validateYAMLConfig(configFile); err != nil {
-			messages = append(messages, "警告: 設定ファイルの構文エラー")
+			messages = append(messages, localizedHarnessMessage(locale,
+				"warning: config file syntax error",
+				"警告: 設定ファイルの構文エラー"))
 		}
 	}
 
 	if len(messages) == 0 {
-		return writeSetupOutput(out, "[Setup:maintenance] メンテナンス完了（変更なし）")
+		return writeSetupOutput(out, localizedHarnessMessage(locale,
+			"[Setup:maintenance] maintenance complete (no changes)",
+			"[Setup:maintenance] メンテナンス完了（変更なし）"))
 	}
 	return writeSetupOutput(out, "[Setup:maintenance] "+strings.Join(messages, ", "))
 }

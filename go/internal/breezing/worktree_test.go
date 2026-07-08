@@ -87,6 +87,28 @@ func TestWorktreeManagerCleanupStale(t *testing.T) {
 	}
 }
 
+func TestHarnessWorktreesRoot(t *testing.T) {
+	if HarnessWorktreesRoot != ".harness-worktrees" {
+		t.Errorf("HarnessWorktreesRoot = %q, want %q", HarnessWorktreesRoot, ".harness-worktrees")
+	}
+}
+
+func TestParallelWorktreePath(t *testing.T) {
+	got := ParallelWorktreePath("/repo", "92.1.1")
+	want := "/repo/.harness-worktrees/task-92.1.1"
+	if got != want {
+		t.Errorf("ParallelWorktreePath = %q, want %q", got, want)
+	}
+}
+
+func TestManagerWorktreePathUsesHarnessRoot(t *testing.T) {
+	got := ManagerWorktreePath("/repo", "task/foo")
+	want := "/repo/.harness-worktrees/task-foo"
+	if got != want {
+		t.Errorf("ManagerWorktreePath = %q, want %q", got, want)
+	}
+}
+
 func TestSanitizeBranch(t *testing.T) {
 	tests := []struct {
 		input    string

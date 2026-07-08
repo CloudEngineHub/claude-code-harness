@@ -1,0 +1,92 @@
+# retired-aliases.v1.yaml — Retired alias registry (Phase 97)
+#
+# SSOT for exclusion-based migration residue scanning.
+# Schema: templates/schemas/retired-alias.v1.json
+# Scanner: bin/harness retired-alias scan
+
+version: 1
+
+entries:
+  - id: core-guardrails-path
+    kind: path
+    pattern: "core/src/guardrails"
+    removed_in: "v4.0.0"
+    reason: "TypeScript guardrail engine を Go-native に移植 (Hokage migration)。TS エンジンごと core/ を廃止"
+    allowlist:
+      - "go/"
+      - "Plans.md"
+      - "docs/social/"
+      - "skills/claude-codex-upstream-update/"
+
+  - id: guardrails-rules-ts
+    kind: path
+    pattern: "core/src/guardrails/rules.ts"
+    removed_in: "v4.0.0"
+    reason: "TypeScript guardrail rules file; replaced by go/internal/guardrail/rules.go"
+    allowlist:
+      - "go/"
+
+  - id: ts-guardrail-engine-concept
+    kind: concept
+    pattern: "TypeScript guardrail engine"
+    removed_in: "v4.0.0"
+    reason: "Hokage migration で TS→Go 移植完了。TS エンジンへの言及は旧版の記述"
+    allowlist:
+      - "docs/CLAUDE_CODE_COMPATIBILITY.md"
+      - "docs/github-harness-plugin-benchmark.md"
+      - "docs/MIGRATION-v4.md"
+      - "docs/social/"
+      - "docs/claims-audit.md"
+      - "docs/distribution-scope.md"
+      - "docs/private/"
+      - "docs/positioning-notes.md"
+      - "docs/release-copy-phase21.md"
+      - "Plans.md"
+
+  - id: skill-gogcli-ops
+    kind: path
+    pattern: "skills/gogcli-ops"
+    removed_in: "Phase 104.9"
+    reason: "Phase 91.7 で曖昧と自己認定、参照監査 (2026-07-05) で機能参照ゼロを確認し削除。test fixture は agent-browser に差し替え"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - "Plans.md"
+      - "CLAUDE.md"
+      - "templates/registry/"
+
+  - id: skill-cc-cursor-cc
+    kind: path
+    pattern: "skills/cc-cursor-cc"
+    removed_in: "Phase 104.9"
+    reason: "Phase 91.7 で曖昧と自己認定、参照監査 (2026-07-05) で参照ゼロを確認し削除"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - "Plans.md"
+      - "CLAUDE.md"
+      - "templates/registry/"
+
+  - id: skill-harness-orchestration
+    kind: path
+    pattern: "skills/harness-orchestration"
+    removed_in: "Phase 107"
+    reason: "Jobs 視点レビュー (2026-07-07) で vanity scorecard (backend 利用量の自慢) と判定、判断に寄与しないため削除"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - "Plans.md"
+      - "templates/registry/"
+      - "docs/reports/"
+
+  - id: skill-cursor-rescue
+    kind: path
+    pattern: "skills/cursor-rescue"
+    removed_in: "Phase 107"
+    reason: "Jobs 視点レビューで 1 backend の例外復旧を top command にするのは過剰と判定、cursor-setup / docs へ集約し削除"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - "Plans.md"
+      - "templates/registry/"
+      - "docs/reports/"

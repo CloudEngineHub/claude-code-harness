@@ -1241,48 +1241,67 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     fi
 
     if [ "$COMMIT_GUARD_ENABLED" = "true" ]; then
-      # [#219 fix] bookkeeping-only commit (VERSION / .claude-plugin/plugin.json /
-      # harness.toml / CHANGELOG.md のみ) はレビュー対象外で commit guard を免除。
-      # harness-release の multi-commit (work commit + version bump commit) の
-      # bump 側が承認消費後にブロックされる問題を防ぐ。
-      #
-      # 厳格化 (codex review P2): bash 1 行で staging と commit を同時に行う
-      # コマンド (`git add ... && git commit`) では、PreToolUse hook 実行時点では
-      # 新しい staging が反映されていないため、index 検査だけでは:
-      #   (i) `git add VERSION && git commit ...` が deny されてしまう
-      #       (実際は bookkeeping commit のはずなのに staged が空 or 古い)
-      #   (ii) `git add src/main.go && git commit` が allow されてしまう
-      #       (index に古い VERSION-only staging が残っていると bookkeeping 判定)
-      # → BOOKKEEPING_ONLY は「コマンドが pure な `git commit` (index を mutate
-      #   しない) + index がすでに bookkeeping のみ」両方を満たす場合に限定する。
+      # Bookkeeping-only commits (VERSION / .claude-plugin/plugin.json /
+      # harness.toml / CHANGELOG.md) are release metadata, not reviewed work.
+      # Exempt them only when the command is a pure git commit and the already
+      # staged index contains only those files.
       BOOKKEEPING_ONLY="false"
-      # (1) コマンド自体が index を mutate しない pure な `git commit` か検証。
-      #     `git add`, `git restore --staged`, `git reset` を含む command、または
-      #     `&&` / `||` / `;` / `|` で他コマンドと連結されている場合は除外。
       if echo "$COMMAND" | grep -Eq '(^|[[:space:]])git[[:space:]]+(add|restore|reset|rm)([[:space:]]|$)' \
          || echo "$COMMAND" | grep -Eq '(&&|\|\||\;|^\||[[:space:]]\|[[:space:]])'; then
         BOOKKEEPING_ONLY="false"
+      elif echo "$COMMAND" | grep -Eq '(^|[[:space:]])git[[:space:]]+commit[[:space:]]+([^|&;]*[[:space:]])?(-[a-zA-Z]*a[a-zA-Z]*|--all|--include(=[^[:space:]]*)?|--only|--)([[:space:]]|$)' \
+         || echo "$COMMAND" | grep -Eq '(^|[[:space:]])git[[:space:]]+commit[[:space:]]+[^-[:space:]]' \
+         || echo "$COMMAND" | grep -Eq -e '-m[[:space:]]+"[^"]*"[[:space:]]+[^-[:space:]]' -e "-m[[:space:]]+'[^']*'[[:space:]]+[^-[:space:]]"; then
+        BOOKKEEPING_ONLY="false"
       elif command -v git >/dev/null 2>&1; then
-        STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
-        if [ -n "$STAGED_FILES" ]; then
-          BOOKKEEPING_ONLY="true"
-          while IFS= read -r f; do
-            [ -z "$f" ] && continue
-            case "$f" in
-              "VERSION"|".claude-plugin/plugin.json"|"harness.toml"|"CHANGELOG.md") ;;
-              *) BOOKKEEPING_ONLY="false"; break ;;
-            esac
-          done <<< "$STAGED_FILES"
+        PATHSPEC_SUSPECT="false"
+        case "$COMMAND" in
+          *$'\n'*|*'$('*) PATHSPEC_SUSPECT="true" ;;
+          *)
+            if TOKENS=$(printf '%s' "$COMMAND" | xargs -n1 printf '%s\n' 2>/dev/null); then
+              SKIP_NEXT="false"; SEEN_COMMIT="false"
+              while IFS= read -r t; do
+                [ -z "$t" ] && continue
+                if [ "$SKIP_NEXT" = "true" ]; then SKIP_NEXT="false"; continue; fi
+                if [ "$SEEN_COMMIT" != "true" ]; then
+                  [ "$t" = "commit" ] && SEEN_COMMIT="true"
+                  continue
+                fi
+                case "$t" in
+                  -m|--message|-F|--file|-c|-C|--reuse-message|--reedit-message|--author|--date|--cleanup|-t|--template|--trailer) SKIP_NEXT="true" ;;
+                  --message=*|--file=*|--author=*|--date=*|--cleanup=*|--template=*|--trailer=*|--fixup=*|--squash=*|--gpg-sign=*) : ;;
+                  --pathspec-from-file*|--|--patch|--interactive) PATHSPEC_SUSPECT="true"; break ;;
+                  -*p*) PATHSPEC_SUSPECT="true"; break ;;
+                  --*) : ;;
+                  -*) : ;;
+                  *) PATHSPEC_SUSPECT="true"; break ;;
+                esac
+              done <<< "$TOKENS"
+            else
+              PATHSPEC_SUSPECT="true"
+            fi
+            ;;
+        esac
+        if [ "$PATHSPEC_SUSPECT" = "false" ]; then
+          STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
+          if [ -n "$STAGED_FILES" ]; then
+            BOOKKEEPING_ONLY="true"
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                "VERSION"|".claude-plugin/plugin.json"|"harness.toml"|"CHANGELOG.md") ;;
+                *) BOOKKEEPING_ONLY="false"; break ;;
+              esac
+            done <<< "$STAGED_FILES"
+          fi
         fi
       fi
 
       if [ "$BOOKKEEPING_ONLY" = "true" ]; then
-        # 監査ログに通過理由を append-only で残す
         mkdir -p .claude/state 2>/dev/null || true
         printf '{"ts":"%s","scope":"pretool-commit-guard","reason":"bookkeeping-only","approval_required":false}\n' \
           "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
           >> ".claude/state/commit-cleanup-audit.jsonl" 2>/dev/null || true
-        # bookkeeping commit は承認不要で通過
       else
         # レビュー承認状態をチェック
         REVIEW_APPROVED="false"

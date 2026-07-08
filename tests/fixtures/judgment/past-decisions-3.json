@@ -1,0 +1,23 @@
+[
+  {
+    "summary": "前回もレート制限で Redis を選んだ",
+    "decision": "redis",
+    "outcome": "レイテンシ改善、運用コスト増",
+    "decided_at": "2026-05-01T10:00:00Z",
+    "mem_id": "obs-past-001"
+  },
+  {
+    "summary": "DB 最適化のみで対応した事例",
+    "decision": "db-opt",
+    "outcome": "コスト抑制、ピーク時に限界",
+    "decided_at": "2026-04-15T09:30:00Z",
+    "mem_id": "obs-past-002"
+  },
+  {
+    "summary": "ハイブリッド構成を採用した判断",
+    "decision": "hybrid",
+    "outcome": "中間的な改善、運用が複雑化",
+    "decided_at": "2026-03-20T14:00:00Z",
+    "mem_id": "obs-past-003"
+  }
+]

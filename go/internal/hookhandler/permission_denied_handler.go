@@ -132,7 +132,9 @@ func HandlePermissionDenied(in io.Reader, out io.Writer) error {
 	// Worker の場合: retry + systemMessage を返す
 	if isWorkerAgentType(agentType) {
 		notificationText := fmt.Sprintf(
-			"[PermissionDenied] Worker のツール %s が auto mode で拒否されました。理由: %s。代替アプローチを検討するか、必要なら手動承認してください。",
+			localizedHarnessMessage("ja",
+				"[PermissionDenied] Worker tool %s was denied in auto mode. Reason: %s. Consider an alternative approach, or request manual approval if needed.",
+				"[PermissionDenied] Worker のツール %s が auto mode で拒否されました。理由: %s。代替アプローチを検討するか、必要なら手動承認してください。"),
 			toolName, deniedReason,
 		)
 

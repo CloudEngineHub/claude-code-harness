@@ -42,11 +42,11 @@ V4_REQUIRED_FILES=(
   "go/cmd/harness/doctor.go"
   "go/cmd/harness/sync.go"
   "go/cmd/harness/validate.go"
-  "go/internal/guardrail/rules.go"
+  "go/internal/policy/rules.go"
   "go/internal/guardrail/pre_tool.go"
-  "go/internal/guardrail/post_tool.go"
-  "go/internal/guardrail/permission.go"
-  "go/internal/guardrail/tampering.go"
+  "go/internal/policy/post_tool.go"
+  "go/internal/policy/permission.go"
+  "go/internal/policy/tampering.go"
   "go/internal/hookhandler/setup_hook.go"
   "go/internal/hookhandler/stop_session_evaluator.go"
 )
@@ -288,10 +288,10 @@ for rule_id in \
   "R12:confirm-direct-push-protected-branch" \
   "R13:warn-protected-review-paths"
 do
-  if grep -q "$rule_id" "$PLUGIN_ROOT/go/internal/guardrail/rules.go"; then
-    pass_test "go/internal/guardrail/rules.go ($rule_id)"
+  if grep -q "$rule_id" "$PLUGIN_ROOT/go/internal/policy/rules.go"; then
+    pass_test "go/internal/policy/rules.go ($rule_id)"
   else
-    fail_test "go/internal/guardrail/rules.go ($rule_id がない)"
+    fail_test "go/internal/policy/rules.go ($rule_id がない)"
   fi
 done
 

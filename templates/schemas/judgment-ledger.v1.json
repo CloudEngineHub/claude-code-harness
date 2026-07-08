@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code-harness.local/schemas/judgment-ledger.v1.json",
+  "title": "judgment-ledger.v1",
+  "description": "Append-only JSONL record for human judgment decisions (Phase 98.1).",
+  "type": "object",
+  "required": [
+    "id",
+    "project",
+    "decided_at",
+    "question",
+    "answer",
+    "rationale",
+    "card_ref",
+    "tags"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decided_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "answer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "card_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

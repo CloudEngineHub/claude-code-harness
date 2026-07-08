@@ -13,16 +13,6 @@
         ]
       },
       {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/bin/harness\" \"$@\"' _ hook relay-poll",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": "AskUserQuestion",
         "hooks": [
           {
@@ -134,6 +124,12 @@
           },
           {
             "type": "command",
+            "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/bin/harness\" \"$@\"' _ hook session-monitor",
+            "timeout": 30,
+            "once": true
+          },
+          {
+            "type": "command",
             "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/bin/harness\" \"$@\"' _ hook memory-bridge",
             "timeout": 30,
             "once": true
@@ -148,12 +144,6 @@
             "type": "command",
             "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/bin/harness\" \"$@\"' _ hook session-register",
             "timeout": 10,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/bin/harness\" \"$@\"' _ hook session-relay-start",
-            "timeout": 15,
             "once": true
           }
         ]
@@ -190,11 +180,6 @@
             "type": "command",
             "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/bin/harness\" \"$@\"' _ hook subagent-stop",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -f \"$r/scripts/hook-handlers/subagentstop-reviewer-persist.sh\" ] && [ -f \"$r/scripts/write-review-result.sh\" ]; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then exit 0; fi; exec bash \"$root/scripts/hook-handlers/subagentstop-reviewer-persist.sh\"' _",
-            "timeout": 15
           }
         ]
       }
@@ -459,7 +444,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -f \"$r/scripts/hook-handlers/posttool-progress-regen.sh\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec /bin/bash \"$root/scripts/hook-handlers/posttool-progress-regen.sh\"' _",
+            "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -f \"$r/scripts/hook-handlers/posttool-progress-regen.sh\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/scripts/hook-handlers/posttool-progress-regen.sh\"' _",
             "timeout": 5
           }
         ]
@@ -501,6 +486,11 @@
           {
             "type": "command",
             "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/bin/harness\" \"$@\"' _ hook tdd-check",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "/bin/bash -c 'valid_root(){ local r=\"${1:-}\"; [ -n \"$r\" ] && [ -f \"$r/scripts/hook-handlers/skill-mirror-drift.sh\" ] && [ -x \"$r/bin/harness\" ] && [ -f \"$r/.claude-plugin/plugin.json\" ] && /usr/bin/grep -q \"\\\"name\\\"[[:space:]]*:[[:space:]]*\\\"claude-code-harness\\\"\" \"$r/.claude-plugin/plugin.json\"; }; root=\"${CLAUDE_PLUGIN_ROOT:-}\"; if ! valid_root \"$root\"; then root=\"\"; for c in \"${CLAUDE_PROJECT_DIR:-}\" \"$PWD\" \"$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace\" \"$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/\"*; do if valid_root \"$c\"; then root=\"$c\"; break; fi; done; fi; if ! valid_root \"$root\"; then echo \"[claude-code-harness] plugin root not found; hook skipped\" >&2; exit 0; fi; exec \"$root/scripts/hook-handlers/skill-mirror-drift.sh\"' _",
             "timeout": 30
           },
           {

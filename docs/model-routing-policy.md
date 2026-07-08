@@ -1,7 +1,7 @@
 # Model Routing Policy
 
 Status: adopted
-Last updated: 2026-05-29
+Last updated: 2026-06-11
 
 This document defines the default model and reasoning-effort routing for
 Claude Code, Codex, and Cursor in Harness workflows.
@@ -83,11 +83,11 @@ guaranteed for every Harness user.
 | Harness tier | Claude model | Effort | Use cases |
 | --- | --- | --- | --- |
 | `lite` | `claude-haiku-4-5` or `haiku` | `low` or `medium` | read-only search, docs cleanup, simple summaries, cheap side research |
-| `standard` | `claude-sonnet-4-6` | `medium` by default, `high` for code-risk tasks | normal worker implementation, setup, tests, scoped refactors |
+| `standard` | `claude-sonnet-5` | `medium` by default, `high` for code-risk tasks | normal worker implementation, setup, tests, scoped refactors |
 | `deep` | `claude-opus-4-8` | `xhigh` | architecture, security, migration, cross-repo decisions, repeated failures |
-| `review` | default reviewer: `claude-sonnet-4-6`; adversarial/final reviewer: `claude-opus-4-8` | `xhigh` | normal review stays cost-aware; high-risk gates use Opus |
+| `review` | default reviewer: `claude-sonnet-5`; adversarial/final reviewer: `claude-opus-4-8` | `xhigh` | normal review stays cost-aware; high-risk gates use Opus |
 | `advisor` | `claude-opus-4-8` | `xhigh` | PLAN / CORRECTION / STOP decisions after blocked execution |
-| `release` | `claude-sonnet-4-6` | `high` | release preflight, changelog, version/tag/GitHub Release checks |
+| `release` | `claude-sonnet-5` | `high` | release preflight, changelog, version/tag/GitHub Release checks |
 | `long-context` | `sonnet[1m]` | `high` | large repo reading, long sessions, context-heavy comparison |
 
 Recommended Claude session default:
@@ -98,14 +98,14 @@ Recommended Claude session default:
   "availableModels": [
     "opusplan",
     "claude-opus-4-8",
-    "claude-sonnet-4-6",
+    "claude-sonnet-5",
     "claude-haiku-4-5",
     "sonnet[1m]"
   ],
   "effortLevel": "high",
   "env": {
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5"
   }
 }
@@ -123,6 +123,10 @@ Notes:
   On Claude Opus 4.8, control reasoning depth with `effort` (`high`/`xhigh`), not
   prompt markers. If reasoning looks shallow on a hard task, raise effort rather
   than prompting around it.
+- `HARNESS_BRAIN_MODEL=fable` opts the `deep` / `advisor` tiers into
+  `claude-fable-5` (Fable 5). Unset, empty, or `opus` keeps `claude-opus-4-8`;
+  any other value exits 2 instead of falling back silently. The opt-in is
+  claude-host only and never changes the `standard` / `review` tiers.
 
 ## Codex Routing
 
@@ -222,6 +226,11 @@ Notes:
 - When explicit `model` is set on Task/subagent invocation, routed defaults must
   not override it (`tests/test-model-routing.sh` covers Codex explicit path;
   Cursor uses the same priority rule).
+- The `review` tier (`composer-2.5-fast`, `xhigh`) is a fresh-context pre-review
+  surface: a reviewer session that shares no conversation state with the
+  producing worker may pre-review a diff before the brain's primary review. The
+  session that produced a diff never reviews its own output, and the primary
+  verdict stays with the brain (spec.md Execution Backend Contract).
 
 ## Harness Role Defaults
 
@@ -231,8 +240,8 @@ Notes:
 | `/harness-plan` | `opusplan` or Opus for non-trivial planning | `gpt-5.5`, `high` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | planning quality affects all downstream work |
 | `worker` | Sonnet 4.6, `medium` to `high` | `gpt-5.5`, `medium` | `composer-2.5-fast`, `medium` | implementation benefits from iteration and tests |
 | `explorer` / read-only fan-out | Haiku 4.5, `low` | `gpt-5.4-mini`, `low` | `composer-2-fast`, `low` | cheap context isolation |
-| `reviewer` | Sonnet 4.6 `xhigh`; Opus 4.8 `xhigh` for high-risk | `gpt-5.5`, `xhigh` | `composer-2.5-fast`, `xhigh` | review is where deeper reasoning pays |
-| `advisor` | Opus 4.8, `xhigh` | `gpt-5.5`, `xhigh` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | blocked-loop decisions need high confidence |
+| `reviewer` | Sonnet 4.6 `xhigh`; Opus 4.8 `xhigh` for high-risk | `gpt-5.5`, `xhigh` | `composer-2.5-fast`, `xhigh` (fresh-context pre-review only; primary verdict on brain) | review is where deeper reasoning pays |
+| `advisor` | Opus 4.8, `xhigh` (Fable 5 via `HARNESS_BRAIN_MODEL=fable`) | `gpt-5.5`, `xhigh` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | blocked-loop decisions need high confidence |
 | `release` | Sonnet 4.6, `high` | `gpt-5.5`, `high` | `composer-2.5-fast`, `high` | procedural but public-facing |
 
 ## Non-Goals

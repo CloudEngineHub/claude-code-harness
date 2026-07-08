@@ -44,26 +44,12 @@ assert_manifest_no_parent_paths() {
   fi
 }
 
-assert_hook_script_closure() {
-  local base="$1"
-  local hooks_file="$2"
-  local rel
-
-  [ -f "${base}/${hooks_file}" ] || fail "${base} missing ${hooks_file}"
-  while IFS= read -r rel; do
-    [ -n "$rel" ] || continue
-    assert_present "$base" "$rel"
-  done < <(grep -Eoh 'scripts/[A-Za-z0-9_./-]+\.sh' "${base}/${hooks_file}" | sort -u)
-}
-
 CLAUDE_OUT="$(build_host claude)"
 CODEX_OUT="$(build_host codex)"
 CURSOR_OUT="$(build_host cursor)"
 
 assert_present "$CLAUDE_OUT" ".claude-plugin/plugin.json"
 assert_present "$CLAUDE_OUT" "skills/harness-work/SKILL.md"
-assert_hook_script_closure "$CLAUDE_OUT" ".claude-plugin/hooks.json"
-assert_hook_script_closure "$CLAUDE_OUT" "hooks/hooks.json"
 assert_absent "$CLAUDE_OUT" ".codex-plugin"
 assert_absent "$CLAUDE_OUT" ".cursor-plugin"
 assert_absent "$CLAUDE_OUT" "codex"

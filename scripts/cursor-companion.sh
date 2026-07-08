@@ -14,6 +14,11 @@
 #
 # Subcommands: task
 #
+# `--workspace <dir>` は cursor-agent への CWD ヒントであり、書込境界ではない。
+# cursor は `--workspace` 外にも書き込める。Harness 側の境界は (1) 専用 worktree、
+# (2) 実行前後の fingerprint 比較 (`bin/harness wt fingerprint`)、(3) Lead diff review
+# + cherry-pick の 3 段で構築する。
+#
 # 安全契約（Phase 82/83 spike + Cursor 公式ドキュメントで確認済み）:
 #   - `--force` / `--yolo`（Cursor の "Run Everything" = "Never use"）は決して渡さない。
 #     auto-run はユーザーの ~/.cursor/permissions.json の allowlist に委ねる。
@@ -143,17 +148,43 @@ fi
 if ! command -v orch_emit_ledger >/dev/null 2>&1; then
   orch_emit_ledger() { return 0; }
 fi
-# Cross-agent handoff relay (Phase 93.4): opt-in, redaction structural, no-op fallback.
-if [ -f "${SCRIPT_DIR}/lib/relay-notify.sh" ]; then
-  # shellcheck source=scripts/lib/relay-notify.sh
-  . "${SCRIPT_DIR}/lib/relay-notify.sh" 2>/dev/null || true
-fi
-if ! command -v relay_notify >/dev/null 2>&1; then
-  relay_notify() { return 0; }
-fi
 if ! command -v __orch_now_ms >/dev/null 2>&1; then
   __orch_now_ms() { printf '0'; }
 fi
+
+# ---- worktree fingerprint gate (Phase 92.2.2) -------------------------------
+# Detect writes outside the worker worktree to sensitive $HOME paths.
+HARNESS_BIN="${REPO_ROOT}/bin/harness"
+FP_BEFORE=""
+FP_AFTER=""
+
+fingerprint_capture() {
+  local output="$1"
+  if [ ! -x "${HARNESS_BIN}" ]; then
+    echo "ERROR: harness binary not found at ${HARNESS_BIN}" >&2
+    return 1
+  fi
+  "${HARNESS_BIN}" wt fingerprint capture --output "${output}"
+}
+
+fingerprint_diff_or_stop() {
+  if [ -z "${FP_BEFORE}" ] || [ ! -f "${FP_BEFORE}" ]; then
+    return 0
+  fi
+  FP_AFTER="$(mktemp "${TMPDIR:-/tmp}/cursor-companion-fp-after.XXXXXX")"
+  if ! fingerprint_capture "${FP_AFTER}"; then
+    echo "ERROR: worktree fingerprint capture (after) failed" >&2
+    rm -f "${FP_AFTER}"
+    return 1
+  fi
+  if ! "${HARNESS_BIN}" wt fingerprint diff --before "${FP_BEFORE}" --after "${FP_AFTER}"; then
+    echo "WORKTREE-ESCAPE detected: see stderr for path list" >&2
+    rm -f "${FP_AFTER}"
+    return 1
+  fi
+  rm -f "${FP_AFTER}"
+  return 0
+}
 
 # ---- cursor-agent バイナリ解決 -------------------------------------------
 # command -v を優先（テストの PATH モックがここで拾われる）。
@@ -344,19 +375,24 @@ if [ "${DEBUG}" = "1" ]; then
   debug_log "cmd: ${masked}"
 fi
 
+# ---- worktree fingerprint: capture before cursor-agent ----------------------
+FP_BEFORE="$(mktemp "${TMPDIR:-/tmp}/cursor-companion-fp-before.XXXXXX")"
+if ! fingerprint_capture "${FP_BEFORE}"; then
+  rm -f "${FP_BEFORE}"
+  echo "ERROR: worktree fingerprint capture (before) failed" >&2
+  exit 1
+fi
+
 # ---- 実行（stdout を temp に捕捉し、exit code を先に確認）-----------------
 # stdout と stderr を別ファイルに分けて捕捉する。
 # stdout には成功時の JSON、stderr には診断メッセージが流れる。
 OUT_FILE="$(mktemp "${TMPDIR:-/tmp}/cursor-companion.XXXXXX")"
 ERR_FILE="$(mktemp "${TMPDIR:-/tmp}/cursor-companion-err.XXXXXX")"
 cleanup() {
-  rm -f "${OUT_FILE}" "${ERR_FILE}"
+  rm -f "${OUT_FILE}" "${ERR_FILE}" "${FP_BEFORE}" "${FP_AFTER}"
 }
 trap cleanup EXIT
 
-# opt-in: notify a peer CC session of this cross-agent handoff BEFORE the blocking
-# cursor-agent run, so the peer can observe the handoff while the task is active.
-relay_notify "cursor" "task" "${WRITE}" || true
 __orch_start_ms="$(__orch_now_ms 2>/dev/null || echo 0)"
 set +e
 "${cmd[@]}" >"${OUT_FILE}" 2>"${ERR_FILE}"
@@ -368,6 +404,11 @@ set -e
 __orch_dur_ms=$(( $(__orch_now_ms 2>/dev/null || echo 0) - __orch_start_ms ))
 [ "${__orch_dur_ms}" -ge 0 ] 2>/dev/null || __orch_dur_ms=0
 orch_emit_ledger "cursor" "task" "${WRITE}" "${rc}" "${__orch_dur_ms}" || true
+
+# (0) worktree fingerprint diff — hard-stop on $HOME sensitive path changes.
+if ! fingerprint_diff_or_stop; then
+  exit 1
+fi
 
 # (1) exit code を最優先で確認。cursor-agent はエラー時 stdout に JSON を出さない。
 if [ "${rc}" -ne 0 ]; then

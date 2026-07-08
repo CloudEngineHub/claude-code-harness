@@ -96,7 +96,6 @@ func HandleNotification(in io.Reader, out io.Writer) error {
 	// terminalSequence 出力 (CC 2.1.141+, opt-in via HARNESS_TERMINAL_NOTIFY)
 	// permission_prompt / elicitation_dialog のように operator の注意を喚起したい通知では
 	// Claude Code が controlling terminal なしでも desktop 通知 / window title / bell を発火できる。
-	// 詳細: .claude/rules/hooks-2.1.139-plus.md
 	if title, body, ok := notificationTerminalTitleBody(notificationType, input.AgentType); ok {
 		seq := BuildTerminalSequence(title, body)
 		if seq != "" {

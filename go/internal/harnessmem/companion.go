@@ -51,8 +51,6 @@ type Invocation struct {
 	Installed bool
 }
 
-// goosForInvocation / lookPathForInvocation are runtime.GOOS / exec.LookPath
-// split out for test injection. Production code never reassigns them.
 var (
 	goosForInvocation     = runtime.GOOS
 	lookPathForInvocation = exec.LookPath
@@ -60,10 +58,6 @@ var (
 
 // ResolveInvocation finds an installed harness-mem CLI. If allowNpx is true,
 // it falls back to npx so setup/update can bootstrap a missing companion.
-//
-// Resolved script paths go through wrapScriptInvocation so that .js entry
-// points (and node/bun shebang scripts on Windows, where exec does not honor
-// #!) are launched via a JS runtime instead of being exec'd directly (#207).
 func ResolveInvocation(allowNpx bool) (Invocation, bool) {
 	if cli := os.Getenv("HARNESS_MEM_CLI"); cli != "" {
 		return wrapScriptInvocation(Invocation{Name: cli, Installed: true}), true
@@ -72,10 +66,6 @@ func ResolveInvocation(allowNpx bool) (Invocation, bool) {
 	home, _ := os.UserHomeDir()
 	if home != "" {
 		candidate := filepath.Join(home, ".harness-mem", "runtime", "harness-mem", "scripts", "harness-mem")
-		// The extensionless file is a bash script that Windows cannot exec;
-		// the Windows-capable node entry is the sibling harness-mem.js
-		// (both always ship together in the npm package). Prefer the .js
-		// entry on Windows so the wrap below launches something node can run.
 		if goosForInvocation == "windows" {
 			jsCandidate := candidate + ".js"
 			if info, err := os.Stat(jsCandidate); err == nil && !info.IsDir() {
@@ -112,18 +102,6 @@ func ResolveInvocation(allowNpx bool) (Invocation, bool) {
 	}, true
 }
 
-// wrapScriptInvocation converts scripts the OS cannot exec directly into a
-// JS-runtime launch (#207):
-//
-//   - .js / .mjs / .cjs on every OS: Windows does not honor shebangs ("%1 is
-//     not a valid Win32 application") and on Unix this removes the dependency
-//     on the shebang line / executable bit. A bun shebang keeps bun preferred.
-//   - Extensionless real files on Windows: wrapped only when their shebang
-//     names node or bun. Anything else (e.g. the bash CLI that ships next to
-//     harness-mem.js) is left alone for the normal exec error to surface.
-//
-// When no JS runtime is installed the original Invocation is returned and the
-// pre-existing exec error surfaces unchanged.
 func wrapScriptInvocation(inv Invocation) Invocation {
 	needs, runtimeOrder := scriptRuntimePreference(inv.Name)
 	if !needs {
@@ -140,9 +118,6 @@ func wrapScriptInvocation(inv Invocation) Invocation {
 	}
 }
 
-// scriptRuntimePreference reports whether name must be launched via a JS
-// runtime, and in which order the runtimes should be tried. A shebang naming
-// bun promotes bun over node; the default order prefers node.
 func scriptRuntimePreference(name string) (bool, []string) {
 	nodeFirst := []string{"node", "bun"}
 	bunFirst := []string{"bun", "node"}
@@ -154,10 +129,7 @@ func scriptRuntimePreference(name string) (bool, []string) {
 		}
 		return true, nodeFirst
 	}
-	// Windows does not honor shebangs, so an extensionless real file can only
-	// be exec'd directly when it is a PE binary. Wrap it when its shebang
-	// names a JS runtime; otherwise leave it alone (e.g. a bash script).
-	// PATH-style bare command names ("npx" etc.) fail the open and stay as-is.
+
 	if goosForInvocation == "windows" && filepath.Ext(name) == "" {
 		switch shebangRuntime(name) {
 		case "node":
@@ -166,12 +138,10 @@ func scriptRuntimePreference(name string) (bool, []string) {
 			return true, bunFirst
 		}
 	}
+
 	return false, nil
 }
 
-// shebangRuntime returns "node" or "bun" when the first line of name is a
-// shebang naming one of them (including `#!/usr/bin/env -S node ...` forms),
-// or "" otherwise.
 func shebangRuntime(name string) string {
 	f, err := os.Open(name)
 	if err != nil {
@@ -199,8 +169,6 @@ func shebangRuntime(name string) string {
 	return ""
 }
 
-// findJSRuntime returns the executable path of the first available JS runtime
-// in order, or "" when none is installed.
 func findJSRuntime(order []string) string {
 	for _, bin := range order {
 		if path, err := lookPathForInvocation(bin); err == nil {

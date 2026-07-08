@@ -2,16 +2,16 @@
 package hookhandler
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 )
 
 // PreCompactSave は pre-compact-save.js の Go 移植。
@@ -42,21 +42,14 @@ const legacySnapshotVersion = "1.0.0"
 const gitTimeoutSec = 5
 
 // planRow は Plans.md の1行分のパース結果。
-type planRow struct {
-	TaskID  string   `json:"taskId"`
-	Title   string   `json:"title"`
-	DoD     string   `json:"dod"`
-	Depends string   `json:"depends"`
-	Status  string   `json:"status"`
-	Tags    planTags `json:"tags"`
-}
+// canonical parser (internal/plans) の Task 型へのエイリアス。
+// 既存のフィールドアクセス (.TaskID/.Title/.DoD/.Depends/.Status/.Tags) はそのまま動く。
+// plans.Tags は Done フィールドを追加するが、このファイルの既存コードは無視する。
+type planRow = plans.Task
 
 // planTags は planRow のタグ情報。
-type planTags struct {
-	Todo    bool `json:"todo"`
-	Wip     bool `json:"wip"`
-	Blocked bool `json:"blocked"`
-}
+// canonical parser (internal/plans) の Tags 型へのエイリアス。
+type planTags = plans.Tags
 
 // openRisk はリスクエントリ。
 type openRisk struct {
@@ -421,93 +414,23 @@ func (h *PreCompactSave) buildHandoffArtifact(repoRoot, plansFile, sessionID, no
 	}
 }
 
-// getPlanRows は Plans.md を読み込んでパースする。
+// getPlanRows は Plans.md を読み込んでパースし、アクティブな行のみを返す。
+//
+// canonical parser (internal/plans) は完了行を含む全タスク行を返すため、
+// ここで cc:TODO / cc:WIP / cc:blocked のいずれかにマッチする行だけにフィルタする
+// （pickNextAction / countWIP / countBlocked / getWIPTasks の挙動を保つため）。
 func (h *PreCompactSave) getPlanRows(plansFile string) []planRow {
-	f, err := os.Open(plansFile)
+	tasks, err := plans.ParseFile(plansFile)
 	if err != nil {
 		return nil
 	}
-	defer f.Close()
-
-	// cc:TODO / cc:WIP / cc:blocked の行を抽出
-	reTodo := regexp.MustCompile("(?i)`?cc:TODO`?")
-	reWip := regexp.MustCompile("(?i)`?cc:WIP`?|\\[in_progress\\]")
-	reBlocked := regexp.MustCompile("(?i)`?cc:blocked`?|\\[blocked\\]")
-
 	var rows []planRow
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if !strings.Contains(line, "|") {
-			continue
+	for _, t := range tasks {
+		if t.Tags.Todo || t.Tags.Wip || t.Tags.Blocked {
+			rows = append(rows, t)
 		}
-
-		cells := splitPipeRow(line)
-		if len(cells) < 5 {
-			continue
-		}
-
-		taskID := strings.TrimSpace(cells[0])
-		if taskID == "" || taskID == "Task" || strings.Contains(taskID, "---") {
-			continue
-		}
-
-		status := strings.TrimSpace(cells[len(cells)-1])
-		depends := strings.TrimSpace(cells[len(cells)-2])
-		title := ""
-		if len(cells) > 2 {
-			title = strings.TrimSpace(cells[1])
-		}
-		dod := ""
-		if len(cells) > 3 {
-			dod = strings.TrimSpace(strings.Join(cells[2:len(cells)-2], "|"))
-		}
-
-		isTodo := reTodo.MatchString(status)
-		isWip := reWip.MatchString(status)
-		isBlocked := reBlocked.MatchString(status)
-
-		if !isTodo && !isWip && !isBlocked {
-			continue
-		}
-
-		rows = append(rows, planRow{
-			TaskID:  taskID,
-			Title:   title,
-			DoD:     dod,
-			Depends: depends,
-			Status:  status,
-			Tags: planTags{
-				Todo:    isTodo,
-				Wip:     isWip,
-				Blocked: isBlocked,
-			},
-		})
 	}
 	return rows
-}
-
-// splitPipeRow はエスケープされた \| を考慮してパイプで行を分割する。
-func splitPipeRow(line string) []string {
-	const placeholder = "\x00PIPE\x00"
-	escaped := strings.ReplaceAll(line, `\|`, placeholder)
-	rawCells := strings.Split(escaped, "|")
-
-	// 先頭・末尾の空セルを除去
-	start := 0
-	end := len(rawCells)
-	if end > 0 && strings.TrimSpace(rawCells[0]) == "" {
-		start = 1
-	}
-	if end > start && strings.TrimSpace(rawCells[end-1]) == "" {
-		end--
-	}
-	cells := rawCells[start:end]
-
-	for i, c := range cells {
-		cells[i] = strings.ReplaceAll(c, placeholder, "|")
-	}
-	return cells
 }
 
 // getWIPTasks はプランROWのタイトルを返す。
@@ -524,13 +447,11 @@ func getWIPTasks(rows []planRow) []string {
 // getRecentEdits は git から最近変更されたファイルを取得する。
 func (h *PreCompactSave) getRecentEdits(repoRoot string) []string {
 	run := func(args ...string) string {
-		cmd := exec.Command("git", args...)
-		cmd.Dir = repoRoot
-		out, err := cmd.Output()
+		out, err := gitport.Output(repoRoot, args...)
 		if err != nil {
 			return ""
 		}
-		return strings.TrimSpace(string(out))
+		return strings.TrimSpace(out)
 	}
 
 	staged := run("diff", "--name-only", "--cached")

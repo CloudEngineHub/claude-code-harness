@@ -71,6 +71,20 @@ sync_file() {
   fi
 }
 
+copy_hook_script_closure() {
+  local hooks_file="$1"
+  local rel_path
+
+  if [ ! -f "${PROJECT_ROOT}/${hooks_file}" ]; then
+    return 0
+  fi
+
+  while IFS= read -r rel_path; do
+    [ -n "$rel_path" ] || continue
+    sync_file "$rel_path"
+  done < <(grep -Eoh 'scripts/[A-Za-z0-9_./-]+\.sh' "${PROJECT_ROOT}/${hooks_file}" | sort -u)
+}
+
 sync_dir_to_dir() {
   local rel_path="$1"
   local target_dir="$2"
@@ -149,13 +163,10 @@ cleanup_private_paths_in_dir() {
 # Critical files to sync to distribution cache
 critical_files=(
   "scripts/lib/harness-mem-bridge.sh"
-  "scripts/lib/relay-notify.sh"
-  "scripts/lib/relay-store.sh"
-  "scripts/build-host-plugin-dist.sh"
-  "scripts/calculate-effort.sh"
   "scripts/codex-companion.sh"
-  "scripts/codex-primary-environment-guard.sh"
   "scripts/cursor-companion.sh"
+  "scripts/model-routing.sh"
+  "scripts/resolve-impl-backend.sh"
   "scripts/hook-handlers/memory-bridge.sh"
   "scripts/hook-handlers/memory-session-start.sh"
   "scripts/hook-handlers/memory-user-prompt.sh"
@@ -163,12 +174,6 @@ critical_files=(
   "scripts/hook-handlers/memory-stop.sh"
   "scripts/hook-handlers/memory-codex-notify.sh"
   "scripts/hook-handlers/runtime-reactive.sh"
-  "scripts/model-routing.sh"
-  "scripts/resolve-impl-backend.sh"
-  "scripts/session-relay-send.sh"
-  "scripts/session-relay-watch.sh"
-  "scripts/set-impl-backend.sh"
-  "scripts/setup-cursor.sh"
   "hooks/hooks.json"
   ".claude-plugin/hooks.json"
   ".claude-plugin/settings.json"
@@ -176,18 +181,12 @@ critical_files=(
   "VERSION"
 )
 
-for hooks_file in "hooks/hooks.json" ".claude-plugin/hooks.json"; do
-  if [ -f "${PROJECT_ROOT}/${hooks_file}" ]; then
-    while IFS= read -r hook_script_ref; do
-      [ -n "$hook_script_ref" ] || continue
-      critical_files+=("$hook_script_ref")
-    done < <(grep -Eoh 'scripts/[A-Za-z0-9_./-]+\.sh' "${PROJECT_ROOT}/${hooks_file}" | sort -u)
-  fi
-done
-
 for file in "${critical_files[@]}"; do
   sync_file "$file"
 done
+
+copy_hook_script_closure ".claude-plugin/hooks.json"
+copy_hook_script_closure "hooks/hooks.json"
 
 # plugin.json currently declares these directories. If they are missing from the
 # versioned install cache, Claude lists the plugin as enabled but failed to load.
