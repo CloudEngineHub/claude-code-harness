@@ -4,7 +4,7 @@ Status: adopted
 Last updated: 2026-06-11
 
 This document defines the default model and reasoning-effort routing for
-Claude Code, Codex, and Cursor in Harness workflows.
+Claude Code, Codex, Cursor, and Grok in Harness workflows.
 
 ## Decision
 
@@ -232,17 +232,44 @@ Notes:
   session that produced a diff never reviews its own output, and the primary
   verdict stays with the brain (spec.md Execution Backend Contract).
 
+## Grok Routing (adapter candidate)
+
+| Harness tier | Grok model (router default) | Effort label | Use cases |
+| --- | --- | --- | --- |
+| `lite` | `grok-composer-2.5-fast` | `low` | read-only exploration, cheap fan-out |
+| `standard` | `grok-composer-2.5-fast` | `medium` | normal worker implementation |
+| `deep` | `grok-4.5` | `high` | architecture, security, recovery |
+| `review` | `grok-4.5` | `high` | harness-review / reviewer path |
+| `advisor` | `grok-4.5` | `high` | advisor-request decisions |
+| `release` | `grok-4.5` | `high` | release preflight wording checks |
+| `long-context` | `grok-4.5` | `high` | large repo reads (500k context window observed) |
+
+Adapter surfaces:
+
+- Grok CLI `--model`
+- `scripts/model-routing.sh --host grok --format json|args|env`
+- Skill frontmatter `model` when a skill pins a model (prefer routed default)
+
+Notes:
+
+- Grok remains `candidate`; routing defaults are contract fixtures, not a
+  public support claim.
+- Observed catalog (2026-07-09, CLI 0.2.93): `grok-4.5`, `grok-composer-2.5-fast`.
+- Account catalogs may differ; treat missing models as residual risk, not a
+  silent fallback in the router.
+- `HARNESS_BRAIN_MODEL` is claude-host only and never changes the Grok catalog.
+
 ## Harness Role Defaults
 
-| Harness surface | Claude default | Codex default | Cursor default | Why |
-| --- | --- | --- | --- | --- |
-| Interactive operator session | `opusplan`, `high` | `gpt-5.5`, `high` | `composer-2.5-fast`, `medium` | strong default without forcing max spend |
-| `/harness-plan` | `opusplan` or Opus for non-trivial planning | `gpt-5.5`, `high` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | planning quality affects all downstream work |
-| `worker` | Sonnet 4.6, `medium` to `high` | `gpt-5.5`, `medium` | `composer-2.5-fast`, `medium` | implementation benefits from iteration and tests |
-| `explorer` / read-only fan-out | Haiku 4.5, `low` | `gpt-5.4-mini`, `low` | `composer-2-fast`, `low` | cheap context isolation |
-| `reviewer` | Sonnet 4.6 `xhigh`; Opus 4.8 `xhigh` for high-risk | `gpt-5.5`, `xhigh` | `composer-2.5-fast`, `xhigh` (fresh-context pre-review only; primary verdict on brain) | review is where deeper reasoning pays |
-| `advisor` | Opus 4.8, `xhigh` (Fable 5 via `HARNESS_BRAIN_MODEL=fable`) | `gpt-5.5`, `xhigh` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | blocked-loop decisions need high confidence |
-| `release` | Sonnet 4.6, `high` | `gpt-5.5`, `high` | `composer-2.5-fast`, `high` | procedural but public-facing |
+| Harness surface | Claude default | Codex default | Cursor default | Grok default | Why |
+| --- | --- | --- | --- | --- | --- |
+| Interactive operator session | `opusplan`, `high` | `gpt-5.5`, `high` | `composer-2.5-fast`, `medium` | `grok-composer-2.5-fast`, `medium` | strong default without forcing max spend |
+| `/harness-plan` | `opusplan` or Opus for non-trivial planning | `gpt-5.5`, `high` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | `grok-4.5`, `high` | planning quality affects all downstream work |
+| `worker` | Sonnet 4.6, `medium` to `high` | `gpt-5.5`, `medium` | `composer-2.5-fast`, `medium` | `grok-composer-2.5-fast`, `medium` | implementation benefits from iteration and tests |
+| `explorer` / read-only fan-out | Haiku 4.5, `low` | `gpt-5.4-mini`, `low` | `composer-2-fast`, `low` | `grok-composer-2.5-fast`, `low` | cheap context isolation |
+| `reviewer` | Sonnet 4.6 `xhigh`; Opus 4.8 `xhigh` for high-risk | `gpt-5.5`, `xhigh` | `composer-2.5-fast`, `xhigh` (fresh-context pre-review only; primary verdict on brain) | `grok-4.5`, `high` | review is where deeper reasoning pays |
+| `advisor` | Opus 4.8, `xhigh` (Fable 5 via `HARNESS_BRAIN_MODEL=fable`) | `gpt-5.5`, `xhigh` | `claude-opus-4-8-thinking-xhigh`, `xhigh` | `grok-4.5`, `high` | blocked-loop decisions need high confidence |
+| `release` | Sonnet 4.6, `high` | `gpt-5.5`, `high` | `composer-2.5-fast`, `high` | `grok-4.5`, `high` | procedural but public-facing |
 
 ## Non-Goals
 

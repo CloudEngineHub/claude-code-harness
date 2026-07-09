@@ -47,11 +47,13 @@ assert_manifest_no_parent_paths() {
 CLAUDE_OUT="$(build_host claude)"
 CODEX_OUT="$(build_host codex)"
 CURSOR_OUT="$(build_host cursor)"
+GROK_OUT="$(build_host grok)"
 
 assert_present "$CLAUDE_OUT" ".claude-plugin/plugin.json"
 assert_present "$CLAUDE_OUT" "skills/harness-work/SKILL.md"
 assert_absent "$CLAUDE_OUT" ".codex-plugin"
 assert_absent "$CLAUDE_OUT" ".cursor-plugin"
+assert_absent "$CLAUDE_OUT" ".grok-plugin"
 assert_absent "$CLAUDE_OUT" "codex"
 assert_absent "$CLAUDE_OUT" ".cursor"
 
@@ -63,6 +65,7 @@ assert_present "$CODEX_OUT" "scripts/resolve-impl-backend.sh"
 assert_present "$CODEX_OUT" "scripts/model-routing.sh"
 assert_absent "$CODEX_OUT" ".claude-plugin"
 assert_absent "$CODEX_OUT" ".cursor-plugin"
+assert_absent "$CODEX_OUT" ".grok-plugin"
 assert_absent "$CODEX_OUT" ".cursor"
 
 assert_present "$CURSOR_OUT" ".cursor-plugin/plugin.json"
@@ -73,10 +76,24 @@ assert_present "$CURSOR_OUT" "scripts/resolve-impl-backend.sh"
 assert_present "$CURSOR_OUT" "scripts/model-routing.sh"
 assert_absent "$CURSOR_OUT" ".claude-plugin"
 assert_absent "$CURSOR_OUT" ".codex-plugin"
+assert_absent "$CURSOR_OUT" ".grok-plugin"
+
+assert_present "$GROK_OUT" ".grok-plugin/plugin.json"
+assert_present "$GROK_OUT" "skills/harness-plan/SKILL.md"
+assert_present "$GROK_OUT" "skills/harness-work/SKILL.md"
+assert_present "$GROK_OUT" "skills/harness-review/SKILL.md"
+assert_present "$GROK_OUT" "skills/breezing/SKILL.md"
+assert_present "$GROK_OUT" "scripts/model-routing.sh"
+assert_present "$GROK_OUT" "scripts/setup-grok.sh"
+assert_present "$GROK_OUT" ".grok/AGENTS.md"
+assert_absent "$GROK_OUT" ".claude-plugin"
+assert_absent "$GROK_OUT" ".codex-plugin"
+assert_absent "$GROK_OUT" ".cursor-plugin"
 
 assert_manifest_no_parent_paths "${CLAUDE_OUT}/.claude-plugin/plugin.json"
 assert_manifest_no_parent_paths "${CODEX_OUT}/.codex-plugin/plugin.json"
 assert_manifest_no_parent_paths "${CURSOR_OUT}/.cursor-plugin/plugin.json"
+assert_manifest_no_parent_paths "${GROK_OUT}/.grok-plugin/plugin.json"
 
 # Cursor does not surface `user-invocable: true` skills. The cursor dist must
 # normalize workflow skills so they register as Agent-Decides skills.
@@ -94,11 +111,12 @@ if ! grep -Eq '^user-invocable:[[:space:]]*true[[:space:]]*$' "${CLAUDE_OUT}/ski
   fail "claude dist breezing skill must keep user-invocable: true"
 fi
 
-node - "$CODEX_OUT/.codex-plugin/plugin.json" "$CURSOR_OUT/.cursor-plugin/plugin.json" <<'NODE'
+node - "$CODEX_OUT/.codex-plugin/plugin.json" "$CURSOR_OUT/.cursor-plugin/plugin.json" "$GROK_OUT/.grok-plugin/plugin.json" <<'NODE'
 const fs = require("fs");
-const [codexPath, cursorPath] = process.argv.slice(2);
+const [codexPath, cursorPath, grokPath] = process.argv.slice(2);
 const codex = JSON.parse(fs.readFileSync(codexPath, "utf8"));
 const cursor = JSON.parse(fs.readFileSync(cursorPath, "utf8"));
+const grok = JSON.parse(fs.readFileSync(grokPath, "utf8"));
 function assert(cond, msg) {
   if (!cond) {
     console.error(msg);
@@ -108,9 +126,13 @@ function assert(cond, msg) {
 assert(codex.skills === "./skills/", "codex dist skills path must be ./skills/");
 assert(cursor.skills === "./skills/", "cursor dist skills path must be ./skills/");
 assert(cursor.agents === "./agents/", "cursor dist agents path must be ./agents/");
+assert(grok.skills === "./skills/", "grok dist skills path must be ./skills/");
 assert(codex.interface.displayName === "Claude Code Harness for Codex", "codex displayName mismatch");
 assert(cursor.interface.displayName === "Claude Code Harness for Cursor", "cursor displayName mismatch");
+assert(grok.interface.displayName === "Claude Code Harness for Grok", "grok displayName mismatch");
 assert(codex.interface.displayName !== cursor.interface.displayName, "displayName must differ by host");
+assert(grok.interface.displayName !== cursor.interface.displayName, "grok displayName must differ from cursor");
+assert(JSON.stringify(grok).includes("../") === false, "grok dist manifest must not contain ..");
 NODE
 
 echo "test-host-plugin-dist: ok"

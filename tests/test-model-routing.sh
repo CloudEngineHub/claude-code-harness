@@ -54,6 +54,36 @@ printf '%s' "${cursor_env}" | grep -q '^CURSOR_MODEL=composer-2.5-fast$' || {
   exit 1
 }
 
+grok_worker_model="$(bash "${ROUTER}" --host grok --role worker --field model)"
+[ "${grok_worker_model}" = "grok-composer-2.5-fast" ] || {
+  echo "grok worker must route to grok-composer-2.5-fast"
+  exit 1
+}
+
+grok_advisor_model="$(bash "${ROUTER}" --host grok --role advisor --field model)"
+[ "${grok_advisor_model}" = "grok-4.5" ] || {
+  echo "grok advisor must route to grok-4.5"
+  exit 1
+}
+
+grok_reviewer_model="$(bash "${ROUTER}" --host grok --role reviewer --field model)"
+[ "${grok_reviewer_model}" = "grok-4.5" ] || {
+  echo "grok reviewer must route to grok-4.5"
+  exit 1
+}
+
+grok_args="$(bash "${ROUTER}" --host grok --tier review --format args | tr '\n' ' ')"
+printf '%s' "${grok_args}" | grep -q -- '--model grok-4.5' || {
+  echo "grok args must include review model"
+  exit 1
+}
+
+grok_env="$(bash "${ROUTER}" --host grok --tier standard --format env)"
+printf '%s' "${grok_env}" | grep -q '^GROK_MODEL=grok-composer-2.5-fast$' || {
+  echo "grok env must export GROK_MODEL"
+  exit 1
+}
+
 codex_args="$(bash "${ROUTER}" --host codex --tier review --format args | tr '\n' ' ')"
 printf '%s' "${codex_args}" | grep -q -- '--model gpt-5.5' || {
   echo "codex args must include review model"
@@ -128,6 +158,12 @@ fable_cursor_advisor="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host cursor
 fable_codex_advisor="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host codex --role advisor --field model)"
 [ "${fable_codex_advisor}" = "gpt-5.5" ] || {
   echo "fable brain opt-in must not touch the codex model catalog"
+  exit 1
+}
+
+fable_grok_advisor="$(HARNESS_BRAIN_MODEL=fable bash "${ROUTER}" --host grok --role advisor --field model)"
+[ "${fable_grok_advisor}" = "grok-4.5" ] || {
+  echo "fable brain opt-in must not touch the grok model catalog"
   exit 1
 }
 

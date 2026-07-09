@@ -277,6 +277,70 @@ Success look: Cursor lists Harness skills (for example `/breezing`,
 so the tier stays `internal-compatible` and PM handoff docs remain separate
 from adapter install claims.
 
+### Grok (`candidate`)
+
+Install:
+
+```bash
+git clone https://github.com/Chachamaru127/claude-code-harness.git
+cd claude-code-harness
+./scripts/setup-grok.sh
+```
+
+Then restart Grok or open a new session so the user plugin and skills register
+in any project. Prefer the CLI install path (`grok plugin install` under the
+hood). If the Grok CLI is missing, setup falls back to a real-directory copy
+under `~/.grok/plugins/claude-code-harness`.
+
+Update:
+
+```bash
+cd /path/to/claude-code-harness
+git pull --ff-only
+./scripts/setup-grok.sh
+```
+
+Uninstall:
+
+```bash
+# When installed via CLI:
+grok plugin uninstall claude-code-harness --confirm
+
+# Fallback copy path:
+mkdir -p ~/.grok/backups/manual-grok-uninstall
+[ -d ~/.grok/plugins/claude-code-harness ] \
+  && mv ~/.grok/plugins/claude-code-harness ~/.grok/backups/manual-grok-uninstall/
+```
+
+This uninstall path removes only the Harness Grok plugin install. It does not
+delete Grok settings, project files, or harness-mem state.
+
+First prompt:
+
+```text
+Plan a small change with acceptance criteria.
+```
+
+First command:
+
+```text
+/harness-plan
+```
+
+Verification command:
+
+```bash
+bash scripts/setup-grok.sh --check
+test -f ~/.local/share/claude-code-harness/grok/skills/breezing/SKILL.md \
+  || test -f ~/.grok/plugins/claude-code-harness/skills/breezing/SKILL.md
+```
+
+Success look: Grok lists Harness skills (for example `/breezing`,
+`/harness-plan`) after install, including when started from a non-CCH project.
+Workflow smoke and Claude SessionStart/PreToolUse parity are not proven, so the
+tier stays `candidate`. Evidence boundary:
+`docs/research/grok-adapter-candidate.md`.
+
 ### GitHub Copilot CLI (`candidate`)
 
 Unsupported reason: GitHub Copilot CLI may become a manual instruction profile

@@ -11,7 +11,7 @@ OUT_DIR=""
 
 usage() {
   cat <<'EOF'
-Usage: build-host-plugin-dist.sh --host claude|codex|cursor --out <directory>
+Usage: build-host-plugin-dist.sh --host claude|codex|cursor|grok --out <directory>
 
 Generates a host-specific distribution package. Output directory is created or
 replaced. Generated packages must not reference sibling paths with '..'.
@@ -46,7 +46,7 @@ if [ -z "$HOST" ] || [ -z "$OUT_DIR" ]; then
 fi
 
 case "$HOST" in
-  claude|codex|cursor) ;;
+  claude|codex|cursor|grok) ;;
   *)
     echo "invalid --host: $HOST" >&2
     exit 2
@@ -77,7 +77,8 @@ copy_runtime_helpers() {
     model-routing.sh \
     resolve-impl-backend.sh \
     set-impl-backend.sh \
-    setup-cursor.sh; do
+    setup-cursor.sh \
+    setup-grok.sh; do
     if [ -f "${ROOT_DIR}/scripts/${script}" ]; then
       cp "${ROOT_DIR}/scripts/${script}" "${dst_root}/scripts/${script}"
       chmod +x "${dst_root}/scripts/${script}" 2>/dev/null || true
@@ -125,6 +126,10 @@ if (host === "claude") {
   manifest.agents = "./agents/";
   manifest.interface = manifest.interface || {};
   manifest.interface.displayName = "Claude Code Harness for Cursor";
+} else if (host === "grok") {
+  manifest.skills = "./skills/";
+  manifest.interface = manifest.interface || {};
+  manifest.interface.displayName = "Claude Code Harness for Grok";
 }
 
 const serialized = JSON.stringify(manifest, null, 2) + "\n";
@@ -239,6 +244,53 @@ EOF
   esac
 }
 
+write_generated_grok_manifest() {
+  local dst_manifest="$1"
+  local version="0.0.0"
+  if [ -f "${ROOT_DIR}/VERSION" ]; then
+    version="$(cat "${ROOT_DIR}/VERSION")"
+  elif [ -f "${ROOT_DIR}/.grok-plugin/plugin.json" ]; then
+    version="$(node -e 'console.log(require(process.argv[1]).version || "0.0.0")' "${ROOT_DIR}/.grok-plugin/plugin.json")"
+  fi
+  node - "$dst_manifest" "$version" <<'NODE'
+const fs = require("fs");
+const [dstPath, version] = process.argv.slice(2);
+const manifest = {
+  name: "claude-code-harness",
+  version,
+  description: "Candidate Grok adapter for Claude Code Harness Plan, Work, Review, and Release workflows.",
+  author: {
+    name: "Chachamaru",
+    url: "https://github.com/Chachamaru127"
+  },
+  homepage: "https://github.com/Chachamaru127/claude-code-harness",
+  repository: "https://github.com/Chachamaru127/claude-code-harness",
+  license: "MIT",
+  keywords: ["grok", "skills", "workflow", "plan-work-review", "harness"],
+  skills: "./skills/",
+  interface: {
+    displayName: "Claude Code Harness for Grok",
+    shortDescription: "Candidate Harness workflow adapter for Grok",
+    longDescription: "Use Claude Code Harness skills in Grok for evidence-backed planning, implementation, review, release, setup, sync, and team execution workflows.",
+    developerName: "Chachamaru",
+    category: "Coding",
+    capabilities: ["Read", "Write", "Interactive"],
+    defaultPrompt: [
+      "Use harness-plan to plan this change.",
+      "Use harness-work to execute the next Plans.md task."
+    ],
+    websiteURL: "https://github.com/Chachamaru127/claude-code-harness",
+    privacyPolicyURL: "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    termsOfServiceURL: "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    brandColor: "#FF4500",
+    screenshots: []
+  }
+};
+fs.mkdirSync(require("path").dirname(dstPath), { recursive: true });
+fs.writeFileSync(dstPath, JSON.stringify(manifest, null, 2) + "\n");
+NODE
+}
+
 build_claude() {
   copy_tree "${ROOT_DIR}/.claude-plugin" "${OUT_DIR}/.claude-plugin"
   write_normalized_manifest "claude" "${ROOT_DIR}/.claude-plugin/plugin.json" "${OUT_DIR}/.claude-plugin/plugin.json"
@@ -335,10 +387,36 @@ EOF
   fi
 }
 
+build_grok() {
+  mkdir -p "${OUT_DIR}/.grok-plugin"
+  if [ -f "${ROOT_DIR}/.grok-plugin/plugin.json" ]; then
+    write_normalized_manifest "grok" "${ROOT_DIR}/.grok-plugin/plugin.json" "${OUT_DIR}/.grok-plugin/plugin.json"
+  else
+    write_generated_grok_manifest "${OUT_DIR}/.grok-plugin/plugin.json"
+  fi
+  copy_tree "${ROOT_DIR}/skills" "${OUT_DIR}/skills"
+  copy_runtime_helpers "${OUT_DIR}"
+  mkdir -p "${OUT_DIR}/.grok"
+  if [ -f "${ROOT_DIR}/.grok/AGENTS.md" ]; then
+    cp "${ROOT_DIR}/.grok/AGENTS.md" "${OUT_DIR}/.grok/AGENTS.md"
+  else
+    cat >"${OUT_DIR}/.grok/AGENTS.md" <<'EOF'
+# AGENTS.md — Grok Bootstrap Route (Candidate)
+
+Use harness-plan for planning, harness-work for implementation,
+harness-review for review, and breezing for multi-task execution.
+EOF
+  fi
+  if [ -f "${ROOT_DIR}/VERSION" ]; then
+    cp "${ROOT_DIR}/VERSION" "${OUT_DIR}/VERSION"
+  fi
+}
+
 case "$HOST" in
   claude) build_claude ;;
   codex) build_codex ;;
   cursor) build_cursor ;;
+  grok) build_grok ;;
 esac
 
 echo "built ${HOST} dist at ${OUT_DIR}" >&2

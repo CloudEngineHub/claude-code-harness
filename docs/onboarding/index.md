@@ -19,6 +19,7 @@ Public wording must keep these tiers unchanged:
 | Codex app | `candidate` | Use the candidate smoke checklist in [install.md](install.md#codex-app-candidate); do not reuse Codex CLI proof. |
 | OpenCode | `internal-compatible` | Use `scripts/setup-opencode.sh` in [install.md](install.md#opencode-internal-compatible). |
 | Cursor | `internal-compatible` | Use `scripts/setup-cursor.sh` in [install.md](install.md#cursor-internal-compatible); PM handoff docs remain separate from adapter install. |
+| Grok | `candidate` | Use `scripts/setup-grok.sh` in [install.md](install.md#grok-candidate); package install and skill discovery only, not Claude hook parity. |
 | GitHub Copilot CLI | `candidate` | Use the candidate boundary in [install.md](install.md#github-copilot-cli-candidate). |
 | Antigravity CLI | `future/unsupported` | Use the unsupported boundary in [install.md](install.md#antigravity-cli-futureunsupported). |
 
@@ -35,6 +36,7 @@ absent.
 | OpenCode | Run `scripts/setup-opencode.sh`, start OpenCode, then ask for `harness-plan`. | Claude hook parity or runtime auto-routing parity. |
 | Codex app | Record candidate smoke evidence only. | That app behavior is proven by Codex CLI docs or help output. |
 | Cursor | Run `scripts/setup-cursor.sh`, reload Cursor, then invoke `/breezing` or `/harness-plan`. | Top-tier Cursor adapter or Claude hook parity. |
+| Grok | Run `scripts/setup-grok.sh`, restart Grok, then invoke `/harness-plan` or `/breezing`. | Supported Grok adapter or Claude SessionStart/PreToolUse parity. |
 | GitHub Copilot CLI | Treat it as CLI capability research only. | Harness bootstrap support. |
 | Antigravity CLI | Keep it out of end-user install flow. | Install support, setup support, or adapter support. |
 

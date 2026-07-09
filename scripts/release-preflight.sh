@@ -448,6 +448,7 @@ adapter_gate_paths=(
   "docs/hardening-parity.md"
   "docs/hokage-spin-off-readiness.md"
   "docs/research/cursor-adapter-candidate.md"
+  "docs/research/grok-adapter-candidate.md"
   "docs/CURSOR_INTEGRATION.md"
   "docs/local-harness-environment-cleanup.md"
   "docs/skill-orchestration-design-contract.md"
@@ -455,6 +456,7 @@ adapter_gate_paths=(
   "scripts/build-host-plugin-dist.sh"
   "scripts/diagnose-harness-skill-duplication.sh"
   "scripts/setup-cursor.sh"
+  "scripts/setup-grok.sh"
   "scripts/generate-skill-manifest.sh"
   "scripts/model-routing.sh"
   "scripts/sync-skill-mirrors.sh"
@@ -462,6 +464,7 @@ adapter_gate_paths=(
   "tests/test-codex-package.sh"
   "tests/test-codex-plugin-adapter.sh"
   "tests/test-cursor-adapter-candidate.sh"
+  "tests/test-grok-adapter-candidate.sh"
   "tests/test-host-plugin-dist.sh"
   "tests/test-opencode-bootstrap-plugin.sh"
   "tests/test-bootstrap-skill-trigger-acceptance.sh"
@@ -523,7 +526,7 @@ release_claims_adapter_support() {
     in_unreleased { print }
   ' CHANGELOG.md)"
 
-  printf '%s\n' "$unreleased" | grep -Eiq 'OpenCode|Codex|Cursor|adapter|mirror|multi-harness|Hokage Core|capability matrix'
+  printf '%s\n' "$unreleased" | grep -Eiq 'OpenCode|Codex|Cursor|Grok|adapter|mirror|multi-harness|Hokage Core|capability matrix'
 }
 
 should_run_adapter_gates() {
@@ -694,6 +697,30 @@ check_release_mirror_drift() {
   else
     fail "cursor setup check gate"
     printf '  missing: scripts/setup-cursor.sh\n'
+  fi
+
+  if [ -f tests/test-grok-adapter-candidate.sh ]; then
+    if bash tests/test-grok-adapter-candidate.sh >"$output_file" 2>&1; then
+      pass "grok adapter candidate smoke"
+    else
+      fail "grok adapter candidate smoke"
+      sed 's/^/  /' "$output_file"
+    fi
+  else
+    fail "grok adapter candidate smoke"
+    printf '  missing: tests/test-grok-adapter-candidate.sh\n'
+  fi
+
+  if [ -f scripts/setup-grok.sh ]; then
+    if bash scripts/setup-grok.sh --check >"$output_file" 2>&1; then
+      pass "grok setup check gate"
+    else
+      fail "grok setup check gate"
+      sed 's/^/  /' "$output_file"
+    fi
+  else
+    fail "grok setup check gate"
+    printf '  missing: scripts/setup-grok.sh\n'
   fi
 
   if [ -f tests/test-distribution-archive.sh ]; then

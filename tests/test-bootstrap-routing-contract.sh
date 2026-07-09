@@ -31,6 +31,7 @@ required_bootstrap_routes=(
   "OpenCode AGENTS.md"
   "Codex app"
   "Cursor"
+  "Grok"
   "GitHub Copilot CLI"
   "Antigravity CLI"
 )
@@ -71,9 +72,13 @@ assert_contains '`not observed` means evidence is missing'
 assert_contains "contract injection + post quality gate + merge gate"
 assert_contains "Codex app | \`candidate\`"
 assert_contains "Cursor AGENTS.md and Plugin Route"
+assert_contains "Grok AGENTS.md and Plugin Route"
 assert_contains "tests/test-cursor-adapter-candidate.sh"
 assert_contains "scripts/setup-cursor.sh --check"
+assert_contains "tests/test-grok-adapter-candidate.sh"
+assert_contains "scripts/setup-grok.sh --check"
 assert_contains "Cursor | \`internal-compatible\`"
+assert_contains "Grok | \`candidate\`"
 assert_contains "GitHub Copilot CLI | \`candidate\`"
 assert_contains "Antigravity CLI | \`future/unsupported\`"
 assert_contains 'candidate`, `not observed`'

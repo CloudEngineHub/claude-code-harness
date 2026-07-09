@@ -38,6 +38,7 @@ required_hosts=(
   "Codex app"
   "OpenCode"
   "Cursor"
+  "Grok"
   "GitHub Copilot CLI"
   "Antigravity CLI"
 )
@@ -52,6 +53,7 @@ tier_rows=(
   "| Codex app | \`candidate\` |"
   "| OpenCode | \`internal-compatible\` |"
   "| Cursor | \`internal-compatible\` |"
+  "| Grok | \`candidate\` |"
   "| GitHub Copilot CLI | \`candidate\` |"
   "| Antigravity CLI | \`future/unsupported\` |"
 )
@@ -75,5 +77,8 @@ assert_contains "bootstrap claims of supported hosts."
 assert_contains "Antigravity CLI is \`future/unsupported\` for public claim."
 assert_contains "tests/test-cursor-adapter-candidate.sh"
 assert_contains "Cursor Breezing multitask mapping is a smoke target"
+assert_contains "tests/test-grok-adapter-candidate.sh"
+assert_contains "scripts/setup-grok.sh"
+assert_contains "Grok Breezing multitask mapping is a smoke target"
 
 echo "test-tool-capability-matrix: ok"

@@ -6,6 +6,19 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+- **Grok host adapter (candidate)**: `.grok-plugin/plugin.json`, `.grok/AGENTS.md`,
+  `scripts/setup-grok.sh` (`--check` + isolated HOME install),
+  `scripts/build-host-plugin-dist.sh --host grok` (package-local `./skills/` paths),
+  and `scripts/model-routing.sh --host grok` (role/tier → `grok-4.5` /
+  `grok-composer-2.5-fast`). Other projects can install Harness workflow skills
+  without Claude Code as the session host. Tier stays `candidate` (no public
+  `supported` claim, no Claude SessionStart/PreToolUse parity). Evidence:
+  `docs/research/grok-adapter-candidate.md`. Tests:
+  `tests/test-grok-adapter-candidate.sh` plus host-dist / model-routing /
+  bootstrap / capability-matrix gates.
+
 ## [5.0.0] - 2026-07-08
 
 ### テーマ: 0 ベース再設計線の本流化 + 事前確認フローの導入

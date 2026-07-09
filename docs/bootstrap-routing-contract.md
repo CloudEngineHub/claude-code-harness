@@ -1,11 +1,11 @@
 # Bootstrap Routing Contract
 
-Last updated: 2026-05-29
+Last updated: 2026-07-09
 
 ## Purpose
 
 This document defines the Phase 73 bootstrap routing contract for Claude Code,
-Codex CLI, Codex app, OpenCode, Cursor, GitHub Copilot CLI, and Antigravity CLI.
+Codex CLI, Codex app, OpenCode, Cursor, Grok, GitHub Copilot CLI, and Antigravity CLI.
 It keeps bootstrap proof, support tier, and public support claims separate.
 
 Golden prompts in this document are a static contract fixture. They are not
@@ -34,6 +34,7 @@ current artifact set; it does not mean the capability is absent.
 | Codex app | `candidate` | App behavior must be verified separately from Codex CLI; no app support claim before app-specific smoke evidence exists. |
 | OpenCode | `internal-compatible` | `opencode/AGENTS.md` and mirror/package checks are compatibility evidence until runtime bootstrap smoke passes. |
 | Cursor | `internal-compatible` | `.cursor/AGENTS.md`, `.cursor-plugin/plugin.json`, `scripts/setup-cursor.sh`, rules/skills/agents, optional hooks/MCP config shape; static smoke via `tests/test-cursor-adapter-candidate.sh` and `scripts/setup-cursor.sh --check`; observed Desktop skill loading; PM handoff docs are not adapter support; no public supported claim. |
+| Grok | `candidate` | `.grok/AGENTS.md`, `.grok-plugin/plugin.json`, `scripts/setup-grok.sh`, host dist build, `scripts/model-routing.sh --host grok`; static smoke via `tests/test-grok-adapter-candidate.sh` and `scripts/setup-grok.sh --check`; observed `grok plugin install` + `grok inspect` skill discovery; no Claude SessionStart / PreToolUse parity; no public supported claim. |
 | GitHub Copilot CLI | `candidate` | Manual instruction or CLI profile research is allowed; no Harness support claim without Harness-specific bootstrap evidence. |
 | Antigravity CLI | `future/unsupported` | No setup docs, bootstrap route, or support claim until an official or verified adapter route is observed. |
 
@@ -113,9 +114,40 @@ HARNESS_CURSOR_ADAPTER_SMOKE_REQUIRED=1 bash tests/test-cursor-adapter-candidate
 Cloud Agent API smoke is optional paid/auth evidence and must not be conflated
 with local Desktop/CLI adapter proof.
 
+### Grok AGENTS.md and Plugin Route
+
+Grok uses `.grok/AGENTS.md`, `.grok-plugin/plugin.json`, core `skills/` via the
+plugin package, `scripts/setup-grok.sh`, and optional `grok plugin validate` /
+`grok inspect` as its current bootstrap surface.
+
+Expected properties:
+
+- Routing guidance maps plan/work/review/sync/setup intents to Harness skills.
+- Model selection follows `scripts/model-routing.sh --host grok` (explicit CLI
+  `--model` still outranks the routed default).
+- Breezing parallel execution maps to Grok subagents / background tasks only as
+  a smoke target. Core keeps review and cherry-pick serial.
+- Bootstrap evidence is AGENTS.md + plugin manifest + setup-grok install +
+  static smoke + optional CLI install/inspect, not Claude SessionStart hook
+  parity.
+- Grok is `candidate`; public `supported` claim waits for CI-gated workflow smoke.
+
+Required smoke (static minimum):
+
+```bash
+bash tests/test-grok-adapter-candidate.sh
+bash scripts/setup-grok.sh --check
+```
+
+Optional runtime evidence when Grok CLI is available:
+
+```bash
+HARNESS_GROK_ADAPTER_SMOKE_REQUIRED=1 bash tests/test-grok-adapter-candidate.sh
+```
+
 ### Candidate Host Routes
 
-Codex app and GitHub Copilot CLI are candidate hosts in Phase 73. Cursor is
+Codex app, Grok, and GitHub Copilot CLI are candidate hosts. Cursor is
 `internal-compatible` (Phase 87, renumbered from Phase 83). Their routes may be researched, documented,
 and smoke-tested, but candidate hosts are not golden prompt success routes until
 host-specific bootstrap evidence exists.

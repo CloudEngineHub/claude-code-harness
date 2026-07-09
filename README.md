@@ -145,6 +145,7 @@ sponsor can judge without reading code:
 | Codex app | `candidate` | Candidate smoke only; do not reuse Codex CLI proof. |
 | OpenCode | `internal-compatible` | `scripts/setup-opencode.sh`; runtime parity is not claimed. |
 | Cursor | `internal-compatible` | `scripts/setup-cursor.sh` real-directory local install; top support tier still gated on workflow smoke. |
+| Grok | `candidate` | `scripts/setup-grok.sh` plugin package install/check; workflow smoke and Claude hook parity not claimed. |
 | GitHub Copilot CLI | `candidate` | Manual profile research only. |
 | Antigravity CLI | `future/unsupported` | No end-user install route in this phase. |
 
