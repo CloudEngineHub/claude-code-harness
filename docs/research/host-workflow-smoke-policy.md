@@ -39,3 +39,14 @@ Evidence lands in `out/workflow-smoke/<host>/` (gitignored via `out/` if present
 - **PR / validate-plugin path**: structural smoke for registry hosts is recommended on adapter path changes.
 - **Nightly / release**: may set `*_WORKFLOW_SMOKE_REQUIRED=1` when CLI images and secrets are available.
 - **Live model**: never required on every PR (cost + flake). Record decision in decisions.md when promoting to `supported`.
+
+## Live operator runbook (H4)
+
+Copy-paste commands and reply keywords:
+
+- `docs/onboarding/host-live-cli-smoke.md`
+- `bash scripts/print-live-cli-smoke.sh keywords`
+- `bash scripts/print-live-cli-smoke.sh claude|codex|cursor|grok`
+
+Operator replies with one line, e.g. `LIVE: grok PASS`, so the agent can update
+Plans / evidence without re-deriving the procedure.
