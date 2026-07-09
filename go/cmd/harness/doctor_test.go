@@ -7,58 +7,12 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
-// ---------------------------------------------------------------------------
-// TestDoctor_Residue
-// ---------------------------------------------------------------------------
-
-// TestDoctor_Residue verifies that runResidueCheck calls scripts/check-residue.sh
-// and returns the correct exit code.
-//
-// This is an integration test that invokes the actual scanner against the
-// repository. The scanner is expected to be in a clean state (exit 0) after
-// Phase 40 baseline work. Run with -short to skip.
-//
-// NOTE: The scanner may take up to ~30 seconds on large repositories.
-// Future phases may introduce a --fast flag to the scanner for test use.
-func TestDoctor_Residue(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode (scanner can be slow)")
-	}
-
-	// Resolve the project root from the test binary's location.
-	// The test runs from go/cmd/harness/, so we go up three levels.
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("os.Getwd: %v", err)
-	}
-	// go up: harness/ -> cmd/ -> go/ -> project root
-	projectRoot := filepath.Join(cwd, "..", "..", "..")
-
-	// Verify the scanner script exists at the expected location.
-	script := filepath.Join(projectRoot, "scripts", "check-residue.sh")
-	if _, err := os.Stat(script); err != nil {
-		t.Skipf("scripts/check-residue.sh not found at %s — skipping integration test", script)
-	}
-
-	exitCode := runResidueCheck(projectRoot)
-	// The scanner must exit 0 (clean state) after Phase 40 baseline commit.
-	if exitCode != 0 {
-		t.Errorf("runResidueCheck returned exit code %d, want 0 (clean state)", exitCode)
-	}
-}
-
-// TestDoctor_Residue_MissingScript verifies that runResidueCheck returns exit
-// code 2 when the scanner script does not exist.
-func TestDoctor_Residue_MissingScript(t *testing.T) {
-	dir := t.TempDir() // empty dir — no scripts/check-residue.sh
-
-	exitCode := runResidueCheck(dir)
-	if exitCode != 2 {
-		t.Errorf("expected exit code 2 when script is missing, got %d", exitCode)
-	}
-}
+// NOTE: TestDoctor_Residue and TestDoctor_Residue_MissingScript were removed in
+// Phase 91.7 together with runResidueCheck / scripts/check-residue.sh (migration-residue
+// scaffolding superseded by go/internal/policy/selfaudit.go).
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -441,74 +395,6 @@ func TestDoctor_CheckJSONFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// TestDoctor_CheckHooksJSONPair — tri-state per active-watching-test-policy:
-// not-configured (fresh project) must pass, orphaned/corrupted must fail.
-// ---------------------------------------------------------------------------
-
-func TestDoctor_CheckHooksJSONPair_NotConfigured(t *testing.T) {
-	dir := t.TempDir()
-
-	r := checkHooksJSONPair(dir)
-	if !r.ok {
-		t.Errorf("expected ok=true for fresh project without hooks/ (detail: %s)", r.detail)
-	}
-	if !strings.Contains(r.detail, "optional") {
-		t.Errorf("expected 'optional' in detail, got %q", r.detail)
-	}
-}
-
-func TestDoctor_CheckHooksJSONPair_Healthy(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, "hooks"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "hooks", "hooks.json"), []byte(`{"hooks":{}}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	r := checkHooksJSONPair(dir)
-	if !r.ok {
-		t.Errorf("expected ok=true for valid hooks/hooks.json, got false (detail: %s)", r.detail)
-	}
-}
-
-func TestDoctor_CheckHooksJSONPair_Corrupted(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, "hooks"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "hooks", "hooks.json"), []byte("{bad json"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	r := checkHooksJSONPair(dir)
-	if r.ok {
-		t.Error("expected ok=false for invalid JSON in hooks/hooks.json")
-	}
-	if !strings.Contains(r.detail, "invalid JSON") {
-		t.Errorf("expected 'invalid JSON' in detail, got %q", r.detail)
-	}
-}
-
-func TestDoctor_CheckHooksJSONPair_OrphanedDest(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, ".claude-plugin"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, ".claude-plugin", "hooks.json"), []byte(`{"hooks":{}}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	r := checkHooksJSONPair(dir)
-	if r.ok {
-		t.Error("expected ok=false when synced copy exists without its hooks/hooks.json source")
-	}
-	if !strings.Contains(r.detail, "orphaned") {
-		t.Errorf("expected 'orphaned' in detail, got %q", r.detail)
-	}
-}
-
-// ---------------------------------------------------------------------------
 // TestDoctor_CheckStateDB
 // ---------------------------------------------------------------------------
 
@@ -858,5 +744,90 @@ func TestDoctor_NonCommandHooksSkipped(t *testing.T) {
 	}
 	if totalGo != 0 {
 		t.Errorf("expected 0 Go entries, got %d", totalGo)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_CheckHarnessWorktrees
+// ---------------------------------------------------------------------------
+
+func TestDoctor_CheckHarnessWorktrees_Absent(t *testing.T) {
+	dir := t.TempDir()
+
+	r := checkHarnessWorktrees(dir)
+	if !r.ok {
+		t.Fatalf("expected ok=true when .harness-worktrees/ is absent, got false: %s", r.detail)
+	}
+	if !strings.Contains(r.detail, "not found") {
+		t.Errorf("expected absent detail, got %q", r.detail)
+	}
+}
+
+func TestDoctor_DetectHarnessWorktreeResidue_NewWorktree(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, ".harness-worktrees")
+	fresh := filepath.Join(root, "task-fresh")
+	if err := os.MkdirAll(fresh, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings := detectHarnessWorktreeResidue(root, entries, map[string]bool{filepath.Clean(fresh): true}, time.Now())
+	if len(findings) != 0 {
+		t.Fatalf("expected no findings for fresh registered worktree, got %+v", findings)
+	}
+}
+
+func TestDoctor_DetectHarnessWorktreeResidue_OldWorktree(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, ".harness-worktrees")
+	oldPath := filepath.Join(root, "task-old")
+	if err := os.MkdirAll(oldPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldTime := time.Now().Add(-(harnessWorktreeStaleAfter + time.Hour))
+	if err := os.Chtimes(oldPath, oldTime, oldTime); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings := detectHarnessWorktreeResidue(root, entries, map[string]bool{filepath.Clean(oldPath): true}, time.Now())
+	if len(findings) != 1 {
+		t.Fatalf("expected one old worktree finding, got %+v", findings)
+	}
+	if !findings[0].old || findings[0].orphan {
+		t.Fatalf("expected old=true orphan=false, got %+v", findings[0])
+	}
+}
+
+func TestDoctor_DetectHarnessWorktreeResidue_OrphanWorktree(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, ".harness-worktrees")
+	orphanPath := filepath.Join(root, "task-orphan")
+	if err := os.MkdirAll(orphanPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings := detectHarnessWorktreeResidue(root, entries, map[string]bool{}, time.Now())
+	if len(findings) != 0 {
+		t.Fatalf("empty registered map means orphan detection unavailable, got %+v", findings)
+	}
+
+	findings = detectHarnessWorktreeResidue(root, entries, map[string]bool{filepath.Join(dir, "other"): true}, time.Now())
+	if len(findings) != 1 {
+		t.Fatalf("expected one orphan worktree finding, got %+v", findings)
+	}
+	if findings[0].old || !findings[0].orphan {
+		t.Fatalf("expected old=false orphan=true, got %+v", findings[0])
 	}
 }

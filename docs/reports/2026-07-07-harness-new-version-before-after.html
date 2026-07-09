@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code Harness 新バージョン Before / After</title>
+<style>
+:root{
+  --bg:#F5F4F1; --surface:#FCFBF9; --surface-2:#F0EFEA;
+  --ink:#1B1B22; --ink-soft:#5A5A64; --ink-faint:#8C8C92;
+  --line:#E4E2DB; --line-strong:#D2CFC6;
+  --primary:#313A7E; --primary-soft:#E9EAF4; --primary-ink:#262E66;
+  --kernel:#191B2C; --kernel-2:#23263c; --kernel-line:#343750; --kernel-ink:#C9CBE0;
+  --done:#2F8F5B; --done-soft:#E4F2EA; --done-line:#B7DCC7;
+  --wip:#B8821C; --wip-soft:#F6EDD8;
+  --risk:#B5462F; --risk-soft:#F6E7E2; --risk-line:#E5C0B4;
+  --info:#2C5A7A; --info-soft:#E3ECF1;
+  --plain:#1f7a6d; --plain-soft:#E1F1EE; --plain-line:#BBE0D9;
+  --api:#8B3A62; --api-soft:#F4E6EE; --api-line:#E0B8CC;
+  --radius:10px;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;word-break:keep-all;overflow-wrap:normal;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px;}
+h1,h2,h3{line-height:1.4;}
+a{color:var(--primary-ink);}
+
+/* hero */
+.hero{background:linear-gradient(135deg,#191B2C,#23263c 60%,#313A7E);color:#fff;margin:0 -20px 40px;padding:52px 40px 44px;border-radius:0 0 18px 18px;}
+.badge{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#dfe0ee;padding:5px 12px;border-radius:999px;margin-bottom:18px;}
+.hero h1{margin:0 0 14px;font-size:30px;font-weight:800;color:#fff;}
+.hero .tag{color:#c9cbe0;font-size:15px;margin:0 0 22px;max-width:760px;}
+.thesis{border-left:4px solid #8f9bff;background:rgba(255,255,255,.07);padding:14px 20px;border-radius:0 8px 8px 0;font-size:16px;color:#eef0ff;}
+.hero-meta{margin-top:24px;display:flex;flex-wrap:wrap;gap:8px 22px;font-size:12.5px;color:#a9abc4;}
+.hero-meta span{white-space:nowrap;}
+
+/* generic */
+section{margin:0 0 40px;}
+.kicker{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin-bottom:6px;}
+h2.sec{font-size:22px;margin:2px 0 16px;font-weight:800;}
+.num{color:var(--primary);font-weight:800;margin-right:8px;}
+p{margin:0 0 14px;}
+.small{font-size:13px;color:var(--ink-soft);}
+
+/* plainbox */
+.plainbox{background:var(--plain-soft);border:1px solid var(--plain-line);border-left:4px solid var(--plain);border-radius:0 8px 8px 0;padding:18px 22px;margin:0 0 22px;}
+.plainbox h3{margin:0 0 8px;font-size:15px;color:var(--plain);}
+.plainbox p{margin:0 0 8px;font-size:14.5px;}
+
+/* tlgrid */
+.tlgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 8px;}
+.tlcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+.tlcard .q{font-weight:700;font-size:14px;margin:0 0 6px;color:var(--primary-ink);}
+.tlcard .a{font-size:13.5px;color:var(--ink-soft);margin:0;}
+
+/* figure panel */
+.figure{background:var(--kernel);border:1px solid var(--kernel-line);border-radius:12px;padding:22px 20px;margin:6px 0 20px;color:var(--kernel-ink);}
+.figure .cap{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8f92ad;margin:0 0 16px;}
+.locgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.loc{background:var(--kernel-2);border:1px solid var(--kernel-line);border-radius:9px;padding:12px 12px 14px;min-height:118px;}
+.loc h4{margin:0 0 9px;font-size:12.5px;color:#b9bcd6;font-weight:700;border-bottom:1px solid var(--kernel-line);padding-bottom:6px;}
+.chip{display:block;background:#2c3050;border:1px solid #3c405f;border-radius:6px;padding:6px 9px;margin:6px 0;font-size:12px;color:#d7d9ec;}
+.chip.on{background:#1f3d2f;border-color:#2f8f5b;color:#a9e3c2;}
+.chip.off{background:#3a2320;border-color:#7a3b2f;color:#e6b3a6;}
+.chip.empty{background:transparent;border:1px dashed #3c405f;color:#6b6f8c;font-style:italic;}
+.fignote{margin:14px 0 0;font-size:12px;color:#9a9db8;}
+
+/* table */
+table{width:100%;border-collapse:collapse;margin:6px 0 18px;font-size:13.5px;}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+th{background:var(--surface-2);font-size:12px;letter-spacing:.03em;color:var(--ink-soft);text-transform:uppercase;}
+tr.hit td{background:var(--done-soft);}
+tr.gap td{background:var(--risk-soft);}
+td .lbl{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;}
+.lbl.g{background:var(--done);color:#fff;}
+.lbl.r{background:var(--risk);color:#fff;}
+.lbl.w{background:var(--wip);color:#fff;}
+code{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px;}
+
+/* verdict / openbox */
+.verdict{background:var(--done-soft);border:1px solid var(--done-line);border-left:4px solid var(--done);border-radius:0 8px 8px 0;padding:18px 22px;margin:8px 0 20px;}
+.verdict h3{margin:0 0 8px;font-size:16px;color:#1f6b43;}
+.openbox{background:var(--wip-soft);border:1px solid #e6d19a;border-left:4px solid var(--wip);border-radius:0 8px 8px 0;padding:18px 22px;margin:8px 0 20px;}
+.openbox h3{margin:0 0 8px;font-size:15px;color:#8a6110;}
+.openbox ul{margin:6px 0 0;padding-left:20px;}
+.openbox li{font-size:13.5px;margin:4px 0;}
+
+/* footer */
+footer{border-top:1px solid var(--line-strong);margin-top:50px;padding-top:22px;font-size:12.5px;color:var(--ink-soft);}
+footer h4{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 8px;}
+footer ul{margin:0 0 16px;padding-left:18px;}
+footer li{margin:3px 0;}
+.disclaimer{font-style:italic;color:var(--ink-faint);}
+
+@media (max-width:720px){
+  .tlgrid{grid-template-columns:1fr;}
+  .locgrid{grid-template-columns:1fr 1fr;}
+  .hero h1{font-size:24px;}
+}
+@media print{
+  body{background:#fff;}
+  .hero{margin:0 0 30px;border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .figure,.plainbox,.verdict,.openbox,tr.hit td,tr.gap td,.chip{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  section{page-break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="badge">Claude Code Harness ／ Before-After 判断材料</span>
+  <h1>新バージョンは「書いたことが全部本当」になったか？</h1>
+  <p class="tag">フラットレビューで見つかった「主張はあるが動かない」機能を潰し、その主張を CI が機械で検証し続ける状態にするのが今回の改修。before は公開中の v4.16.4 と手直し前の再設計線、after は Wave 1+2（22 タスク）+ 2 ラウンドのコードレビュー修正まで通した再設計線。</p>
+  <div class="thesis">結論: after は「実装された機能が本当に配線されているか」を CI が検証する状態に到達した。34 コミット・go テスト 43 パッケージ全通過・整合 23 ゲート全通過。レビューは 2 ラウンドで 6 件（うち安全に関わる重大 2 件）を摘出し、いずれも修正済みで最終判定は合格。</div>
+  <div class="hero-meta">
+    <span>作成日: 2026-07-07</span>
+    <span>対象: operator（橘）</span>
+    <span>branch: plan/zero-base-redesign</span>
+    <span>本レポートは派生物・正本ではない</span>
+  </div>
+</div>
+
+<!-- TL;DR -->
+<section>
+  <div class="kicker">TL;DR</div>
+  <div class="plainbox">
+    <h3>やさしく言うと</h3>
+    <p>これまでの製品は、説明書（README・仕様書）に「できます」と書いてあるのに、中を開けると配線されていない部品（= どこからも呼ばれず動かないコード）がいくつも混ざっていた。健康診断（テスト）は全部緑なのに、その緑が「実際に使う道」を通っていなかった。</p>
+    <p>今回やったのは 2 つ。①動かない部品を捨てるか正しく繋ぐ。②「書いたことが本当か」を機械が毎回チェックする関所（= CI ゲート）を新設する。関所は、部品が本当に繋がっているか・作業台帳に矛盾がないか・配布する実行ファイルがソースから再現できるかを見張る。</p>
+    <p>さらに、外部の目（Codex と別系統の AI）でコードレビューを 2 周した。すると自分の直したコードに新しい穴（秘密ファイル保護の抜け道など）が見つかり、それも全部塞いだ。「動くふりの検証では捕まらない穴」が実際に捕まった。</p>
+  </div>
+  <div class="tlgrid">
+    <div class="tlcard"><p class="q">Q. 機能は増えた？</p><p class="a">ほぼ増えていない。増えたのは「嘘をゼロにする」ことと「嘘を検出する関所」。約 2,100 行の死んだコードは逆に減った。</p></div>
+    <div class="tlcard"><p class="q">Q. 安全性は上がった？下がった？</p><p class="a">上がった。公開版にあった秘密ファイル誤登録ブロックを移植し、さらにレビューで見つけた 2 つの抜け道（引用符での回避・複数行での取りこぼし）も塞いだ。</p></div>
+    <div class="tlcard"><p class="q">Q. これは公開してよい状態？</p><p class="a">レビュー判定は合格。ただし公開はまだ。手動作業（CI 設定の 1 点・push 判断）が残っており、それは operator 判断。</p></div>
+    <div class="tlcard"><p class="q">Q. どのモデルでも動く？</p><p class="a">はい。モデル配線を Sonnet 5 世代へ更新し、7/7 で止まる Fable への依存はゼロと確認済み。</p></div>
+  </div>
+</section>
+
+<!-- 1. before/after 同一骨格 -->
+<section>
+  <div class="kicker">Section 01 ／ Claim vs Reality</div>
+  <h2 class="sec"><span class="num">1</span>「主張」と「実体」の一致度 — 同じ骨格で before/after</h2>
+  <p>製品の主張（README/仕様の ✅）が、実際に配線され動く実体と一致しているかを、4 つの層で並べる。緑 = 主張と実体が一致、赤 = 主張はあるが実体が伴わない。<strong>両図は同じ 4 層</strong>で、差分だけを読めるようにしてある。</p>
+
+  <div class="figure">
+    <p class="cap">BEFORE — フラットレビュー前（主張と実体のズレが残る）</p>
+    <div class="locgrid">
+      <div class="loc"><h4>① 安全ガード</h4>
+        <span class="chip on">R01–R14 ガードレール</span>
+        <span class="chip off">R15 秘密ファイル保護（不在）</span>
+      </div>
+      <div class="loc"><h4>② 実装の実体</h4>
+        <span class="chip off">Bridge 等 ~1900 行（到達不能）</span>
+        <span class="chip off">判断カード（呼ぶ人ゼロ）</span>
+        <span class="chip off">auto-approve（記録だけ）</span>
+      </div>
+      <div class="loc"><h4>③ 台帳の整合</h4>
+        <span class="chip off">前提 todo のまま完了記帳</span>
+        <span class="chip empty">検出する関所（なし）</span>
+      </div>
+      <div class="loc"><h4>④ 言行一致の検証</h4>
+        <span class="chip empty">配線チェック（なし）</span>
+        <span class="chip empty">配布物一致チェック（なし）</span>
+      </div>
+    </div>
+    <p class="fignote">緑 1 / 赤・空 8。健康診断は緑でも、その緑が実使用経路を通らない状態。</p>
+  </div>
+
+  <div class="figure">
+    <p class="cap">AFTER — Wave 1+2 + レビュー修正後（主張=実体に収束）</p>
+    <div class="locgrid">
+      <div class="loc"><h4>① 安全ガード</h4>
+        <span class="chip on">R01–R14 ガードレール</span>
+        <span class="chip on">R15 秘密ファイル保護（移植+穴塞ぎ）</span>
+      </div>
+      <div class="loc"><h4>② 実装の実体</h4>
+        <span class="chip on">死コード削除（−2,118 行）</span>
+        <span class="chip on">判断カード＝保留と正直に明記</span>
+        <span class="chip on">auto-approve＝記録のみと訂正</span>
+      </div>
+      <div class="loc"><h4>③ 台帳の整合</h4>
+        <span class="chip on">依存↔状態 整合チェッカー</span>
+        <span class="chip on">CI ゲート [20/23] で強制</span>
+      </div>
+      <div class="loc"><h4>④ 言行一致の検証</h4>
+        <span class="chip on">配線チェック / 台帳 / i18n 関所</span>
+        <span class="chip on">配布物↔ソース 一致ゲート [22/23]</span>
+      </div>
+    </div>
+    <p class="fignote">緑 8 / 赤 0。主張は「配線が証明された機能」だけに絞られ、関所が逸脱を毎回止める。</p>
+  </div>
+</section>
+
+<!-- 2. 変更一覧 table -->
+<section>
+  <div class="kicker">Section 02 ／ What Changed</div>
+  <h2 class="sec"><span class="num">2</span>何が before → after で変わったか</h2>
+  <table>
+    <thead><tr><th>観点</th><th>Before</th><th>After</th><th>種別</th></tr></thead>
+    <tbody>
+      <tr class="hit"><td>秘密ファイルの <code>git add</code></td><td>再設計線では素通り</td><td>Claude / Codex / Cursor のどこからでも拒否。引用符・複数行の回避も封鎖</td><td><span class="lbl g">安全↑</span></td></tr>
+      <tr class="hit"><td>「完了」の定義</td><td>部品単体テストが通れば完了記帳できた</td><td>本体に配線 + 台帳無矛盾 + 配布物一致で初めて完了</td><td><span class="lbl g">整合↑</span></td></tr>
+      <tr class="hit"><td>死んだコード</td><td>Bridge 等 約 2,100 行が到達不能で残存</td><td>削除。設計知見は仕様書へ翻訳記録</td><td><span class="lbl g">引き算</span></td></tr>
+      <tr class="hit"><td>auto-approve の看板</td><td>機能があるように読める（実際は記録のみ）</td><td>「承認は省略されない」と正直に訂正</td><td><span class="lbl g">言行一致</span></td></tr>
+      <tr class="hit"><td>非エンジニア 3 画面</td><td>存在するが本流から孤立・案内なし</td><td>計画・作業・出荷の各段で自動提示</td><td><span class="lbl g">体験↑</span></td></tr>
+      <tr class="hit"><td>モデル配線</td><td>旧世代 sonnet-4-6 をハードコード</td><td>Sonnet 5 世代へ更新。Fable 依存ゼロ</td><td><span class="lbl g">更新</span></td></tr>
+      <tr class="gap"><td>判断カード（Decision Card）</td><td>「完了」と記帳（実際は未配線）</td><td>「保留（wired:no）」と正直に明記。✅ 主張しない</td><td><span class="lbl w">正直な保留</span></td></tr>
+      <tr class="gap"><td>日本語→英語 i18n の全移行</td><td>Go の 13 ファイルで英語既定契約が破綻</td><td>再発防止の関所は新設。全移行は残 12 ファイルを Phase 106 に起票</td><td><span class="lbl w">段階返済</span></td></tr>
+    </tbody>
+  </table>
+  <p class="small">緑行 = 主張と実体が一致した項目。黄（gap 行）= 正直に「保留・段階的」と表明した項目。盛らずに現状のまま記載。</p>
+</section>
+
+<!-- 3. review round -->
+<section>
+  <div class="kicker">Section 03 ／ Adversarial Review</div>
+  <h2 class="sec"><span class="num">3</span>外部の目が捕まえた 6 件 — うち 2 件は自分の実装の安全回帰</h2>
+  <p>2 系統の AI（Codex と Claude Sonnet 5）で 2 ラウンドのレビューを実施。1 ラウンド目で 6 件を摘出、全て実際にコードを抽出・実行して確認した実証拠つき。特に重大 2 件は、今回の改修で私自身が作り込んだ安全回帰だった。</p>
+  <table>
+    <thead><tr><th>重大度</th><th>指摘</th><th>検出</th><th>処置</th></tr></thead>
+    <tbody>
+      <tr class="gap"><td><span class="lbl r">重大</span></td><td>R15 が <code>git "-C" add .env</code>（フラグを引用符で囲む）で回避できた</td><td>Claude</td><td>引用符の短絡を除去 + 回避 4 形態の拒否テスト</td></tr>
+      <tr class="gap"><td><span class="lbl r">重大</span></td><td>秘密読取の誤検知修正が逆に複数行文字列で <code>&amp;&amp; cat .env</code> を取りこぼし（見逃し）</td><td>Claude</td><td>引用符状態を行またぎ伝播 + 回帰テスト</td></tr>
+      <tr><td><span class="lbl w">主要</span></td><td>言行一致の関所が <code>https://</code> を含む行で自己無効化しうる</td><td>Claude</td><td>引用符認識のコメント除去に置換</td></tr>
+      <tr><td><span class="lbl w">主要</span></td><td>削除した部品を叩く孤児テストが残存</td><td>Claude</td><td>孤児テスト・fixture を削除</td></tr>
+      <tr><td><span class="lbl w">中</span></td><td>配線した通知フックが必須引数欠落で実は動かない</td><td>Codex</td><td>既定パス解決 + 実行テスト追加</td></tr>
+      <tr><td><span class="lbl w">中</span></td><td>作業用フォルダのポインタが誤って追跡対象に混入</td><td>Codex</td><td>追跡から除去</td></tr>
+    </tbody>
+  </table>
+  <p class="small">2 ラウンド目の再レビュー判定は APPROVE（6 件全解消・新たな回帰なし・全て実証検証済み）。</p>
+</section>
+
+<!-- verdict -->
+<section>
+  <div class="kicker">Verdict</div>
+  <div class="verdict">
+    <h3>判定: レビュー合格。ただし公開はもう一手 operator 判断が要る</h3>
+    <p>after は「主張=実体」に収束し、それを 23 個の CI ゲートが毎回検証する状態に到達した。go テスト 43 パッケージ・整合ゲート全通過。2 系統 AI レビュー 2 ラウンドで重大 2 件を含む 6 件を摘出・全修正。コード面の品質判定は合格。次は公開（push / 配布）に関わる手動判断だけが残る。</p>
+  </div>
+</section>
+
+<!-- openbox -->
+<section>
+  <div class="openbox">
+    <h3>正直な但し書き（未確定・operator 判断待ち）</h3>
+    <ul>
+      <li><strong>公開はまだ。</strong>34 コミットはローカル commit のみで、push はしていない。</li>
+      <li><strong>CI 設定の手動パッチが 1 点未適用。</strong>配布物一致ゲートを CI 上でも緑にするには、保護されたワークフロー設定を <code>-trimpath</code> ビルドに揃える手直しが要る（ローカルは緑）。保護対象のため AI からは変更できず、手動作業。</li>
+      <li><strong>Slack 送信は現状できない。</strong>送信用の連携（Hermes）がセッション中に切断された。この PDF は直接お渡しする。</li>
+      <li><strong>i18n は段階返済。</strong>関所（新規違反の防止）は入ったが、既存の日本語直書き 12 ファイルの移行は Phase 106 として別途。</li>
+      <li><strong>判断カードは保留。</strong>「人間は判断だけ」の体験の心臓部だが、今回は配線せず正直に保留と記帳した。次段で配線予定。</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <h4>SSOT 出典</h4>
+  <ul>
+    <li><code>GOD_plans.md</code>（local-only 正本）§4 戦略ステージ S0–S5 / §5 判断台帳 DP-1 / §7 安定稼働基準 / §8 手動アクション M1–M5</li>
+    <li><code>Plans.md</code> Phase 104（P0・10 タスク）/ Phase 105（P1・12 タスク）/ Phase 106（i18n follow-up）</li>
+    <li><code>.claude/memory/decisions.md</code> D57（redesign 条件付き本流化 GO、確信度 high）</li>
+    <li><code>docs/flat-review-2026-07-05-closeout.md</code>（25 findings closeout: fixed 24 / waived 1 / 未処理 0）</li>
+    <li>レビュー修正コミット: <code>bd877d02</code>（Codex findings）/ <code>7aa11634</code>（Claude 重大・主要）/ <code>fad2ce4f</code>（孤児 fixture）</li>
+  </ul>
+  <h4>分析方法・制約</h4>
+  <ul>
+    <li>数値は redesign worktree（branch plan/zero-base-redesign, HEAD 以降）での実測: 34 コミット・go test 43 パッケージ・削除 −2,118 行・整合 23 ゲート。</li>
+    <li>レビューは Codex（adversarial-review）と Claude Sonnet 5 の 2 系統・2 ラウンド。findings は各レビュアーが関数抽出・実行で実証済み。Lead が独立に再確認して修正。</li>
+    <li>制約: 公開版 CI 上での配布物一致ゲートは手動パッチ未適用のため未検証（ローカルのみ緑）。</li>
+  </ul>
+  <p class="disclaimer">本レポートは判断材料の派生物であり、正本ではない。正本は上記 SSOT 各ファイル。</p>
+</footer>
+
+</div>
+</body>
+</html>

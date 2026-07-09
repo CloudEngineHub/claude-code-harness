@@ -101,7 +101,7 @@ func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 	workWarning := h.checkWorkModeWarning(stateDir, pending, inProgress, done)
 
 	// additionalContext として同期情報を出力
-	ctx := fmt.Sprintf("[TodoSync] Plans.md と同期: TODO=%d, WIP=%d, done=%d%s",
+	ctx := fmt.Sprintf(localizedHarnessMessage("ja", "[TodoSync] Synced with Plans.md: TODO=%d, WIP=%d, done=%d%s", "[TodoSync] Plans.md と同期: TODO=%d, WIP=%d, done=%d%s"),
 		pending, inProgress, done, workWarning)
 
 	return writeTodoSyncOutput(w, ctx)
@@ -198,7 +198,9 @@ func (h *TodoSyncHandler) checkWorkModeWarning(stateDir string, pending, inProgr
 		return ""
 	}
 
-	return fmt.Sprintf("\n\n⚠️ **work 完了前チェック**: review_status=%s\n→ 完了処理の前に /harness-review で APPROVE を取得してください",
+	return fmt.Sprintf(localizedHarnessMessage("ja",
+		"\n\nWarning: **pre-work-completion check**: review_status=%s\n-> Get APPROVE via /harness-review before completion.",
+		"\n\n⚠️ **work 完了前チェック**: review_status=%s\n→ 完了処理の前に /harness-review で APPROVE を取得してください"),
 		state.ReviewStatus)
 }
 

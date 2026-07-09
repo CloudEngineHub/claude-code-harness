@@ -25,6 +25,14 @@ Claude Code sandbox（macOS Seatbelt / Linux bubblewrap）は **allowlist defaul
 
 Firecrawl plugin の `SKILL.md` を確認すると `allowed-tools: Bash(firecrawl *)`。つまり Firecrawl CLI は Bash subprocess として走り、sandbox の影響を直接受ける（MCP server ではない）。
 
+## Migration: runtime floor secret allow は plan-time 事前確認へ
+
+`HARNESS_RUNTIME_FLOOR_SECRET_ALLOW` のような広域・常設の secret-read allow 宣言は、新規運用では避ける。
+代わりに `/harness-plan create` の計画確定時に **事前確認セクション**を出し、task scope ごとに必要な secret-read path / 外部送信 / 破壊的操作を一括承認する。
+
+承認結果は `.claude/state/plan-preapprovals.json`（`plan-preapproval.v1`）に保存し、`/harness-work` / `/breezing` の run 開始時に `scripts/plan-preapproval.sh apply-secret-allow "$PROJECT_ROOT"` が承認済み `secret-read` path だけを project config の `runtimefloor.secretAllow` へ反映する。
+記録に無い未計画の secret-read / 外部送信は従来どおり runtime floor / ask で停止するため、安全網は狭めない。
+
 ## 解決: `~/.claude/settings.json` に sandbox 設定を merge
 
 **重要**: `~/.claude/settings.json` に **既存の `sandbox` キーがあるかどうか** で 2 ケース分岐する。誤って既存 sandbox を上書きすると、`failIfUnavailable` / `filesystem.denyRead` / `network.deniedDomains` などの既存 guardrail が消える。

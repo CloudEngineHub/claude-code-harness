@@ -136,8 +136,8 @@ func TestHandlePlansWatcher_NewTaskDetected(t *testing.T) {
 	}
 
 	// 新規タスクが検出されること
-	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "新規タスク") {
-		t.Errorf("expected '新規タスク' in additionalContext, got %q",
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "New task") {
+		t.Errorf("expected 'New task' in additionalContext, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 
@@ -146,8 +146,8 @@ func TestHandlePlansWatcher_NewTaskDetected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pm-notification.md not created: %v", err)
 	}
-	if !strings.Contains(string(data), "新規タスク") {
-		t.Errorf("pm-notification.md should contain '新規タスク', got: %s", string(data))
+	if !strings.Contains(string(data), "New task") {
+		t.Errorf("pm-notification.md should contain 'New task', got: %s", string(data))
 	}
 }
 
@@ -231,8 +231,8 @@ func TestHandlePlansWatcher_CompletedTaskDetected(t *testing.T) {
 		t.Fatalf("invalid JSON output: %v", jsonErr)
 	}
 
-	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "タスク完了") {
-		t.Errorf("expected 'タスク完了' in additionalContext, got %q",
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "Task completed") {
+		t.Errorf("expected 'Task completed' in additionalContext, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 }
@@ -326,8 +326,8 @@ func TestHandlePlansWatcher_StatusSummary(t *testing.T) {
 	if !strings.Contains(ctx, "cc:WIP") {
 		t.Errorf("expected 'cc:WIP' in summary, got %q", ctx)
 	}
-	if !strings.Contains(ctx, "cc:完了") {
-		t.Errorf("expected 'cc:完了' in summary, got %q", ctx)
+	if !strings.Contains(ctx, "cc:done") {
+		t.Errorf("expected 'cc:done' in summary, got %q", ctx)
 	}
 }
 
@@ -459,8 +459,8 @@ func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 	}
 
 	// cursor:依頼中 も新規タスクとして検出されること
-	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "新規タスク") {
-		t.Errorf("expected '新規タスク' for cursor:依頼中, got %q",
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "New task") {
+		t.Errorf("expected 'New task' for cursor:依頼中, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 }
@@ -515,8 +515,8 @@ func TestHandlePlansWatcher_CustomPlansDirectory(t *testing.T) {
 	}
 
 	// 新規タスクが検出されること（カスタムパスの Plans.md が認識される）
-	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "新規タスク") {
-		t.Errorf("expected '新規タスク' in additionalContext for custom plansDirectory, got %q",
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "New task") {
+		t.Errorf("expected 'New task' in additionalContext for custom plansDirectory, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 }

@@ -59,3 +59,34 @@ v3.6.1 (03/09) — Auto Mode 準備         ← prep は patch
 - タグの削除・巻き戻し（公開済みバージョンは不変）
 - 同日に 2 回以上の minor バンプ
 - patch レベルの変更での minor バンプ
+
+## Release Train Proposal
+
+リリースは「コミット / PR ごと」ではなく、`CHANGELOG.md` の `[Unreleased]` に変更を溜め、
+基準を満たしたら**候補を提案**し、人間が GO と言ったときだけ出す（細粒度リリースを避ける）。
+
+- 蓄積層は `[Unreleased]` のみを触り、VERSION / plugin.json / harness.toml は bump しない。
+- 提案器 `harness-release --check` は read-only。トリガー発火時に `RELEASE_CANDIDATE`
+  （推定 bump 付）を表示するだけで、version 面を一切書き換えない。
+- v1 トリガー（まず 1 ルールで始める）: 最終 tag から **7 日経過** OR `### Breaking` が
+  `[Unreleased]` に存在。`### Security` があるときは **2 日**に短縮。N 件カウント等の
+  多閾値マトリクスは、運用で cadence が問題化するまで足さない。
+- これは gate ではなく**提案**。無視はノーコスト、次の閾値で再提案される。Session Monitor
+  に tri-state（Candidate / None / NotApplicable）で受動表示し、
+  `active-watching-test-policy.md` の 3 状態命名に従う（候補なしは silent）。
+- 人間が GO したら既存 `harness-release` がそのまま走る（bump 検出 → 4 点同期 →
+  CHANGELOG promote → PR → main → tag → GitHub Release）。バッチ化は 4 点同期を
+  1 リリース 1 回に集約し、「同日 2 minor」違反を構造的に防ぐ。
+
+## Plan B Stage B Release Trigger
+
+Plan B 工程表の **stage b 完成** は minor リリース候補。
+
+- 達成条件: Phase 92.x（base 衛生 + 実行時フロア + 集約硬化 + Producer 階層 + Mode 2 live-messaging）+
+  Phase 93.x（/breezing MVP + 契約修正ラウンド）+ Phase 95.x（Bridge Daemon + Decision Card 本格版 + mem 読出層）+
+  Phase 96.1.1-96.1.4（Risk Gate Export + 3 CLI hook parity + auto-approve opt-in + deny baseline hardening）が
+  すべて `cc:done`、かつ 93.3.6 / 95.5.1 / 96.1.5 の検証セクションで evidence 付き完走判定。
+- リリース判定: stage b 完成 = minor リリース候補のシグナル。実 GO 判断は `harness-release` 提案器の通常フローと統合する。
+- Release Train v1 trigger（7 日経過 / Breaking / Security）との関係: stage b 完成は **追加の候補シグナル**であり、
+  既存 v1 trigger を上書きしない。stage b 完成 + 既存 trigger が同時に成立すれば 1 minor バッチに集約する。
+- Phase 94 (Release Train Proposal 実装) の本体実装は本 trigger の上に乗る — stage b は判断材料、Phase 94 は判定機構。

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/breezingmem"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/harnessmem"
 )
 
@@ -70,6 +71,10 @@ func runMemCommand(args []string, stdout, stderr io.Writer) int {
 		return streamHarnessMem("recall", []string{"off"}, false, stdout, stderr)
 	case "purge":
 		return runMemPurge(args[1:], stdout, stderr)
+	case "record-breezing-event":
+		return runMemRecordBreezingEvent(args[1:], stdout, stderr)
+	case "search-similar":
+		return runMemSearchSimilar(args[1:], stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "Unknown mem subcommand: %s\n", args[0])
 		return 1
@@ -304,4 +309,156 @@ func ensureTrailingNewline(s string) string {
 		return s
 	}
 	return s + "\n"
+}
+
+// runMemRecordBreezingEvent handles `harness mem record-breezing-event` for the
+// skill layer (brief-confirmed today; extensible via --type).
+func runMemRecordBreezingEvent(args []string, _ io.Writer, stderr io.Writer) int {
+	opts, err := parseMemRecordBreezingEventArgs(args)
+	if err != nil {
+		fmt.Fprintf(stderr, "harness mem record-breezing-event: %v\n", err)
+		return 1
+	}
+	eventType, ok := breezingEventTypeFromCLI(opts.Type)
+	if !ok {
+		fmt.Fprintf(stderr, "harness mem record-breezing-event: unknown type %q\n", opts.Type)
+		return 1
+	}
+	breezingMemClient.RecordEvent(context.Background(), eventType, opts.Project, opts.Session, opts.Content)
+	return 0
+}
+
+type memRecordBreezingEventOpts struct {
+	Type    string
+	Project string
+	Session string
+	Content string
+}
+
+func parseMemRecordBreezingEventArgs(args []string) (memRecordBreezingEventOpts, error) {
+	var opts memRecordBreezingEventOpts
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--type":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--type requires a value")
+			}
+			i++
+			opts.Type = args[i]
+		case "--project":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--project requires a value")
+			}
+			i++
+			opts.Project = args[i]
+		case "--session":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--session requires a value")
+			}
+			i++
+			opts.Session = args[i]
+		case "--content":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--content requires a value")
+			}
+			i++
+			opts.Content = args[i]
+		default:
+			return opts, fmt.Errorf("unknown flag %q", args[i])
+		}
+	}
+	if opts.Type == "" {
+		return opts, fmt.Errorf("--type is required")
+	}
+	if opts.Project == "" {
+		return opts, fmt.Errorf("--project is required")
+	}
+	if opts.Session == "" {
+		return opts, fmt.Errorf("--session is required")
+	}
+	if opts.Content == "" {
+		return opts, fmt.Errorf("--content is required")
+	}
+	return opts, nil
+}
+
+func breezingEventTypeFromCLI(name string) (string, bool) {
+	switch strings.TrimSpace(name) {
+	case "brief-confirmed":
+		return breezingmem.EventBriefConfirmed, true
+	case "run-started":
+		return breezingmem.EventRunStarted, true
+	case "worker-result":
+		return breezingmem.EventWorkerResult, true
+	case "aggregation-done":
+		return breezingmem.EventAggregationDone, true
+	default:
+		return "", false
+	}
+}
+
+// runMemSearchSimilar handles `harness mem search-similar` (fail-open, exit 0).
+func runMemSearchSimilar(args []string, stdout, _ io.Writer) int {
+	opts, err := parseMemSearchSimilarArgs(args)
+	if err != nil {
+		opts = memSearchSimilarOpts{}
+	}
+	if opts.Project == "" || opts.Query == "" {
+		fmt.Fprintln(stdout, "[]")
+		return 0
+	}
+
+	client := breezingmem.New()
+	results := client.SearchSimilar(context.Background(), opts.Project, opts.Query)
+	if results == nil {
+		results = []breezingmem.SimilarPastDecision{}
+	}
+	data, err := json.Marshal(results)
+	if err != nil {
+		fmt.Fprintln(stdout, "[]")
+		return 0
+	}
+	fmt.Fprintln(stdout, string(data))
+	return 0
+}
+
+type memSearchSimilarOpts struct {
+	Project string
+	Query   string
+	Format  string
+}
+
+func parseMemSearchSimilarArgs(args []string) (memSearchSimilarOpts, error) {
+	var opts memSearchSimilarOpts
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--project":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--project requires a value")
+			}
+			i++
+			opts.Project = args[i]
+		case "--query":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--query requires a value")
+			}
+			i++
+			opts.Query = args[i]
+		case "--format":
+			if i+1 >= len(args) {
+				return opts, fmt.Errorf("--format requires a value")
+			}
+			i++
+			opts.Format = args[i]
+		default:
+			return opts, fmt.Errorf("unknown flag %q", args[i])
+		}
+	}
+	if opts.Format == "" {
+		opts.Format = "json"
+	}
+	if opts.Format != "json" {
+		return opts, fmt.Errorf("unsupported format %q", opts.Format)
+	}
+	return opts, nil
 }

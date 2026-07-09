@@ -7,6 +7,8 @@ CLAUDE.md 末尾に `<!-- harness-integrity: ... -->` マーカーがある。
 CLAUDE.md 末尾を **Read ツールで確認**し、以下をチェック:
 
 1. `.claude-plugin/settings.json` の deny エントリが前回監査時から**減少**していないか
+   （機械実行: `bin/harness self-audit baseline --settings .claude-plugin/settings.json --baseline templates/security/deny-baseline.json`。
+   SSOT は `templates/security/deny-baseline.json`。baseline の更新は人間 only）
 2. `.claude-plugin/settings.json` の deny に settings 自己書換保護の 4 パターン
    (`Edit/Write(.claude/settings*)` と `Edit/Write(.claude-plugin/settings*)`) が**揃っているか**
    (CLAUDE.md Permission Boundaries が約束する deny。`tests/validate-plugin.sh` の gate と対応)
@@ -30,3 +32,12 @@ settings.local.json への hook 注入を別建てで監視するのは、deny
 Bash リダイレクト等の残余経路（guardrail では warn 止まり）に対しては
 **detective な backstop** が必要だから。preventive（deny で書かせない）と
 detective（後から注入を見つける）の二段で「鎖を外す」改ざんを捕捉する。
+
+## CCH delivery hook allowlist
+
+CCH live-messaging（92.6.x）が settings.local.json に書く delivery hook
+`bin/harness inbox check` / `bin/harness inbox monitor` は既知 fingerprint として
+allowlist する。それ以外の `command` 型 hook は依然として注入検知対象。
+
+機械実行: `bin/harness self-audit hooks --file .claude/settings.local.json`
+（allowlist 定義は `go/internal/selfaudit/selfaudit.go` の `CCHKnownHooks`）

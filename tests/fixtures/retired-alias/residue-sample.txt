@@ -1,0 +1,1 @@
+This fixture intentionally references core/src/guardrails/rules.ts for scanner tests.

@@ -87,7 +87,9 @@ func (h *BreezingSignalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	// consumed_at を設定してシグナルをマーク済みにする
 	_ = h.markSignalsConsumed(signalsFile)
 
-	header := fmt.Sprintf("[breezing-signal-injector] %d 件の未消費シグナルがあります:\n", len(unconsumedSignals))
+	header := fmt.Sprintf(localizedHarnessMessage("ja",
+		"[breezing-signal-injector] %d unconsumed signals:\n",
+		"[breezing-signal-injector] %d 件の未消費シグナルがあります:\n"), len(unconsumedSignals))
 	fullMessage := header + strings.Join(messageParts, "")
 
 	resp := injectorResponse{SystemMessage: fullMessage}
@@ -140,22 +142,30 @@ func (h *BreezingSignalInjectorHandler) formatSignalMessage(sig breezingSignal) 
 		}
 		triggerCmd := sig.TriggerCommand
 		return fmt.Sprintf(
-			"[SIGNAL:ci_failure_detected] CI が失敗しました（%s）。トリガー: %s。ci-cd-fixer エージェントで自動修復することを検討してください。\n",
+			localizedHarnessMessage("ja",
+				"[SIGNAL:ci_failure_detected] CI failed (%s). Trigger: %s. Consider using the ci-cd-fixer agent for automatic repair.\n",
+				"[SIGNAL:ci_failure_detected] CI が失敗しました（%s）。トリガー: %s。ci-cd-fixer エージェントで自動修復することを検討してください。\n"),
 			conclusion, triggerCmd,
 		)
 	case "retake_requested":
 		return fmt.Sprintf(
-			"[SIGNAL:retake_requested] タスク #%s のやり直しが要求されました。理由: %s\n",
+			localizedHarnessMessage("ja",
+				"[SIGNAL:retake_requested] Retake requested for task #%s. Reason: %s\n",
+				"[SIGNAL:retake_requested] タスク #%s のやり直しが要求されました。理由: %s\n"),
 			sig.TaskID, sig.Reason,
 		)
 	case "reviewer_approved":
 		return fmt.Sprintf(
-			"[SIGNAL:reviewer_approved] タスク #%s がレビュアーに承認されました。\n",
+			localizedHarnessMessage("ja",
+				"[SIGNAL:reviewer_approved] Task #%s was approved by the reviewer.\n",
+				"[SIGNAL:reviewer_approved] タスク #%s がレビュアーに承認されました。\n"),
 			sig.TaskID,
 		)
 	case "escalation_required":
 		return fmt.Sprintf(
-			"[SIGNAL:escalation_required] タスク #%s でエスカレーションが必要です。理由: %s\n",
+			localizedHarnessMessage("ja",
+				"[SIGNAL:escalation_required] Escalation is required for task #%s. Reason: %s\n",
+				"[SIGNAL:escalation_required] タスク #%s でエスカレーションが必要です。理由: %s\n"),
 			sig.TaskID, sig.Reason,
 		)
 	default:

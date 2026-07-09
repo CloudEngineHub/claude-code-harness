@@ -8,11 +8,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // EmitAgentTrace は emit-agent-trace.js の Go 移植。
@@ -793,10 +794,9 @@ func getString(m map[string]interface{}, key, defaultVal string) string {
 
 // eatRunGitCmd は git コマンドを実行して stdout を返す。
 func eatRunGitCmd(args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
-	out, err := cmd.Output()
+	out, err := gitport.Output("", args...)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(out)), nil
+	return strings.TrimSpace(out), nil
 }

@@ -78,6 +78,26 @@ The `description` field is critical for auto-loading. Include:
 description: "Manages CI/CD failures. Use when user mentions CI failures, build errors, or test failures. Do NOT load for: local builds or standard implementation."
 ```
 
+## Client Mirror Contract (Phase 99.2)
+
+`skills/` is the SSOT for shared skills; `skills-codex/` overrides Codex-only variants.
+Mirrors are read-only distribution copies — never edit mirror roots directly:
+
+| Mirror root | Source |
+|-------------|--------|
+| `codex/.codex/skills/` | `skills-codex/` when present, else `skills/` |
+| `opencode/skills/` | Generated from `skills/` via `scripts/build-opencode.js` |
+| `.agents/skills/` | Optional; missing root is `not-configured`, not drift |
+
+After editing any file under `skills/` or `skills-codex/`:
+
+1. Run `./scripts/sync-skill-mirrors.sh` to refresh mirrors (or `./scripts/sync-skill-mirrors.sh --check` / `harness mirror verify --json` to verify only).
+2. Expect a PostToolUse warning when `mirror-state.v1` reports `reason: "drift"`.
+3. Treat missing `.agents/skills/` as unconfigured — do not create it unless your host requires that mirror.
+
+Drift detection emits `mirror-state.v1` JSON (`schema_version`, `fingerprint`, `healthy`, `reason`, `mirrors[]`).
+Tri-state per mirror: `in-sync`, `drift`, `not-configured`. Auto-sync is **not** enabled by default; mirrors are updated deliberately via the sync script.
+
 **Bad example**:
 ```yaml
 description: "CI skill"

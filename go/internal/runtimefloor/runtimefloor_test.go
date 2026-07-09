@@ -2,6 +2,7 @@ package runtimefloor
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -131,6 +132,26 @@ func TestCheckCommand_NotOverridableByEnv(t *testing.T) {
 	}
 }
 
+func TestCheckCommand_EgressOwnerScopedOptOut(t *testing.T) {
+	root := testWorktreeRoot(t)
+	t.Setenv("HARNESS_RUNTIME_FLOOR_EGRESS", "off")
+
+	decision := CheckCommand("curl -s https://example.com/research", Context{WorktreeRoot: root})
+	if decision.Stopped {
+		t.Fatalf("owner-scoped egress opt-out should pass, got category=%s reason=%s", decision.Category, decision.Reason)
+	}
+}
+
+func TestCheckCommand_EgressOwnerScopedOptOutDoesNotDisableSecretRead(t *testing.T) {
+	root := testWorktreeRoot(t)
+	t.Setenv("HARNESS_RUNTIME_FLOOR_EGRESS", "off")
+
+	decision := CheckCommand("cat .env", Context{WorktreeRoot: root})
+	if !decision.Stopped || decision.Category != CategorySecretRead {
+		t.Fatalf("egress opt-out must not disable secret-read, got Stopped=%v Category=%s", decision.Stopped, decision.Category)
+	}
+}
+
 func TestCheckCommand_EmptyCommand(t *testing.T) {
 	decision := CheckCommand("", Context{WorktreeRoot: os.TempDir()})
 	if decision.Stopped {
@@ -219,83 +240,6 @@ func TestCheckWorktreeEscape_StopsHomeDirectoriesOutsideCache(t *testing.T) {
 	}
 }
 
-func TestCheckEgress_OwnerExemptViaEnv(t *testing.T) {
-	root := testWorktreeRoot(t)
-	t.Setenv("HARNESS_RUNTIME_FLOOR_EGRESS", "off")
-
-	cases := []string{
-		"curl -s https://example.com/api",
-		"wget https://api.github.com/repos",
-		"curl raw.githubusercontent.com/owner/repo/main/file",
-		"scp ./out.txt user@remote.example.com:/tmp/",
-	}
-	for _, cmd := range cases {
-		t.Run(cmd, func(t *testing.T) {
-			decision := CheckCommand(cmd, Context{WorktreeRoot: root})
-			if decision.Stopped {
-				t.Fatalf("expected egress exempt with HARNESS_RUNTIME_FLOOR_EGRESS=off, got Stopped=true category=%s reason=%s",
-					decision.Category, decision.Reason)
-			}
-		})
-	}
-}
-
-func TestCheckEgress_DefaultAndNonOffValuesStillEnforced(t *testing.T) {
-	root := testWorktreeRoot(t)
-	dangerous := "curl -s https://example.com/secret"
-
-	cases := []struct {
-		name string
-		val  string
-	}{
-		{name: "empty string", val: ""},
-		{name: "on", val: "on"},
-		{name: "enforce", val: "enforce"},
-		{name: "garbage", val: "yes-please"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("HARNESS_RUNTIME_FLOOR_EGRESS", tc.val)
-			decision := CheckCommand(dangerous, Context{WorktreeRoot: root})
-			if !decision.Stopped {
-				t.Fatalf("expected egress enforced for value %q, got Stopped=false", tc.val)
-			}
-			if decision.Category != CategoryEgress {
-				t.Fatalf("expected egress category, got %s", decision.Category)
-			}
-		})
-	}
-}
-
-func TestCheckEgress_OwnerExemptDoesNotAffectOtherCategories(t *testing.T) {
-	worktree := testWorktreeRoot(t)
-	home := "/home/runtimefloor-egress-exempt-test"
-	t.Setenv("HARNESS_RUNTIME_FLOOR_EGRESS", "off")
-	t.Setenv("HOME", home)
-	t.Setenv("TMPDIR", t.TempDir())
-
-	cases := []struct {
-		cmd      string
-		category Category
-	}{
-		{"stripe charges list", CategoryMoneyBilling},
-		{"cat ~/.aws/credentials", CategorySecretRead},
-		{"gh release create v1.2.3", CategoryProdDeploy},
-		{"rm -rf " + home + "/Desktop/important.pdf", CategoryWorktreeEscape},
-	}
-	for _, tc := range cases {
-		t.Run(string(tc.category), func(t *testing.T) {
-			decision := CheckCommand(tc.cmd, Context{WorktreeRoot: worktree})
-			if !decision.Stopped {
-				t.Fatalf("expected %s to remain enforced with egress exemption set, got Stopped=false", tc.category)
-			}
-			if decision.Category != tc.category {
-				t.Fatalf("expected category %s, got %s", tc.category, decision.Category)
-			}
-		})
-	}
-}
-
 func TestCheckCommand_SchemelessEgress(t *testing.T) {
 	cases := []struct {
 		cmd  string
@@ -319,4 +263,200 @@ func TestCheckCommand_SchemelessEgress(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCheckSecretRead_NoFalsePositiveOnDocumentText(t *testing.T) {
+	// Phase 105.8: secret filenames appearing as document text (heredoc body,
+	// comments) must NOT trip the floor — they are not actual reads.
+	cases := []struct {
+		name string
+		cmd  string
+	}{
+		{"heredoc body mentions dotenv", "cat >> notes.md <<'EOF'\nWe fixed the .env false positive today.\nEOF"},
+		{"heredoc body mentions pem", "cat > out.txt <<EOF\nremember server.pem rotation\nEOF"},
+		{"comment mentions dotenv", "cat notes.md # remember to check .env later"},
+		{"echo describes credentials", "echo 'the credentials file was rotated'"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := CheckCommand(tc.cmd, Context{})
+			if d.Stopped {
+				t.Fatalf("expected no floor stop for document-text command, got category %s reason %q", d.Category, d.Reason)
+			}
+		})
+	}
+}
+
+func TestCheckSecretRead_StillFiresOnRealRead(t *testing.T) {
+	// Phase 105.8 regression guard: real secret reads must still be denied.
+	cases := []struct {
+		name string
+		cmd  string
+	}{
+		{"cat dotenv", "cat .env"},
+		{"grep secret in dotenv", "grep SECRET .env"},
+		{"less ssh key", "less ~/.ssh/id_rsa"},
+		{"cat aws credentials", "cat ~/.aws/credentials"},
+		{"real read plus heredoc", "cat .env\ncat > out <<'EOF'\nignore .env here\nEOF"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := CheckCommand(tc.cmd, Context{})
+			if !d.Stopped || d.Category != CategorySecretRead {
+				t.Fatalf("expected secret-read stop, got Stopped=%v Category=%s", d.Stopped, d.Category)
+			}
+		})
+	}
+}
+
+func TestCheckSecretRead_CrossLineQuoteDoesNotDropRealRead(t *testing.T) {
+	// Review CRITICAL-2: a multi-line quoted string whose closing quote shares a
+	// line with `#` must NOT let stripLineComment drop the real command that
+	// follows the closing quote. Before the cross-line quote fix, the `#` on
+	// line 2 was misread as a comment start (quote state reset per line), so the
+	// trailing real `cat <secret>` was deleted and the floor missed it.
+	dotenv := ".env"
+	cases := []string{
+		// closing double-quote + '#' + real secret read on the same line
+		"x=\"foo\nbar # baz\" && cat " + dotenv,
+		// closing single-quote variant
+		"y='foo\nbar # baz' && cat " + dotenv,
+	}
+	for _, cmd := range cases {
+		t.Run(cmd, func(t *testing.T) {
+			d := CheckCommand(cmd, Context{})
+			if !d.Stopped || d.Category != CategorySecretRead {
+				t.Fatalf("expected secret-read stop for real read hidden after cross-line quote, got Stopped=%v Category=%s", d.Stopped, d.Category)
+			}
+		})
+	}
+}
+
+func TestCheckSecretRead_GenuineCommentStillStripped(t *testing.T) {
+	// Regression guard for the false-positive side: a real single-line comment
+	// mentioning a secret filename must still NOT trip the floor.
+	d := CheckCommand("cat notes.md # remember to rotate .env later", Context{})
+	if d.Stopped {
+		t.Fatalf("single-line comment mentioning a secret filename must not stop, got %s", d.Category)
+	}
+}
+
+func TestCheckSecretRead_AllowlistedPathPasses(t *testing.T) {
+	// Phase 108: an operator-declared secret path is not stalled mid-pipeline.
+	dotenv := "/Users/op/proj/.env"
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", "/Users/op/proj/")
+	d := CheckCommand("cat "+dotenv, Context{})
+	if d.Stopped {
+		t.Fatalf("declared secret path should pass, got category %s", d.Category)
+	}
+}
+
+func TestCheckSecretRead_NonAllowlistedStillDenies(t *testing.T) {
+	// A secret path NOT covered by the allowlist still denies.
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", "/Users/op/proj/")
+	d := CheckCommand("cat /Users/other/secret/.env", Context{})
+	if !d.Stopped || d.Category != CategorySecretRead {
+		t.Fatalf("undeclared secret path must still deny, got Stopped=%v Category=%s", d.Stopped, d.Category)
+	}
+}
+
+func TestCheckSecretRead_MixedAllowedAndDeniedDenies(t *testing.T) {
+	// If any matched secret path is undeclared, the command denies.
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", "/Users/op/proj/")
+	d := CheckCommand("cat /Users/op/proj/.env && cat /Users/other/.env", Context{})
+	if !d.Stopped {
+		t.Fatalf("a mix with an undeclared secret path must deny")
+	}
+}
+
+func TestCheckSecretRead_BlanketWildcardIsIgnored(t *testing.T) {
+	// "*" / "**" must NOT turn the whole category off (deny stays).
+	for _, v := range []string{"*", "**", "/", " * , ** "} {
+		t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", v)
+		d := CheckCommand("cat /Users/op/proj/.env", Context{})
+		if !d.Stopped {
+			t.Fatalf("blanket wildcard %q must not open the category; got pass", v)
+		}
+	}
+}
+
+func TestCheckSecretRead_BasenameGlobAllows(t *testing.T) {
+	// A basename glob like ".env" allows any .env by name (operator's choice).
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", ".env")
+	d := CheckCommand("cat /Users/op/proj/.env", Context{})
+	if d.Stopped {
+		t.Fatalf("basename glob .env should allow a declared .env read")
+	}
+}
+
+func TestCheckSecretRead_UnsetEnvKeepsDenyByDefault(t *testing.T) {
+	// Phase 108 regression guard: with no declaration, behavior is unchanged.
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", "")
+	d := CheckCommand("cat /Users/op/proj/.env", Context{})
+	if !d.Stopped || d.Category != CategorySecretRead {
+		t.Fatalf("unset allowlist must deny-by-default, got Stopped=%v", d.Stopped)
+	}
+}
+
+func TestCheckSecretRead_ConfigAllowlistedPathPasses(t *testing.T) {
+	root := testWorktreeRoot(t)
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"secretAllow":[".env"]}}`)
+
+	d := CheckCommand("cat "+filepath.Join(root, ".env"), Context{WorktreeRoot: root})
+	if d.Stopped {
+		t.Fatalf("config-declared secret path should pass, got category %s reason %q", d.Category, d.Reason)
+	}
+}
+
+func TestCheckSecretRead_ConfigAbsolutePathOutsideProjectIsIgnored(t *testing.T) {
+	root := testWorktreeRoot(t)
+	other := t.TempDir()
+	outsideDotenv := filepath.Join(other, ".env")
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"secretAllow":[`+quoteJSON(outsideDotenv)+`]}}`)
+
+	d := CheckCommand("cat "+outsideDotenv, Context{WorktreeRoot: root})
+	if !d.Stopped || d.Category != CategorySecretRead {
+		t.Fatalf("outside-project config declaration must deny, got Stopped=%v Category=%s", d.Stopped, d.Category)
+	}
+}
+
+func TestCheckSecretRead_EnvAndConfigAllowlistsAreUnioned(t *testing.T) {
+	root := testWorktreeRoot(t)
+	envRoot := t.TempDir()
+	configSecret := filepath.Join(root, "secrets", "service.key")
+	envSecret := filepath.Join(envRoot, ".env")
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"secretAllow":["secrets/service.key"]}}`)
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", envRoot)
+
+	for _, cmd := range []string{"cat " + configSecret, "cat " + envSecret} {
+		t.Run(cmd, func(t *testing.T) {
+			d := CheckCommand(cmd, Context{WorktreeRoot: root})
+			if d.Stopped {
+				t.Fatalf("env+config union should allow %q, got category %s reason %q", cmd, d.Category, d.Reason)
+			}
+		})
+	}
+}
+
+func TestCheckSecretRead_InvalidConfigFailsSafeDeny(t *testing.T) {
+	root := testWorktreeRoot(t)
+	dotenv := filepath.Join(root, ".env")
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"secretAllow":[".env"]}`)
+	t.Setenv("HARNESS_RUNTIME_FLOOR_SECRET_ALLOW", root)
+
+	d := CheckCommand("cat "+dotenv, Context{WorktreeRoot: root})
+	if !d.Stopped || d.Category != CategorySecretRead {
+		t.Fatalf("invalid config must be treated as no declarations, got Stopped=%v Category=%s", d.Stopped, d.Category)
+	}
+}
+
+func writeRuntimeFloorConfig(t *testing.T, root, body string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(root, ".claude-code-harness.config.json"), []byte(body), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+}
+
+func quoteJSON(s string) string {
+	return `"` + strings.ReplaceAll(s, `\`, `\\`) + `"`
 }

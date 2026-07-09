@@ -7,10 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // defaultLeaseTTL is the maximum age a lease entry may have before the
@@ -324,13 +325,11 @@ func leaseStore(cfg LeaseConfig) (string, string) {
 		if root == "" {
 			root = resolveProjectRoot()
 		}
-		cmd := exec.Command("git", "rev-parse", "--git-common-dir")
-		cmd.Dir = root
-		out, err := cmd.Output()
+		out, err := gitport.Output(root, "rev-parse", "--git-common-dir")
 		if err != nil {
 			return "", "not-configured"
 		}
-		commonDir = strings.TrimSpace(string(out))
+		commonDir = strings.TrimSpace(out)
 		if commonDir == "" {
 			return "", "not-configured"
 		}

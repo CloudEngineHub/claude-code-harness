@@ -1,0 +1,24 @@
+{
+  "question": "DoD の「ログイン成功」を E2E テスト必須と解釈してよいか？",
+  "options": [
+    {
+      "id": "e2e-required",
+      "label": "E2E テストを必須とする",
+      "consequence": "実装時間が増えるが受け入れ基準が明確になる"
+    },
+    {
+      "id": "unit-only",
+      "label": "ユニットテストのみで十分",
+      "consequence": "早く完了するが UI 回帰リスクが残る"
+    },
+    {
+      "id": "hybrid",
+      "label": "ユニット + スモーク E2E のハイブリッド",
+      "consequence": "中間的な工数とカバレッジ"
+    }
+  ],
+  "recommendation": "hybrid",
+  "confidence": "low",
+  "impact": "テスト戦略と完了判定に影響",
+  "diff_summary": "tests/auth/ と tests/e2e/ の追加範囲が変わる"
+}

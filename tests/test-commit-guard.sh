@@ -101,6 +101,29 @@ test_pretooluse_has_block_message() {
   return 0
 }
 
+test_pretooluse_has_bookkeeping_exemption_hardening() {
+  local script="$PROJECT_ROOT/scripts/pretooluse-guard.sh"
+
+  grep -q "BOOKKEEPING_ONLY" "$script" 2>/dev/null || {
+    echo "    Error: bookkeeping exemption state not found"
+    return 1
+  }
+  grep -q "commit-cleanup-audit.jsonl" "$script" 2>/dev/null || {
+    echo "    Error: bookkeeping audit append not found"
+    return 1
+  }
+  grep -Eq 'git\[\[:space:\]\]\+\(add\|restore\|reset\|rm\)|git\[.*\(add\|restore\|reset\|rm\)' "$script" 2>/dev/null || {
+    echo "    Error: index-mutating command hardening not found"
+    return 1
+  }
+  grep -Eq -- '--patch|--interactive|\-\*p\*|PATHSPEC_SUSPECT' "$script" 2>/dev/null || {
+    echo "    Error: pathspec/patch hardening not found"
+    return 1
+  }
+
+  return 0
+}
+
 # ==================================================
 # Test 5: posttooluse-commit-cleanup.sh に git commit 検出があるか
 # ==================================================
@@ -216,6 +239,7 @@ echo ""
 echo "  [PreToolUse Guard]"
 run_test "pretooluse-guard.sh に git commit 検出ロジックがある" test_pretooluse_has_commit_guard
 run_test "pretooluse-guard.sh にブロックメッセージがある" test_pretooluse_has_block_message
+run_test "bookkeeping 免除と hardening がある" test_pretooluse_has_bookkeeping_exemption_hardening
 
 echo ""
 echo "  [PostToolUse Cleanup]"

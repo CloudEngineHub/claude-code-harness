@@ -203,7 +203,9 @@ func HandleSessionAutoBroadcast(in io.Reader, out io.Writer) error {
 	o := postToolOutput{}
 	o.HookSpecificOutput.HookEventName = "PostToolUse"
 	o.HookSpecificOutput.AdditionalContext = fmt.Sprintf(
-		"自動ブロードキャスト: %s の変更を他セッションに通知しました", fileName,
+		localizedHarnessMessage("ja",
+			"Auto broadcast: notified other sessions about changes to %s",
+			"自動ブロードキャスト: %s の変更を他セッションに通知しました"), fileName,
 	)
 	return writeJSON(out, o)
 }
@@ -242,7 +244,9 @@ func writeBroadcastNotification(sessionsDir, filePath, matchedPattern, sessionID
 	// ヘッダーフォーマット: ## <timestamp> [<session_id_prefix>]
 	// session-inbox-check.sh のパーサーが期待する形式に合わせる。
 	ts := time.Now().UTC().Format("2006-01-02T15:04:05Z")
-	entry := fmt.Sprintf("\n## %s [%s]\n📁 `%s` が変更されました: パターン '%s' にマッチ\n",
+	entry := fmt.Sprintf(localizedHarnessMessage("ja",
+		"\n## %s [%s]\nFile `%s` changed: matched pattern '%s'\n",
+		"\n## %s [%s]\n📁 `%s` が変更されました: パターン '%s' にマッチ\n"),
 		ts, senderTag, filePath, matchedPattern)
 
 	f, err := os.OpenFile(broadcastFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)

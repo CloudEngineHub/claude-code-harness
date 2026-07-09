@@ -193,6 +193,19 @@
       },
       "default": {}
     },
+    "runtimefloor": {
+      "type": "object",
+      "description": "Runtime action hard floor declarations / 実行時 hard floor 宣言",
+      "properties": {
+        "secretAllow": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Project-local secret-read path declarations. Relative paths are resolved under the project root; absolute paths outside the project are ignored."
+        }
+      },
+      "default": {}
+    },
     "orchestration": {
       "type": "object",
       "description": "Deterministic orchestration settings / 決定論的オーケストレーション設定",
@@ -268,4 +281,3 @@
   },
   "additionalProperties": false
 }
-

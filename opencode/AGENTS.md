@@ -99,7 +99,7 @@ Details: [docs/CLAUDE-commands.md](docs/CLAUDE-commands.md)
 - **VERSION sync**: Leave version files untouched in normal PRs; update them only for releases
 - **Worker 契約 (v4.3.0+)**: Worker は `worker-report.v1` で self_review 5 件必須。Plans.md の `cc:*` マーカー書換は NG-1 で自動 deny。詳細: [agents/worker.md](agents/worker.md)
 - **Skill frontmatter 設計**: `disable-model-invocation: true` は dangerous side-effect skill 専用。read-only / 判定 skill に付けると Skill tool 経由起動をブロックする副作用。Anti-Pattern: [.claude/rules/skill-editing.md](.claude/rules/skill-editing.md) + [.claude/memory/patterns.md](.claude/memory/patterns.md) P27 非適用条件 (2026-05-18 codify)
-- **Slash command 出力の要約契約**: `/コマンド` の `<local-command-stdout>` が長文 (10 行以上) で host Claude に渡された場合、host は必ず assistant message として 1-3 行で要約し、次のアクション (待機 / 終了 / ユーザー判断要請) を明示する。skill 側も結論時に instruction line を本文と同じ言語で出力する (ja: `↑この結果は Claude が要約します。Enter キーで次へ進むか、新規 prompt で別の指示を出してください。` / en: `↑Claude will summarize this result. Press Enter to continue, or send a new prompt for a different instruction.` / その他言語は同義の 1 行。言語解決は Language 節のルールに従う)。詳細: [.claude/memory/patterns.md](.claude/memory/patterns.md) P35 (2026-05-19 codify、2026-06-12 i18n 対応 #208)
+- **Slash command 出力の要約契約**: `/コマンド` の `<local-command-stdout>` が長文 (10 行以上) で host Claude に渡された場合、host は必ず assistant message として 1-3 行で要約し、次のアクション (待機 / 終了 / ユーザー判断要請) を明示する。skill 側も結論時に instruction line literal (`↑この結果は Claude が要約します。Enter キーで次へ進むか、新規 prompt で別の指示を出してください。`) を出力する。詳細: [.claude/memory/patterns.md](.claude/memory/patterns.md) P35 (2026-05-19 codify)
 
 ## MCP Trust Policy
 
@@ -157,4 +157,27 @@ Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md) / [.clau
 - Active watching test policy: [.claude/rules/active-watching-test-policy.md](.claude/rules/active-watching-test-policy.md) - 外部 daemon / opt-in ファイル監視機能の 3 状態テスト規約 (Phase 50 で導入、D40 / P29 運用ルール化)
 - Cross-repo handoff: [.claude/rules/cross-repo-handoff.md](.claude/rules/cross-repo-handoff.md) - claude-code-harness ↔ harness-mem 責任境界 + 2 経路 handoff workflow (Phase 65 で codify、D42 の shareable policy 部分)
 
+## North Star
+
+Harness が目指す 3 層の野望 (土台 → てっぺん)。詳細は [spec.md](spec.md) (Purpose / Execution Backend Contract / Mode 1・Mode 2)。
+
+- **L1 判断専念**: AI が plan / 実装 / 比較 / 検証 evidence を準備し、operator (人間) は最終判断のみ行う。
+- **L2 ツール非依存 (tool-agnostic)**: 同一 Harness (R01-R13 + plan/work/review/release) が Claude / Codex / Cursor の「どれからでも」効く。1 つの policy engine が 3 host を native hook 経由で adjudicate する (複製でなく routing)。harness が駆動する向きと、host「から」使う向きの両方を対等にサポート。
+- **L3 協調 (collaboration, 将来の本丸)**: 複数ツールが同一プロジェクトを、人間をコピペ係にせず協調する。Mode 1 = 完全自律オーケストレーション (v1 は Lead=Claude 固定)、Mode 2 = 人間在席の peer co-drive (live notice messaging)。フル peer-Lead 協調は段階導入。
+
+## Codex / Cursor hook 誤解防止
+
+Codex / Cursor の hook について繰り返し起きた誤解を固定する。詳細は [spec.md](spec.md) (Host Adapter / Host Distribution Contract / hosts.toml)。
+
+- **FACT-1 (generated, not inline)**: Codex / Cursor は一級の hook ホスト。hook は config.toml に inline で書かれず、`harness gen` が生成する `.codex/hooks.json` / `.cursor/hooks.json` (gitignore された build artifact) に入る。すべて `bin/harness hook pre-tool --host <h>` を呼ぶ。
+- **FACT-2 (no inline != no hooks)**: 「config.toml に inline hooks が無い」は「config の中に書かない」の意味であって「hook が無い」ではない。この 2 つを混同しない。
+- **FACT-3 (enforcement wired / delivery undeployed)**: hook は 2 層。(a) enforcement (PreToolUse → R01-R13 policy engine) は 3 host 対称に配線済みで `harness gen` で生成される。(b) Mode 2 delivery (inbox-check / monitor 受信) は生成関数 `GenerateDeliveryHooksJSON` が実装・unit test 済みだが本番 caller がゼロ (harness gen 未接続)。よって生成 hook に inbox-check は入らず、Codex/Cursor の delivery hook は未 deploy。Claude の inbox-check のみ `.claude-plugin/hooks.json` に手書きで存在。配線すれば Codex/Cursor にも turn 境界 delivery が届く (live ではない)。
+- **FACT-4 (materialize して確認)**: あるホストが capability を欠くと結論する前に、必ず `harness gen` 出力を実際に materialize して中身を確認する。config コメントだけで「無い」と断定しない。not_observed != absent。
+
 <!-- harness-integrity: last-audit=2026-05-18 -->
+
+## Skill Retention Notes
+
+- `agent-browser` は Phase 91.7 で「曖昧」と一時判定されたが、Phase 104.9 の参照監査で `skills/harness-work`、`scripts/browser-review-runner.sh`、`scripts/pretooluse-browser-guide.sh`、`scripts/ci/check-consistency.sh` から実配線されていることを確認し保持と裁定（2026-07-05）。
+- `cc-update-review` は初回監査で削除したが、`tests/test-claude-upstream-integration.sh` が Upstream Tracking Contract の一部として存在と A/B/C/P 分類を pin していることが統合ゲートで判明し、保持へ訂正（2026-07-05）。教訓: 参照監査は tests/ と docs/ を含めた全域で行う。
+- `gogcli-ops` / `cc-cursor-cc` は全域監査でも機能参照ゼロのため削除確定。retired-alias registry（`templates/registry/retired-aliases.v1.yaml`）に登録済み。

@@ -10,23 +10,19 @@ the trigger condition under which the limitation can be revisited.
 
 ### Symptom
 
-When `claude-code-harness:reviewer` (Opus 4.7) reviews a change with security
-implications, it sometimes detects an issue and then stops mid-output with a
-message like "This request triggered cyber-related safeguards." The verdict JSON
-is never produced. Downstream skills (`harness-release` Review Gate, commit
-guard, etc.) see no `review-result.json` and the workflow halts.
+When `claude-code-harness:reviewer` (Opus 4.7 era) reviews a change with security
+implications, it can detect an issue and then stop mid-output with a message like
+"This request triggered cyber-related safeguards." The verdict JSON is never
+produced. Downstream skills (`harness-release` Review Gate, commit guard, etc.)
+see no `review-result.json` and the workflow halts.
 
 ### Root cause
 
-This is a model-side safeguard in Anthropic's Opus 4.7 product. The model is
-trained to interrupt itself when it detects that its own output is moving toward
+This is a model-side safeguard in Anthropic's Opus 4.7-era product behavior. The
+model can interrupt itself when it detects that its own output is moving toward
 exploit code, attack PoC, or content that resembles offensive-security tooling.
-Harness sits on top of the model and cannot turn the safeguard off — that would
-require an inference-side opt-out that doesn't exist.
-
-For evidence and the operator-side context, see `harness-mem` entry
-[`fable5-safeguard-model-switch`](../.claude/memory/) (security context →
-automatic safeguard fire is a product invariant).
+Harness sits on top of the model and cannot turn the safeguard off; that would
+require an inference-side opt-out that Harness does not control.
 
 ### Mitigation Harness applies
 
@@ -35,8 +31,8 @@ automatic safeguard fire is a product invariant).
    See `agents/reviewer.md` § "Security finding 記述ルール".
 2. CVE / CWE / OWASP identifiers are referenced by ID only; attack steps and
    bypass techniques are not expanded into the body.
-3. Mitigation guidance describes the fix direction (e.g. "use parameterized
-   queries", "escape input"), not the attack.
+3. Mitigation guidance describes the fix direction (for example, "use
+   parameterized queries", "escape input"), not the attack.
 
 This narrows the surface that triggers the safeguard but does not eliminate it.
 The model can still classify a paragraph as too close to offensive content even
@@ -59,15 +55,14 @@ When the safeguard fires anyway:
 ### Trigger to revisit
 
 - Anthropic ships a documented opt-out or per-prompt suppression for the
-  cyber-safeguard. (Today this does not exist.)
+  cyber-safeguard.
 - A successor model documents the safeguard as removed for security-review use
   cases.
 - A pattern emerges where the safeguard fires on findings that follow the
-  current "neutral facts only" rule — that would mean the rule isn't tight
+  current "neutral facts only" rule; that would mean the rule is not tight
   enough and the prompt needs another iteration.
 
 ### Related
 
 - Issue [#172](https://github.com/Chachamaru127/claude-code-harness/issues/172)
 - `agents/reviewer.md` § Security finding 記述ルール
-- `harness-mem` entry `fable5-safeguard-model-switch`

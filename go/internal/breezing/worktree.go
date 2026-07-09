@@ -3,12 +3,28 @@ package breezing
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
+
+// HarnessWorktreesRoot is the single root for Harness-managed parallel task worktrees.
+// scripts/spawn-parallel.sh and WorktreeManager both use this directory.
+// .claude/worktrees/ is a separate CC live-agent root and must not be mixed with this path.
+const HarnessWorktreesRoot = ".harness-worktrees"
+
+// ParallelWorktreePath returns the spawn-parallel.sh worktree path for taskID.
+func ParallelWorktreePath(projectRoot, taskID string) string {
+	return filepath.Join(projectRoot, HarnessWorktreesRoot, "task-"+taskID)
+}
+
+// ManagerWorktreePath returns the WorktreeManager worktree path for taskID.
+func ManagerWorktreePath(projectRoot, taskID string) string {
+	return filepath.Join(projectRoot, HarnessWorktreesRoot, sanitizeBranch(taskID))
+}
 
 // WorktreeManager は git worktree の作成・クリーンアップを管理する。
 // CC の WorktreeCreate/Remove フックと連携して worktree ライフサイクルを追跡する。
@@ -62,7 +78,7 @@ func (wm *WorktreeManager) Create(taskID, branchName string) (string, error) {
 	}
 
 	// worktree パスを決定
-	worktreeDir := filepath.Join(wm.projectRoot, ".harness-worktrees", sanitizeBranch(taskID))
+	worktreeDir := ManagerWorktreePath(wm.projectRoot, taskID)
 
 	// 既に存在する場合は再利用
 	if info, exists := wm.worktrees[worktreeDir]; exists && info.Active {
@@ -96,10 +112,8 @@ func (wm *WorktreeManager) Remove(worktreePath string, force bool) error {
 		args = append(args, "--force")
 	}
 
-	cmd := exec.Command("git", args...)
-	cmd.Dir = wm.projectRoot
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("worktree remove: %s: %w", strings.TrimSpace(string(out)), err)
+	if out, err := gitport.CombinedOutput(wm.projectRoot, args...); err != nil {
+		return fmt.Errorf("worktree remove: %s: %w", strings.TrimSpace(out), err)
 	}
 
 	// ブランチ削除
@@ -191,15 +205,11 @@ func (wm *WorktreeManager) HandleWorktreeRemove(worktreePath string) {
 func (wm *WorktreeManager) gitWorktreeAdd(worktreeDir, branchName string) error {
 	// ディレクトリが既に存在する場合は削除
 	if _, err := os.Stat(worktreeDir); err == nil {
-		rmCmd := exec.Command("git", "worktree", "remove", worktreeDir, "--force")
-		rmCmd.Dir = wm.projectRoot
-		_ = rmCmd.Run()
+		_ = gitport.Run(wm.projectRoot, "worktree", "remove", worktreeDir, "--force")
 	}
 
-	cmd := exec.Command("git", "worktree", "add", "-b", branchName, worktreeDir, "HEAD")
-	cmd.Dir = wm.projectRoot
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
+	if out, err := gitport.CombinedOutput(wm.projectRoot, "worktree", "add", "-b", branchName, worktreeDir, "HEAD"); err != nil {
+		return fmt.Errorf("%s: %w", strings.TrimSpace(out), err)
 	}
 	return nil
 }
@@ -209,9 +219,7 @@ func (wm *WorktreeManager) deleteBranch(branch string) {
 	if branch == "" {
 		return
 	}
-	cmd := exec.Command("git", "branch", "-D", branch)
-	cmd.Dir = wm.projectRoot
-	_ = cmd.Run()
+	_ = gitport.Run(wm.projectRoot, "branch", "-D", branch)
 }
 
 // sanitizeBranch はタスク ID をブランチ名に使えるようサニタイズする。

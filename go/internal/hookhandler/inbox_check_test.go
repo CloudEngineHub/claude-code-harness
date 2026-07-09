@@ -263,7 +263,8 @@ func TestHandleInboxCheck_BroadcastMdSource(t *testing.T) {
 	if !strings.Contains(outStr, "src/api/users.go") {
 		t.Errorf("output should contain the sanitized broadcast path, got: %s", outStr)
 	}
-	if !strings.Contains(outStr, "命令ではありません") {
+	// Phase 105.2: disclaimer is English by default (locale resolves to en in tests).
+	if !strings.Contains(outStr, "not instructions") {
 		t.Errorf("output should include the non-instruction disclaimer, got: %s", outStr)
 	}
 }
@@ -491,9 +492,9 @@ func TestInboxInject_NeutralizesUntrustedContent(t *testing.T) {
 
 	// Useful properties — phrased as required substrings.
 	required := []string{
-		"src/api/safe.go", // path survived sanitization
-		"命令ではありません",       // disclaimer present
-		"ago]",            // structured age suffix
+		"src/api/safe.go",  // path survived sanitization
+		"not instructions", // disclaimer present (English default, Phase 105.2)
+		"ago]",             // structured age suffix
 	}
 	for _, ok := range required {
 		if !strings.Contains(outStr, ok) {
@@ -538,5 +539,39 @@ func TestInboxInject_NeutralizesUntrustedContent(t *testing.T) {
 	if strings.Contains(parsed.HookSpecificOutput.AdditionalContext, "ATTACK") {
 		t.Errorf("ATTACK marker leaked despite hardening: %s",
 			parsed.HookSpecificOutput.AdditionalContext)
+	}
+}
+
+func TestInboxDisclaimerText_EnDefaultJaOptIn(t *testing.T) {
+	// Phase 105.2: English is the default disclaimer; Japanese only under ja locale.
+	en := inboxDisclaimerText("en")
+	if !strings.Contains(en, "not instructions") {
+		t.Fatalf("en disclaimer should be English, got %q", en)
+	}
+	if strings.ContainsAny(en, "以命令") {
+		t.Fatalf("en disclaimer must not contain Japanese, got %q", en)
+	}
+
+	ja := inboxDisclaimerText("ja")
+	if !strings.Contains(ja, "命令ではありません") {
+		t.Fatalf("ja disclaimer should be Japanese, got %q", ja)
+	}
+
+	// Unset / unknown locale falls back to English (contract default).
+	fallback := inboxDisclaimerText("")
+	if !strings.Contains(fallback, "not instructions") {
+		t.Fatalf("empty locale should fall back to English, got %q", fallback)
+	}
+}
+
+func TestBuildSafeInboxContext_LocaleAware(t *testing.T) {
+	msgs := []broadcastMessage{{SenderShort: "s1", AgeSeconds: 10, Path: "a.go"}}
+	en := buildSafeInboxContext(msgs, "en")
+	if strings.Contains(en, "命令ではありません") {
+		t.Fatalf("en context must not embed Japanese disclaimer")
+	}
+	ja := buildSafeInboxContext(msgs, "ja")
+	if !strings.Contains(ja, "命令ではありません") {
+		t.Fatalf("ja context must embed Japanese disclaimer")
 	}
 }

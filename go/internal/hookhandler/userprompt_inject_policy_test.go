@@ -215,7 +215,7 @@ func TestUserPromptInjectPolicy_WorkModeWarning(t *testing.T) {
 	if err := json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &resp); err != nil {
 		t.Fatalf("invalid JSON: %s", out.String())
 	}
-	if !strings.Contains(resp.HookSpecificOutput.AdditionalContext, "work モード継続中") {
+	if !strings.Contains(resp.HookSpecificOutput.AdditionalContext, "work mode is still active") {
 		t.Errorf("expected work mode warning in first call, got: %s", resp.HookSpecificOutput.AdditionalContext)
 	}
 
@@ -230,7 +230,7 @@ func TestUserPromptInjectPolicy_WorkModeWarning(t *testing.T) {
 	if err := json.Unmarshal(bytes.TrimRight(out2.Bytes(), "\n"), &resp2); err != nil {
 		t.Fatalf("invalid JSON on second call: %s", out2.String())
 	}
-	if strings.Contains(resp2.HookSpecificOutput.AdditionalContext, "work モード継続中") {
+	if strings.Contains(resp2.HookSpecificOutput.AdditionalContext, "work mode is still active") {
 		t.Errorf("expected no work mode warning on second call")
 	}
 }

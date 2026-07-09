@@ -1,0 +1,28 @@
+{
+  "version": "deny-baseline.v1",
+  "canonical_sha256": "c85b9e729a4b6790dab8e8d83393d5eac1df48891478c49f2bbcd65769bd61d2",
+  "entries": [
+    "Bash(mongo:*)",
+    "Bash(mongod:*)",
+    "Bash(mysql:*)",
+    "Bash(psql:*)",
+    "Bash(rm -fr:*)",
+    "Bash(rm -rf:*)",
+    "Bash(sudo:*)",
+    "Edit(.claude-plugin/settings*)",
+    "Edit(.claude/settings*)",
+    "Read(**/*.key)",
+    "Read(**/*.pem)",
+    "Read(**/*id_ed25519*)",
+    "Read(**/*id_rsa*)",
+    "Read(**/.aws/**)",
+    "Read(**/.npmrc)",
+    "Read(**/.ssh/**)",
+    "Read(./.env)",
+    "Read(./.env.*)",
+    "Read(./secrets/**)",
+    "Write(.claude-plugin/settings*)",
+    "Write(.claude/settings*)",
+    "mcp__codex__*"
+  ]
+}

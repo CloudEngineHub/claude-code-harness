@@ -6,14 +6,14 @@ package hookhandler
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 )
 
 // fileExists はファイルが存在するかを確認する。
@@ -102,12 +102,8 @@ func resolveProjectRoot() string {
 	}
 	// git rev-parse --show-toplevel でリポジトリルートを検出する。
 	// monorepo のサブディレクトリで実行された場合でも .claude/ が見つかるよう対応。
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err == nil {
-		if root := strings.TrimSpace(stdout.String()); root != "" {
+	if out, err := gitport.Output("", "rev-parse", "--show-toplevel"); err == nil {
+		if root := strings.TrimSpace(out); root != "" {
 			return root
 		}
 	}

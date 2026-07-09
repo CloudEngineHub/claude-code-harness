@@ -12,6 +12,14 @@
     "comment": "品質ゲート・DoD・原則を集約したファイル（プロジェクトごとにカスタマイズ可）"
   },
 
+  "runtimefloor": {
+    "secretAllow": [
+      ".env.local",
+      "secrets/pipeline.key"
+    ],
+    "comment": "secret-read の事前宣言。相対 path は project root 配下として解決され、project 外の絶対 path は無効化されます。"
+  },
+
   "work": {
     "auto_commit": true,
     "commit_on_pm_approve": false,
@@ -75,4 +83,3 @@
     "max_files_to_modify": 20
   }
 }
-

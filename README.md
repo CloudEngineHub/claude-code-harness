@@ -13,7 +13,7 @@
   <a href="https://github.com/Chachamaru127/claude-code-harness/releases/latest"><img src="https://img.shields.io/github/v/release/Chachamaru127/claude-code-harness?display_name=tag&sort=semver" alt="Latest Release"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
-  <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
+  <img src="https://img.shields.io/badge/Skills-5_core_%2F_22_total-orange.svg" alt="Skills: 5 core verbs / 22 total">
   <img src="https://img.shields.io/badge/Core-Go_Native-00ADD8.svg" alt="Go Core">
 </p>
 
@@ -37,6 +37,12 @@ After install, the default changes from "ask the agent to code" to:
 4. review independently,
 5. package evidence for PR or release.
 
+**Claims in this README are machine-checked against the code.** CI gates verify that
+implemented components are actually wired (no dead code claimed as done), that the task
+ledger's dependencies stay consistent, and that the shipped binaries rebuild from source.
+A feature is described here only after a gate proves it is reachable — "written" is not
+"working."
+
 ## Quickstart
 
 New users should start from the tool they already use. Existing users should
@@ -47,7 +53,6 @@ run the migration report before cleanup or reinstall.
 | New user | [Tool-first onboarding](docs/onboarding/index.md) |
 | Existing user | [Migration check](docs/onboarding/migration.md) |
 | Claude Code fast path | [Install in 30 seconds](#install-in-30-seconds) |
-| Non-engineer / jargon help | [Plain-language glossary](docs/onboarding/glossary.md) |
 | Trigger proof | [Skill trigger gate](docs/onboarding/skill-trigger-acceptance.md) |
 
 ## Install in 30 Seconds
@@ -119,6 +124,18 @@ The 5 verb skills keep that surface small: plan, work, review, sync, release.
 | PR | Evidence pack | PR ready is not release ready. |
 | Release | Tag/release artifacts | Release preflight must pass on the release path. |
 
+### Non-engineer decision surfaces
+
+Three single-screen HTML views surface the decision at each phase, so a non-engineer
+sponsor can judge without reading code:
+
+- **Plan Brief** (`harness-plan-brief`) — understanding, options, risks, and acceptance
+  criteria before implementation. Offered when a plan is finalized.
+- **Progress** (`harness-progress`) — WIP/TODO/done counts and drift alerts during work.
+  Auto-regenerated on a PostToolUse hook.
+- **Acceptance** (`harness-accept`) — per-criterion pass/fail with a ship/wait/reject
+  recommendation before release.
+
 ## Install By Tool
 
 | Tool | Tier | Route |
@@ -165,6 +182,7 @@ Use these after the basic trigger path is visible.
 | Codex companion review | Schema-backed Codex second opinion through `scripts/codex-companion.sh`. | Raw `codex exec` is not the Harness companion path. |
 | OpenCode bootstrap | Mirrors Harness guidance into OpenCode-compatible surfaces. | Real runtime parity is not claimed. |
 | harness-mem | Project-scoped memory and recall across sessions. | Optional companion; purge remains explicit. |
+| auto-approve (experimental) | `HARNESS_AUTO_APPROVE=on` currently records the enablement gate and prereq check result in the orchestration ledger only. Approval prompts are not skipped. | Default OFF. Strict env value (`on` only). Gated on Phase 92.1.1 / 92.2.3 / 96.1.2 prereqs for ledger instrumentation; approval automation is deferred until HOTL governance verification (Phase 101 U0-U7 evidence). |
 
 ## Documentation
 
@@ -173,7 +191,6 @@ Use these after the basic trigger path is visible.
 | [Tool-first onboarding](docs/onboarding/index.md) | Where to start by host tool. |
 | [Install routes](docs/onboarding/install.md) | Per-tool setup and support-tier boundaries. |
 | [Migration check](docs/onboarding/migration.md) | Existing-user impact, compatibility, and rollback path. |
-| [Plain-language glossary](docs/onboarding/glossary.md) | Non-engineer definitions for spec, contract, cc:* markers, confidence %, and more. |
 | [Skill trigger gate](docs/onboarding/skill-trigger-acceptance.md) | How install success is verified. |
 | [Capability matrix](docs/tool-capability-matrix.md) | Supported, internal-compatible, candidate, and unsupported host claims. |
 | [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Current Claude Code requirements and compatibility notes. |

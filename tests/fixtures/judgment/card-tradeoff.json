@@ -1,0 +1,19 @@
+{
+  "question": "レート制限を Redis キャッシュに移すか、DB クエリ最適化で対応するか？",
+  "options": [
+    {
+      "id": "redis",
+      "label": "Redis キャッシュを導入する",
+      "consequence": "新しいインフラ依存が増えるが、スケールしやすい"
+    },
+    {
+      "id": "db-opt",
+      "label": "DB クエリを最適化する",
+      "consequence": "追加インフラ不要だが、高負荷時の上限がある"
+    }
+  ],
+  "recommendation": "redis",
+  "confidence": "medium",
+  "impact": "API レイテンシと運用コストに影響",
+  "diff_summary": "src/rate-limit/ に分岐実装が入る"
+}

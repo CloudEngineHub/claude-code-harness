@@ -32,15 +32,19 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/ci"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/event"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/guardrail"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/hookcodec"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hookhandler"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/lifecycle"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/policy"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/session"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
@@ -61,7 +65,21 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Usage: harness hook <pre-tool|post-tool|permission>")
 			os.Exit(1)
 		}
-		runHook(os.Args[2])
+		runHook(os.Args[2], os.Args[3:])
+	case "policy":
+		runPolicy(os.Args[2:])
+	case "gen":
+		runGen(os.Args[2:])
+	case "work":
+		runWork(os.Args[2:])
+	case "plan":
+		runPlan(os.Args[2:])
+	case "plans":
+		runPlans(os.Args[2:])
+	case "review":
+		runReview(os.Args[2:])
+	case "release":
+		runRelease(os.Args[2:])
 	case "evidence":
 		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, "Usage: harness evidence <collect>")
@@ -84,6 +102,24 @@ func main() {
 		runCodexLoop(os.Args[2:])
 	case "mem":
 		runMem(os.Args[2:])
+	case "channels-wake":
+		runChannelsWake(os.Args[2:])
+	case "inbox":
+		runInbox(os.Args[2:])
+	case "self-audit":
+		runSelfAudit(os.Args[2:])
+	case "retired-alias":
+		runRetiredAlias(os.Args[2:])
+	case "night-watch":
+		runNightWatch(os.Args[2:])
+	case "mirror":
+		runMirror(os.Args[2:])
+	case "failure-codifier":
+		runFailureCodifier(os.Args[2:])
+	case "wt":
+		runWt(os.Args[2:])
+	case "impact-score":
+		runImpactScore(os.Args[2:])
 	case "pre-compact":
 		runPreCompact(os.Args[2:])
 	case "version":
@@ -127,10 +163,28 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  init [root]             Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
+	fmt.Fprintln(os.Stderr, "  plans check-deps [Plans.md]  Verify done tasks only depend on closed tasks")
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [--migration-report] [root]  Health check plus migration status/report")
 	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
 	fmt.Fprintln(os.Stderr, "  mem status|setup|update|doctor|off|purge|health  Manage harness-mem companion")
+	fmt.Fprintln(os.Stderr, "  channels-wake check  Bridge channel health (exit 0=healthy/not-configured)")
+	fmt.Fprintln(os.Stderr, "  inbox check --team <t> --agent <a> --db <path>  Read livemsg inbox (fail-open)")
+	fmt.Fprintln(os.Stderr, "  inbox monitor --team <t> --agent <a> --db <path>  Poll livemsg inbox stream (CC Monitor)")
+	fmt.Fprintln(os.Stderr, "  self-audit hooks --file <path>  Audit settings.local.json command hooks (CCH allowlist)")
+	fmt.Fprintln(os.Stderr, "  self-audit baseline --settings <path> --baseline <path>  Verify deny entries did not regress")
+	fmt.Fprintln(os.Stderr, "  retired-alias scan [root]  Scan repo for retired alias residue (exit 1 if hits)")
+	fmt.Fprintln(os.Stderr, "  night-watch report [--dry-run]  Emit night-watch patrol report (schema-valid JSON)")
+	fmt.Fprintln(os.Stderr, "  failure-codifier propose --dry-run  Emit failure-rule.v1 proposals (human-approval gated)")
+	fmt.Fprintln(os.Stderr, "  mirror status|verify [--json] [root]  Report skills/ mirror drift (mirror-state.v1 JSON with --json or verify)")
+	fmt.Fprintln(os.Stderr, "  wt fingerprint capture --output <path>  Snapshot sensitive $HOME paths")
+	fmt.Fprintln(os.Stderr, "  wt fingerprint diff --before <p> --after <p>  Detect worktree-escape (exit 2 on change)")
+	fmt.Fprintln(os.Stderr, "  impact-score --files-changed N --lines-changed M [--floor-category CAT]  Compute judgment-card impact_score")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")
+	fmt.Fprintln(os.Stderr, "  gen [hooks] [--check] [root]  Generate per-host hooks.json from hosts.toml (--check vs golden)")
+	fmt.Fprintln(os.Stderr, "  work <taskID>           Emit the work prompt + task context (host executes; no LLM call)")
+	fmt.Fprintln(os.Stderr, "  plan                    Emit the plan prompt for the host to execute")
+	fmt.Fprintln(os.Stderr, "  review <taskID>         Emit the review prompt + task context for the host to execute")
+	fmt.Fprintln(os.Stderr, "  release                 Emit the release prompt for the host to execute")
 	fmt.Fprintln(os.Stderr, "  version                 Print version")
 }
 
@@ -195,7 +249,16 @@ func runEvidenceCollect(args []string) {
 	}
 }
 
-func runHook(hookType string) {
+func runHook(hookType string, args []string) {
+	// pre-tool is the only hook type that accepts a per-host flag
+	// (`harness hook pre-tool --host codex`). It runs the 3-host stdin codec so a
+	// single policy engine adjudicates Claude, Codex, and Cursor. With no --host
+	// (Claude default) the behavior is byte-for-byte identical to the legacy path.
+	if hookType == "pre-tool" {
+		runPreToolHosted(parseHostFlag(args))
+		return
+	}
+
 	switch hookType {
 	// --- event handlers (no tool_name validation) ---
 	case "session-start":
@@ -263,14 +326,6 @@ func runHook(hookType string) {
 	case "session-register":
 		if err := hookhandler.HandleSessionRegister(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "session-register handler error: %v\n", err)
-		}
-	case "session-relay-start":
-		if err := hookhandler.HandleSessionRelayStart(os.Stdin, os.Stdout); err != nil {
-			fmt.Fprintf(os.Stderr, "session-relay-start handler error: %v\n", err)
-		}
-	case "relay-poll":
-		if err := hookhandler.HandleRelayPoll(os.Stdin, os.Stdout); err != nil {
-			fmt.Fprintf(os.Stderr, "relay-poll handler error: %v\n", err)
 		}
 	case "session-unregister":
 		if err := hookhandler.HandleSessionUnregister(os.Stdin, os.Stdout); err != nil {
@@ -385,6 +440,10 @@ func runHook(hookType string) {
 		if err := hookhandler.HandleTDDOrderCheck(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "tdd-check handler error: %v\n", err)
 		}
+	case "skill-mirror-drift":
+		if err := hookhandler.HandleSkillMirrorDrift(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "skill-mirror-drift handler error: %v\n", err)
+		}
 	case "elicitation":
 		h := &hookhandler.ElicitationHandler{}
 		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
@@ -465,8 +524,8 @@ func runHook(hookType string) {
 
 func runGuardHook(hookType string, input hookproto.HookInput) {
 	switch hookType {
-	case "pre-tool":
-		runPreTool(input)
+	// pre-tool is intercepted earlier in runHook (runPreToolHosted) so it can run
+	// the per-host stdin codec; it never reaches here.
 	case "post-tool":
 		runPostTool(input)
 	case "permission":
@@ -478,19 +537,91 @@ func runGuardHook(hookType string, input hookproto.HookInput) {
 	}
 }
 
-func runPreTool(input hookproto.HookInput) {
-	result := guardrail.EvaluatePreTool(input)
-	output, exitCode := guardrail.FormatPreToolResult(result)
+// parseHostFlag extracts the optional `--host <name>` argument that may follow
+// the hook type (`harness hook pre-tool --host codex`). An empty string means
+// no host was supplied (Claude default). Both `--host codex` and `--host=codex`
+// are accepted; unrecognized args are ignored so the hook stays fail-open.
+func parseHostFlag(args []string) string {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if a == "--host" {
+			if i+1 < len(args) {
+				return args[i+1]
+			}
+			return ""
+		}
+		if strings.HasPrefix(a, "--host=") {
+			return strings.TrimPrefix(a, "--host=")
+		}
+	}
+	return ""
+}
 
+// runPreToolHosted runs the PreToolUse guardrail through the 3-host stdin codec.
+//
+// Flow: read raw stdin → hookcodec.Normalize (tolerate Claude/Codex/Cursor field
+// differences, infer host from `host` hint or payload) → guardrail.EvaluatePreTool
+// → policy.FormatPreToolResult (UNCHANGED engine). On a deny decision it writes
+// the host-appropriate deny JSON (hookcodec.DenyOutput) and exits 2 — the
+// universal hard-block code across all three hosts. Allow/ask preserve the
+// legacy Claude output (the canonical PreToolUse hookSpecificOutput) so the
+// no-flag path stays byte-for-byte compatible with the pre-91.4 behavior.
+func runPreToolHosted(hostFlag string) {
+	// Chain-integrity precondition (Phase 91.6 FLOOR). The PreToolUse guard is
+	// itself a gate; if its deny surface has been weakened relative to the
+	// build-time baseline, refuse to adjudicate rather than fail open. This is
+	// the one case where the hook does NOT fall back to a safe approve: a
+	// compromised chain quietly approving writes is the exact failure mode the
+	// self-audit exists to stop, so it exits non-zero (3) before touching stdin.
+	// The intact-surface path below is byte-for-byte unchanged.
+	if auditErr := policy.VerifyDenySurface(); auditErr != nil {
+		fmt.Fprintf(os.Stderr, "pre-tool guard: refusing to adjudicate — %v\n", auditErr)
+		os.Exit(3)
+	}
+
+	raw, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		// Cannot read stdin → safe approve (fail-open), exit 0.
+		hook.WriteResult(os.Stdout, hook.SafeResult(err))
+		return
+	}
+
+	input, host, normErr := hookcodec.Normalize(raw, hostFlag)
+	if normErr != nil {
+		// Empty input or unparseable / no tool action → safe approve, exit 0.
+		hook.WriteResult(os.Stdout, hook.SafeResult(normErr))
+		return
+	}
+
+	result := guardrail.EvaluatePreTool(input)
+	output, exitCode := policy.FormatPreToolResult(result)
+
+	if result.Decision == hookproto.DecisionDeny {
+		// Host-appropriate deny envelope (Claude default == legacy bytes).
+		denyJSON, denyErr := hookcodec.DenyOutput(host, result.Reason)
+		if denyErr != nil {
+			// Unknown host: fall back to the policy engine's canonical output so
+			// the deny is still expressed, then exit 2.
+			if output != nil {
+				hook.WriteJSON(os.Stdout, output)
+			}
+			os.Exit(exitCode)
+		}
+		os.Stdout.Write(denyJSON)
+		os.Stdout.Write([]byte("\n"))
+		os.Exit(exitCode)
+	}
+
+	// allow / ask: keep the canonical PreToolUse output (unchanged for Claude
+	// and harmless for the other hosts, which only act on exit codes / deny).
 	if output != nil {
 		hook.WriteJSON(os.Stdout, output)
 	}
-
 	os.Exit(exitCode)
 }
 
 func runPostTool(input hookproto.HookInput) {
-	result := guardrail.EvaluatePostTool(input)
+	result := policy.EvaluatePostTool(input)
 
 	// PostToolUse: if there's a systemMessage, wrap in hookSpecificOutput
 	if result.SystemMessage != "" {
@@ -508,7 +639,7 @@ func runPostTool(input hookproto.HookInput) {
 }
 
 func runPermission(input hookproto.HookInput) {
-	_, permOutput := guardrail.EvaluatePermission(input)
+	_, permOutput := policy.EvaluatePermission(input)
 
 	if permOutput != nil {
 		hook.WriteJSON(os.Stdout, permOutput)
@@ -562,6 +693,9 @@ func runSubagentStop() {
 
 	if err := tracker.HandleStop(input); err != nil {
 		fmt.Fprintf(os.Stderr, "subagent-stop handler error: %v\n", err)
+	}
+	if err := persistReviewerResultBackstop(input); err != nil {
+		fmt.Fprintf(os.Stderr, "subagent-stop reviewer persist error: %v\n", err)
 	}
 	// SubagentStop は出力不要（通過フック）
 }

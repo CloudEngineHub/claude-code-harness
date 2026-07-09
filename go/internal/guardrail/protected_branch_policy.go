@@ -6,29 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/policy"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/config"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
 )
-
-const (
-	protectedBranchPushPolicyAsk   = "ask"
-	protectedBranchPushPolicyDeny  = "deny"
-	protectedBranchPushPolicyAllow = "allow"
-)
-
-func normalizeProtectedBranchPushPolicy(value string) string {
-	normalized := strings.ToLower(strings.Trim(strings.TrimSpace(value), `"'`))
-	switch normalized {
-	case protectedBranchPushPolicyAsk, "confirm":
-		return protectedBranchPushPolicyAsk
-	case protectedBranchPushPolicyDeny, "block":
-		return protectedBranchPushPolicyDeny
-	case protectedBranchPushPolicyAllow, "approve":
-		return protectedBranchPushPolicyAllow
-	default:
-		return protectedBranchPushPolicyAsk
-	}
-}
 
 func resolveProtectedBranchPushPolicy(input hookproto.HookInput, projectRoot string) string {
 	for _, envName := range []string{
@@ -36,25 +17,25 @@ func resolveProtectedBranchPushPolicy(input hookproto.HookInput, projectRoot str
 		"HARNESS_DIRECT_PUSH_POLICY",
 	} {
 		if value := os.Getenv(envName); value != "" {
-			return normalizeProtectedBranchPushPolicy(value)
+			return policy.NormalizeProtectedBranchPushPolicy(value)
 		}
 	}
 
 	if value := readProtectedBranchPushPolicyFromYAML(projectRoot); value != "" {
-		return normalizeProtectedBranchPushPolicy(value)
+		return policy.NormalizeProtectedBranchPushPolicy(value)
 	}
 
 	if value := readProtectedBranchPushPolicyFromHarnessTOML(filepath.Join(projectRoot, "harness.toml")); value != "" {
-		return normalizeProtectedBranchPushPolicy(value)
+		return policy.NormalizeProtectedBranchPushPolicy(value)
 	}
 
 	if input.PluginRoot != "" && input.PluginRoot != projectRoot {
 		if value := readProtectedBranchPushPolicyFromHarnessTOML(filepath.Join(input.PluginRoot, "harness.toml")); value != "" {
-			return normalizeProtectedBranchPushPolicy(value)
+			return policy.NormalizeProtectedBranchPushPolicy(value)
 		}
 	}
 
-	return protectedBranchPushPolicyAsk
+	return policy.ProtectedBranchPushPolicyAsk
 }
 
 func readProtectedBranchPushPolicyFromHarnessTOML(path string) string {

@@ -110,6 +110,44 @@ Security gate は秘密情報の実読取を要求しない。
 8. `$easy` 形式で、提案内容・理由・どうなるのかを報告する
 9. 採用する案だけを root `spec.md` / Plans.md / test task へ落とし込む
 
+### Lane Taxonomy + Stage Gate
+
+Fast / Gate / Release は **新 skill ではなく Plans metadata** として扱う。
+Plans.md の 5 column テンプレート（Task / 内容 / DoD / Depends / Status）は変更しない。
+lane / stage / TDD / unknown などの metadata は **内容（Content）または DoD の先頭** に埋め込む。
+
+**Lane Taxonomy** — 各 task の Content か DoD 先頭に、次のいずれか 1 つを付ける:
+
+| タグ | 用途 |
+|------|------|
+| `[lane:fast]` | low-risk local work（refactor / docs / typo） |
+| `[lane:gate]` | spec / workflow / mirror / guardrail を触る変更（大半の機能実装） |
+| `[lane:release]` | public artifact / version / tag / GitHub Release を出す変更 |
+
+**Stage gate** — planning output（`create` / product-impacting `add`）は、次の 5 段階で構造化する:
+
+1. **検証・調査** — research evidence を残し、unknown data を明示する
+2. **実装計画確定** — lane タグ + DoD を確定する
+3. **実装(TDD)** — `[tdd:required]` または `[tdd:skip:<reason>]` を各 task に付ける
+4. **レビュー** — review artifact（`harness-review` または companion review）を DoD に落とす
+5. **PR closeout** — evidence pack → PR body（release が必要なら別 `[lane:release]` gate へ）
+
+stage gate は planning セクションの見出しまたは task 群の前置きとして出力し、
+各 stage に対応する task を Plans.md 行として生成する。
+release closeout は `[lane:release]` task または `harness-release` へ委譲してよい。
+
+**Unknown data contract** — AI が見えていない data / failed search / missing fixture / API unavailable は
+`not_observed != absent` 原則で **`unknown`** と明示する。`absent` と断定しない。
+
+| 観測状態 | 出力 |
+|---------|------|
+| 確認済みで存在しない | `absent`（evidence 必須） |
+| 検索失敗・未読・API 不可・fixture 欠落 | `unknown` |
+| 確認できた事実 | 通常の evidence 記述 |
+
+`create` / `add` の出力契約には、調査段（stage 1）で `unknown` 一覧または
+`unknown_data: [...]` を残す。DoD に「未確認の前提を absent と書かない」を含めてよい。
+
 ### create — 計画作成
 
 See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
@@ -126,7 +164,40 @@ See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 7. 優先度マトリクス（Required / Recommended / Optional / Reject）
 8. TDD 採用判断（テスト設計）
 9. Plans.md 生成（`cc:TODO` マーカー付き）
-10. 次のアクション案内
+10. **事前確認セクション生成**（plan-time pre-approval）
+11. 次のアクション案内
+
+### create — 事前確認セクション（plan-time pre-approval）
+
+`create` で計画を確定する時は、Plans.md task を出したあと、承認前に **事前確認セクション**を必ず生成する。
+目的は、常設 allowlist で何でも許可するのではなく、作業スコープごとに「発生しそうな stop / ask」を plan 承認時に 1 回だけ前倒しで確認すること。
+
+抽出対象:
+
+- 各 task の対象ファイル、関連 path、想定変更範囲
+- DoD に書いた検証コマンド、PR closeout コマンド、外部 API / CLI 呼び出し
+- `secret-read path`（`.env*`, `secrets/**`, `*.pem`, `*.key`, `.ssh/**`, `.aws/**`, `credentials` など）
+- 外部送信（`git push`, `gh pr create`, `gh api`, `curl` / API call, release / publish / deploy）
+- 破壊的操作（`rm -rf`, migration destructive step, force push, production apply）
+
+固定 format:
+
+```text
+## 事前確認
+- 事項: <secret-read / external-send / destructive の具体操作>
+  理由: <DoD または task 実行上必要な理由を 1 行>
+  scope: Phase <phase> / Task <task>
+```
+
+出力ルール:
+
+- 1 行の `理由` は secret 値を含めない。path / コマンド名 / 対象サービスまでに留める。
+- plan 承認時に、事前確認セクションの全事項を一括提示し、ユーザーから承認 / 否認を得る。
+- 承認結果は `.claude/state/plan-preapprovals.json` に `plan-preapproval.v1` として記録する。schema は `templates/schemas/plan-preapproval.v1.json`。
+- 記録は `事項 + 理由 1 行 + scope (phase/task)` を維持し、`operations` には `secret-read` / `external-send` / `destructive` の列挙、`paths` / `commands` / `targets` には対象を列挙、`decision` と `approved_at` を入れる。
+- 確認は plan 承認時の 1 回のみ。`harness-work` / `breezing` 実行中、宣言済み事項だけを理由に `AskUserQuestion` を出してはいけない。
+- 記録に無い未計画の secret-read / 外部送信 / 破壊的操作は、従来どおり runtime floor / ask で停止する。安全網を狭めない。
+- secret-read の承認は secret 値の表示許可ではない。必要最小の path を宣言し、work 開始時に project config の `runtimefloor.secretAllow` へ per-run 反映するための入力として扱う。
 
 ### spec.md / Plans.md 二正本チェック（デフォルト）
 
@@ -368,9 +439,16 @@ Plans.md の task には、TDD 判定を明示するタグを内容または DoD
 | `pm:確認済` | PM レビュー完了 |
 | `blocked` | ブロック中（理由を必ず記載） |
 
+### 計画確定後の導線（非エンジニア向け計画概要）
+
+Plans.md への task append が完了したら、非エンジニアの発注者が計画を判断できるよう
+`harness-plan-brief` を提案する。これは理解・選択肢・リスク・合格条件を 1 枚の HTML に
+まとめた「計画概要」画面で、専門知識なしで読める。実装に入る前の合意形成に使う。
+
 ## 関連スキル
 
 - `harness-sync` — 実装と Plans.md を同期する
 - `harness-work` — 計画したタスクを実装する
+- `harness-plan-brief` — 計画概要 HTML（非エンジニア向け、計画確定時に提案）
 - `harness-review` — 実装のレビュー
 - `harness-setup` — プロジェクト初期化

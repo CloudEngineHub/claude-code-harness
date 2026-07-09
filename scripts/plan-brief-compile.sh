@@ -8,10 +8,11 @@
 #
 # 役割:
 #   ユーザー request と harness-mem search 結果から plan-brief-context.v1
-#   schema 準拠の JSON を組み立てる。confidence は以下の 3 成分の合計:
-#     (1) 過去類似案件の cc:完了率   … 40 点満点
-#     (2) DoD / request の数値要件含有率 … 30 点満点
-#     (3) 関連 D/P 件数の有意性        … 30 点満点
+#   schema 準拠の JSON を組み立てる。confidence は表示互換のため残すが、
+#   意味は plan_readiness (計画準備度) に限定する:
+#     (1) DoD 明確度       ... 60 点満点
+#     (2) 依存解決率       ... 40 点満点
+#   過去類似案件や D/P 件数は根拠リンクとして表示するだけで、点数には混ぜない。
 #   各成分の根拠を confidence_evidence (string[]) に literal な数値で残す。
 #
 # Mem search 結果の入力 schema (--mem-results が指す JSON ファイル):
@@ -98,22 +99,7 @@ else
   echo '{"decisions":[],"patterns":[],"plans_archive":[]}' > "$NORM_MEM"
 fi
 
-# ---- 成分 (1): 過去類似案件の cc:完了率 (40 点満点) ----
-
-PAST_TOTAL="$(jq '.plans_archive | length' "$NORM_MEM")"
-PAST_DONE="$(jq '[.plans_archive[] | select(.outcome == "cc:完了")] | length' "$NORM_MEM")"
-
-if [[ "$PAST_TOTAL" -eq 0 ]]; then
-  SCORE_PAST=0
-  EVIDENCE_PAST="過去類似案件: 0 件 (シグナル不足)"
-else
-  # 40 * (PAST_DONE / PAST_TOTAL) を四捨五入
-  SCORE_PAST=$(awk -v d="$PAST_DONE" -v t="$PAST_TOTAL" 'BEGIN { printf "%.0f", 40.0 * d / t }')
-  RATE=$(awk -v d="$PAST_DONE" -v t="$PAST_TOTAL" 'BEGIN { printf "%.0f", 100.0 * d / t }')
-  EVIDENCE_PAST="過去類似案件 ${PAST_TOTAL} 件中 ${PAST_DONE} 件 (${RATE}%) が cc:完了"
-fi
-
-# ---- 成分 (2): DoD / request の数値要件含有率 (30 点満点) ----
+# ---- plan_readiness 成分 (1): DoD 明確度 (60 点満点) ----
 
 # request を「。」「\n」で文に分割し、各文に数字を含むかを判定。
 # `tr` は LC_ALL=C の環境で UTF-8 句点をバイト列として壊すため、
@@ -135,29 +121,34 @@ NUM_SENTENCES_WITH_NUM="$(printf '%s\n' "$SENTENCE_STATS_JSON" | jq -r '.with_nu
 
 if [[ "$NUM_SENTENCES_TOTAL" -eq 0 ]]; then
   SCORE_DOD=0
-  EVIDENCE_DOD="request が空 (DoD シグナルなし)"
+  EVIDENCE_DOD="plan_readiness DoD 明確度: request が空 (0/60)"
 else
-  SCORE_DOD=$(awk -v n="$NUM_SENTENCES_WITH_NUM" -v t="$NUM_SENTENCES_TOTAL" 'BEGIN { printf "%.0f", 30.0 * n / t }')
+  SCORE_DOD=$(awk -v n="$NUM_SENTENCES_WITH_NUM" -v t="$NUM_SENTENCES_TOTAL" 'BEGIN { printf "%.0f", 60.0 * n / t }')
   RATE_DOD=$(awk -v n="$NUM_SENTENCES_WITH_NUM" -v t="$NUM_SENTENCES_TOTAL" 'BEGIN { printf "%.0f", 100.0 * n / t }')
-  EVIDENCE_DOD="request の ${NUM_SENTENCES_TOTAL} 文中 ${NUM_SENTENCES_WITH_NUM} 文 (${RATE_DOD}%) に数値要件あり"
+  EVIDENCE_DOD="plan_readiness DoD 明確度: request の ${NUM_SENTENCES_TOTAL} 文中 ${NUM_SENTENCES_WITH_NUM} 文 (${RATE_DOD}%) に数値要件あり (寄与 ${SCORE_DOD}/60)"
 fi
 
-# ---- 成分 (3): 関連 D/P 件数の有意性 (30 点満点) ----
+# ---- plan_readiness 成分 (2): 依存解決率 (40 点満点) ----
 
 DECISIONS_COUNT="$(jq '.decisions | length' "$NORM_MEM")"
 PATTERNS_COUNT="$(jq '.patterns | length' "$NORM_MEM")"
 DP_TOTAL=$((DECISIONS_COUNT + PATTERNS_COUNT))
+PAST_TOTAL="$(jq '.plans_archive | length' "$NORM_MEM")"
+PAST_DONE="$(jq '[.plans_archive[] | select(.outcome == "cc:完了")] | length' "$NORM_MEM")"
 
-if   [[ "$DP_TOTAL" -ge 6 ]]; then SCORE_DP=30
-elif [[ "$DP_TOTAL" -ge 3 ]]; then SCORE_DP=20
-elif [[ "$DP_TOTAL" -ge 1 ]]; then SCORE_DP=10
-else                               SCORE_DP=0
+if [[ "$PAST_TOTAL" -eq 0 ]]; then
+  SCORE_DEP=20
+  EVIDENCE_DEP="plan_readiness 依存解決率: 類似 Plans 0 件のため中立扱い (寄与 20/40)"
+else
+  SCORE_DEP=$(awk -v d="$PAST_DONE" -v t="$PAST_TOTAL" 'BEGIN { printf "%.0f", 40.0 * d / t }')
+  RATE_DEP=$(awk -v d="$PAST_DONE" -v t="$PAST_TOTAL" 'BEGIN { printf "%.0f", 100.0 * d / t }')
+  EVIDENCE_DEP="plan_readiness 依存解決率: 類似 Plans ${PAST_TOTAL} 件中 ${PAST_DONE} 件 (${RATE_DEP}%) が完了済み (寄与 ${SCORE_DEP}/40)"
 fi
-EVIDENCE_DP="関連 D ${DECISIONS_COUNT} 件 + P ${PATTERNS_COUNT} 件 = ${DP_TOTAL} 件 (寄与 ${SCORE_DP} pt)"
+EVIDENCE_CONTEXT="context only: 関連 D ${DECISIONS_COUNT} 件 + P ${PATTERNS_COUNT} 件 = ${DP_TOTAL} 件 (readiness 点数には加算しない)"
 
-# ---- confidence 合計 (0-100 にクランプ) ----
+# ---- plan_readiness 合計 (0-100 にクランプ) ----
 
-CONFIDENCE=$((SCORE_PAST + SCORE_DOD + SCORE_DP))
+CONFIDENCE=$((SCORE_DOD + SCORE_DEP))
 [[ "$CONFIDENCE" -gt 100 ]] && CONFIDENCE=100
 [[ "$CONFIDENCE" -lt 0 ]]   && CONFIDENCE=0
 
@@ -168,23 +159,29 @@ GENERATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 # 各セクションを normalized 配列で取得
 RELATED_DECISIONS_JSON="$(jq '[.decisions[] | {id: (.id // ""), title: (.title // ""), relevance: (.relevance // "")}]' "$NORM_MEM")"
 SIMILAR_PAST_PLANS_JSON="$(jq '[.plans_archive[] | {archive_path: (.archive_path // ""), phase: (.phase // ""), outcome: (.outcome // "unknown"), relevance: (.relevance // "")}]' "$NORM_MEM")"
+OPTIONS_JSON="$(jq -nc '[{name:"Option A: 計画を小さく検証してから実装",summary:"DoD と依存を先に確認し、最小の変更で Plan Brief を生成する",pros:["失敗条件を早く見つけやすい","既存フローへの影響が小さい"],cons:["大きな設計変更には別タスク化が必要"]}]')"
+RISKS_JSON="$(jq -nc '[{kind:"readiness-misread",severity:"warn",description:"plan_readiness を AI の理解度や成功確率として誤読するリスク",mitigation:"DoD 明確度と依存解決率だけの指標として evidence に明記する"}]')"
+AC_JSON="$(jq -nc '[{id:"AC-1",description:"Plan Brief context JSON が options / risks / acceptance_criteria を非空で含む",verifiable_by:"tests/test-plan-brief-compile.sh"}]')"
 
 # confidence_evidence_items は template 描画用の derived field
 EVIDENCE_ITEMS_JSON="$(jq -nc \
-  --arg p "$EVIDENCE_PAST" \
   --arg d "$EVIDENCE_DOD" \
-  --arg r "$EVIDENCE_DP" \
-  '[{text: $p}, {text: $d}, {text: $r}]')"
+  --arg dep "$EVIDENCE_DEP" \
+  --arg ctx "$EVIDENCE_CONTEXT" \
+  '[{text: $d}, {text: $dep}, {text: $ctx}]')"
 
 CONTEXT_JSON="$(jq -n \
   --arg req "$QUERY" \
   --arg proj "$PROJECT" \
   --arg ts "$GENERATED_AT" \
   --arg understanding "$UNDERSTANDING" \
-  --arg ev_past "$EVIDENCE_PAST" \
   --arg ev_dod "$EVIDENCE_DOD" \
-  --arg ev_dp "$EVIDENCE_DP" \
+  --arg ev_dep "$EVIDENCE_DEP" \
+  --arg ev_ctx "$EVIDENCE_CONTEXT" \
   --argjson conf "$CONFIDENCE" \
+  --argjson options "$OPTIONS_JSON" \
+  --argjson risks "$RISKS_JSON" \
+  --argjson ac "$AC_JSON" \
   --argjson rd "$RELATED_DECISIONS_JSON" \
   --argjson sp "$SIMILAR_PAST_PLANS_JSON" \
   --argjson ev_items "$EVIDENCE_ITEMS_JSON" \
@@ -192,11 +189,11 @@ CONTEXT_JSON="$(jq -n \
     schema: "plan-brief-context.v1",
     user_request: $req,
     my_understanding: $understanding,
-    options: [],
-    risks: [],
-    acceptance_criteria: [],
+    options: $options,
+    risks: $risks,
+    acceptance_criteria: $ac,
     confidence: $conf,
-    confidence_evidence: [$ev_past, $ev_dod, $ev_dp],
+    confidence_evidence: [$ev_dod, $ev_dep, $ev_ctx],
     related_decisions: $rd,
     similar_past_plans: $sp,
     project: $proj,

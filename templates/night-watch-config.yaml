@@ -1,0 +1,9 @@
+# Night Watch patrol configuration (Phase 99.1)
+# Opt-in only — default OFF. Set NIGHT_WATCH_ENABLED=true to activate cron/install.
+
+night_watch:
+  # Default OFF (auto-approve pattern: explicit opt-in required)
+  NIGHT_WATCH_ENABLED: false
+  stale_task_hours: 72
+  open_decision_hours: 168
+  bridge_home: "~/.harness-bridge"

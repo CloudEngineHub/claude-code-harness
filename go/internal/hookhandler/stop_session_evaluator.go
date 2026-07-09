@@ -85,7 +85,9 @@ func (h *StopSessionEvaluatorHandler) Handle(in io.Reader, out io.Writer) error 
 	wipCount := h.countWIPTasks(projectRoot)
 	if wipCount > 0 {
 		msg := fmt.Sprintf(
-			"[StopSession] %d WIP タスクが残っています。Plans.md を確認してください。",
+			localizedHarnessMessage("ja",
+				"[StopSession] %d WIP tasks remain. Check Plans.md.",
+				"[StopSession] %d WIP タスクが残っています。Plans.md を確認してください。"),
 			wipCount,
 		)
 		return writeJSON(out, stopSessionResponse{

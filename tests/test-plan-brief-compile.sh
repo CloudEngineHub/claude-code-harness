@@ -2,21 +2,15 @@
 # tests/test-plan-brief-compile.sh
 # Phase 65.1.3 - plan-brief-compile.sh の機械検証
 #
-# 検証ケース (DoD c に対応):
-#   1. case-empty           : 類似案件 0 件 + D/P 0 件 + request 数値あり 1 文
-#                              => confidence ≈ DoD 成分のみ
-#   2. case-5-all-done      : 類似案件 5 件全完了 + D 4 + P 2 (=6 → 30pt)
-#                              => confidence = 40 + 30 + 30 = 100
-#   3. case-5-half-failed   : 類似案件 5 件中 2 完了 (40%) + D 2 + P 1 (=3 → 20pt)
-#                              => confidence = 16 + 30 + 20 = 66
-#   4. case-5-all-done-no-dp: 類似案件 5 件全完了 + D/P 0 件
-#                              => confidence = 40 + 30 + 0 = 70
+# 検証ケース (Phase 105.3 に対応):
+#   confidence は表示互換名のまま、意味を plan_readiness に限定する。
+#   点数は DoD 明確度 60 点 + 依存解決率 40 点のみで、D/P 件数は加算しない。
 #
 # 共通検証:
 #   (a) --query / --project 必須、欠けたら exit 2
 #   (b) confidence は 0-100 の整数
-#   (c) confidence_evidence に「N 件中 M 件 (X%) が cc:完了」形式の行が 1 行以上
-#   (d) 出力 schema が "plan-brief-context.v1"
+#   (c) confidence_evidence が plan_readiness / DoD 明確度 / 依存解決率を説明する
+#   (d) options / risks / acceptance_criteria が非空
 #   (e) 関連 D/P の各 element が related_decisions に渡る (件数一致)
 
 set -euo pipefail
@@ -109,13 +103,15 @@ run_case() {
     fail "[$label] confidence out of [0, 100]: $conf"
   fi
 
-  # confidence_evidence has past plans line with "N 件中 M 件 (X%)" or "0 件 (シグナル不足)"
+  # confidence_evidence explains the single-axis plan_readiness score.
   local evidence_text
   evidence_text="$(printf '%s' "$out" | jq -r '.confidence_evidence | join("\n")')"
-  if printf '%s' "$evidence_text" | grep -qE '件中.*件 \([0-9]+%\) が cc:完了|0 件 \(シグナル不足\)'; then
-    pass "[$label] confidence_evidence contains past plans rate evidence"
+  if printf '%s' "$evidence_text" | grep -q 'plan_readiness DoD 明確度' && \
+     printf '%s' "$evidence_text" | grep -q 'plan_readiness 依存解決率' && \
+     printf '%s' "$evidence_text" | grep -q 'readiness 点数には加算しない'; then
+    pass "[$label] confidence_evidence explains plan_readiness single-axis scoring"
   else
-    fail "[$label] confidence_evidence missing past plans rate line"
+    fail "[$label] confidence_evidence does not explain plan_readiness scoring"
   fi
 
   # related_decisions length matches fixture
@@ -136,11 +132,22 @@ run_case() {
     fail "[$label] similar_past_plans count: got $sp_count, expected $exp_plans"
   fi
 
+  # Phase 105.3: generated arrays must not be empty.
+  for section in options risks acceptance_criteria; do
+    local section_count
+    section_count="$(printf '%s' "$out" | jq -r --arg section "$section" '.[$section] | length')"
+    if [[ "$section_count" -ge 1 ]]; then
+      pass "[$label] $section is non-empty"
+    else
+      fail "[$label] $section should be non-empty"
+    fi
+  done
+
   # confidence_evidence_items derived field present (for template iteration)
   local items_count
   items_count="$(printf '%s' "$out" | jq -r '.confidence_evidence_items | length')"
   if [[ "$items_count" -eq 3 ]]; then
-    pass "[$label] confidence_evidence_items has 3 items (past + DoD + D/P)"
+    pass "[$label] confidence_evidence_items has 3 items (DoD + dependency + context)"
   else
     fail "[$label] confidence_evidence_items count: got $items_count, expected 3"
   fi
@@ -150,7 +157,7 @@ run_case() {
 # query: 1 文に数字 1 個 → DoD 100% × 30 = 30
 # 過去 0 件 → 0、 D/P 0 件 → 0
 # expected confidence: 30 (only DoD contributes)
-run_case "empty" "$FIX_DIR/case-empty.json" 28 32 "Plan Brief を 1 つ作りたい" 0 0
+run_case "empty" "$FIX_DIR/case-empty.json" 78 82 "Plan Brief を 1 つ作りたい" 0 0
 
 # ---- Case 2: 5 all done + D 4 + P 2 (= 6 D/P) ----
 # 過去 5 件全完了 → 40
@@ -164,14 +171,14 @@ run_case "5-all-done" "$FIX_DIR/case-5-all-done.json" 98 100 "全 5 タスクを
 # query: 1 文 数字あり → 30
 # D/P 3 件 → 20
 # expected: 66 (allow 64-68 for rounding)
-run_case "5-half-failed" "$FIX_DIR/case-5-half-failed.json" 64 68 "5 タスクを進める" 2 5
+run_case "5-half-failed" "$FIX_DIR/case-5-half-failed.json" 74 78 "5 タスクを進める" 2 5
 
 # ---- Case 4: 5 all done + 0 D/P ----
 # 過去 5 件全完了 → 40
 # query: 1 文 数字あり → 30
 # D/P 0 件 → 0
 # expected: 70
-run_case "5-all-done-no-dp" "$FIX_DIR/case-5-all-done-no-dp.json" 68 72 "5 タスクを進める" 0 5
+run_case "5-all-done-no-dp" "$FIX_DIR/case-5-all-done-no-dp.json" 98 100 "5 タスクを進める" 0 5
 
 # ---- Summary ----
 

@@ -1,0 +1,8 @@
+# Night Watch cron template (Phase 99.1)
+# Opt-in only — copy/install via scripts/night-watch-install.sh (fixture/tempdir tests only).
+#
+# Default OFF:
+NIGHT_WATCH_ENABLED=false
+#
+# Example cron (uncomment after opt-in):
+# 0 2 * * * ${CLAUDE_PLUGIN_ROOT}/scripts/night-watch-report.sh >> ${HOME}/.harness-night-watch/reports.log 2>&1
