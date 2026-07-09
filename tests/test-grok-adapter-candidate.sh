@@ -77,7 +77,7 @@ assert_contains "$EVIDENCE" "tests/test-grok-adapter-candidate.sh"
 assert_contains "$EVIDENCE" "scripts/setup-grok.sh"
 assert_contains "$EVIDENCE" "Observed Runtime Evidence"
 assert_contains "$EVIDENCE" "Do not claim public \`supported\`"
-assert_contains "$EVIDENCE" "supported Grok adapter" # blocked-wording column only
+assert_contains "$EVIDENCE" "public top-tier product claim for this host" # blocked-wording column
 # Honest tier: status lines must stay candidate, not claim supported.
 if grep -Eqi 'Grok is `supported`|Grok is \*\*supported\*\*|Status: supported' "$EVIDENCE"; then
   fail "evidence doc must not claim supported Grok adapter as status"

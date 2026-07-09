@@ -83,7 +83,7 @@ grok plugin validate /tmp/cch-grok-dist
 
 | Allowed | Blocked |
 |---|---|
-| candidate Grok adapter | supported Grok adapter |
+| candidate Grok adapter | public top-tier product claim for this host |
 | setup-grok install / package smoke | Claude SessionStart parity |
 | skill discovery via inspect | PreToolUse deny parity |
 | model-routing host `grok` | Breezing multitask public support claim |

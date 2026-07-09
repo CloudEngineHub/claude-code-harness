@@ -139,6 +139,20 @@ path、harness-mem state を削除なしで棚卸しします。
 
 ## サポート境界
 
+**4 つの入れ方があること ≠ 公開トップ tier が 4 つあること。** setup 経路があるのは
+「入口がある」という意味であり、製品保証の共有ではありません。公開の **正式対応**
+は英語 tier `supported` にだけ対応し、現時点でその tier は **Claude Code のみ**
+です。表の他行は記載どおり `internal-compatible` または `candidate` のままです。
+昇格は host ごとに H1–H8 を同一 claim path で満たした時だけ
+（`docs/spec/planning-and-host-adapter.md`、Phase 111）。
+
+| EN tier | 公開 JP で言ってよい語 |
+|---|---|
+| `supported` | 正式対応 |
+| `internal-compatible` | 互換利用可 / 制限付き対応 |
+| `candidate` | 試験対応 / プレビュー |
+| `future/unsupported` | 非対応 / 将来検討 |
+
 Harness は候補 host の導線を説明できますが、Superpowers や Hermes Agent
 など他プロジェクトの実績を自分のサポート実績としては扱いません。各 host は、
 Harness 自身の bootstrap、trigger、runtime、release evidence が揃った時だけ

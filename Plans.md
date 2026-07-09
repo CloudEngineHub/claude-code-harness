@@ -719,3 +719,97 @@ Spec skip reason: ledger sync / git hygiene / docs judgment / dependency triage 
 | skill prune / progressive disclosure | drop（redesign skill 木が別物） |
 | f6cdb042 HOTL wiring | drop（origin に plan-brief/accept/progress 配線済み） |
 | dirty model-routing Sonnet5 | drop（origin 既に sonnet-5） |
+
+---
+
+## Phase 111: Multi-host Public `supported` + N+1 Host Registry [P0]
+
+Purpose: Claude Code / Codex CLI / Cursor / Grok を **false parity なし**で公開 `supported`（JP: 正式対応）に載せられる証拠契約を作り、将来 host 追加を registry 駆動にする。詳細: `docs/plans/phase-111-multi-host-supported.md`。
+
+**Product freeze (2026-07-09 plan)**:
+- 正式対応 = EN `supported` = **H1–H8** 達成（Claude-clone ではない capability 相対）。
+- 4 host を脚注なしで同じ「正式対応」に並べない。昇格は host 単位。
+- 昇格順: SSOT/registry → Codex CLI → Cursor → Grok（floor 参加 or 明示除外後）。
+- team_validation_mode: `subagent`（Architecture / Security+Skeptic / QA+Product）。
+
+### Spec delta
+
+| Path | Change |
+|------|--------|
+| `docs/spec/planning-and-host-adapter.md` | Support Tiers に H1–H8 参照。Grok 行追加。Codex/Cursor 理由を floor/workflow 前提に更新。 |
+| `docs/spec/execution-backends-and-distribution.md` | Floor membership 表（Claude/Codex/Cursor/Grok）。Grok codec 方針。containment 既知制限を contract に固定。 |
+| `docs/tool-capability-matrix.md` | Codex/Cursor `pre_use_guard` を 3cli + Phase 83.7 事実に同期。Grok は unsupported/parity 明示。 |
+| `docs/hardening-parity.md` | 「Codex に hook なし」を現行に更新。 |
+| `hosts.toml` or `hosts/registry.yaml` | host id / tier / setup / dist / smoke / safety_model / floor_member SSOT。 |
+
+### Phase 111.0 — SSOT + claim safety (gate)
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 111.0.1 | `[lane:gate]` `[tdd:required]` H1–H8 を `docs/spec/planning-and-host-adapter.md` に成文化。既存 4 段 ladder は維持。Claude-clone 条件を明示禁止 | (a) H1–H8 が spec に列挙、(b) `supported` 定義が install-only を拒否、(c) `bash scripts/ci/check-consistency.sh` 関連 PASS or 更新 | - | cc:完了 |
+| 111.0.2 | `[lane:gate]` `[tdd:required]` capability matrix の Codex/Cursor `pre_use_guard` と `docs/hardening-parity.md` を 3cli floor / Cursor deny 事実に同期。Grok pre_use は unsupported for parity のまま | (a) matrix が hook 事実と矛盾しない、(b) hardening 「hook なし」削除/更新、(c) `bash tests/test-tool-capability-matrix.sh` PASS | 111.0.1 | cc:完了 |
+| 111.0.3 | `[lane:gate]` `[tdd:required]` `tests/test-support-claim-wording.sh` に Grok + JP「正式対応/対応済み/サポート対象」× host 名 block を追加。false claim を構造的に塞ぐ | (a) Grok+supported / 正式対応+Grok が FAIL、(b) Cursor/Codex 既存 block 維持、(c) テスト PASS | - | cc:完了 |
+| 111.0.4 | `[lane:docs]` `[tdd:skip:docs-only]` README/onboarding に「4 host 入口あり ≠ 4 host 正式対応」1 段落 + tier↔JP 対応表 | (a) 誤読しにくい 1 段落、(b) Grok candidate / Cursor internal 併記 | 111.0.1 | cc:完了 |
+
+### Phase 111.1 — Host registry + N+1 skeleton
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 111.1.1 | `[lane:fast]` `[tdd:required]` `hosts/registry.yaml`（または hosts.toml 拡張）に claude/codex/cursor/grok を登録: tier, setup, dist, routing key, safety_model, floor_member, blocked_phrases, smoke scripts | (a) 4 host 行、(b) schema またはコメント契約、(c) Grok が floor_member=false 明示 | 111.0.1 | cc:TODO |
+| 111.1.2 | `[lane:fast]` `[tdd:required]` `tests/test-host-registry.sh`: registry ↔ README/matrix/onboarding tier 行の同期 assert | (a) drift で FAIL、(b) CI から実行可能 | 111.1.1 | cc:TODO |
+| 111.1.3 | `[lane:fast]` `[tdd:required]` `build-host-plugin-dist.sh` / `model-routing.sh` / release-preflight adapter gates を registry 駆動（または shared loop）。host 追加が case コピペ増にならないこと | (a) 4 host green 維持、(b) 新 host 手順が docs 1 ページ、(c) 既存 test-host-plugin-dist / model-routing PASS | 111.1.1 | cc:TODO |
+| 111.1.4 | `[lane:docs]` `[tdd:skip:docs-only]` `docs/onboarding/host-admission.md`: N+1 admission checklist（Architecture/Security 合意 12 項） | (a) checklist が実在、(b) bootstrap-routing からリンク | 111.1.1 | cc:TODO |
+
+### Phase 111.2 — Workflow smoke framework
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 111.2.1 | `[lane:gate]` `[tdd:required]` 共通 assert ライブラリ: skill visible / install layout / plan artifact / wording。`tests/lib/host-smoke-lib.sh` 等 | (a) 3 関数以上、(b) fixture で unit 化 | 111.1.1 | cc:TODO |
+| 111.2.2 | `[lane:gate]` `[tdd:required]` `tests/test-host-workflow-smoke.sh --host codex|cursor|grok|claude`。最低: plan skill → 固定 artifact。CLI 不在時 skip、`HARNESS_${HOST}_WORKFLOW_SMOKE_REQUIRED=1` で fail | (a) codex 実装が RED→GREEN、(b) cursor/grok stub or skip path、(c) ドキュメントに required 昇格条件 | 111.2.1 | cc:TODO |
+| 111.2.3 | `[lane:gate]` `[tdd:required]` CI: static+install を path filter で常時。workflow は nightly or release-required から開始し、安定後 PR required 化の判断を decisions に記録 | (a) workflow yaml 更新、(b) flake 方針記録 | 111.2.2 | cc:TODO |
+
+### Phase 111.3 — Codex CLI → `supported`
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 111.3.1 | `[lane:fast]` `[tdd:required]` Codex workflow smoke を REQUIRED 経路で green（isolated CODEX_HOME + plan artifact） | (a) CI or release gate 緑、(b) evidence log path 固定 | 111.2.2, 111.0.2 | cc:TODO |
+| 111.3.2 | `[lane:docs]` `[tdd:required]` Codex Bash-only + post containment を matrix/README known-limitations に必須開示。Codex app は candidate のまま | (a) app≠CLI 維持、(b) claim-wording PASS | 111.3.1 | cc:TODO |
+| 111.3.3 | `[lane:release]` `[tdd:required]` Codex CLI tier → `supported`。registry/README/matrix/onboarding/bootstrap 一斉更新 + preflight | (a) 全面一致、(b) validate-plugin PASS | 111.3.1, 111.3.2, 111.0.3 | cc:TODO |
+
+### Phase 111.4 — Cursor → `supported`
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 111.4.1 | `[lane:gate]` `[tdd:required]` Cursor workflow smoke（cursor-agent or documented headless path）で plan artifact。Desktop-only は Recommended に落とす | (a) CI/nightly で再現、(b) research doc に dated evidence | 111.2.2 | cc:TODO |
+| 111.4.2 | `[lane:docs]` `[tdd:skip:docs-only]` FS 非拘束 / allowlist best-effort / fail-open を known-limitations + onboarding に必須 | (a) public 面から消えない、(b) support-claim と矛盾なし | - | cc:TODO |
+| 111.4.3 | `[lane:gate]` `[tdd:required]` Cursor pre_use deny smoke を optional→release gate に接続（既存 Phase 83.7 事実の CI 化） | (a) protected path deny assert、(b) 失敗で preflight fail | 111.4.1 | cc:TODO |
+| 111.4.4 | `[lane:release]` `[tdd:required]` Cursor tier → `supported`。全面同期 | (a) wording tests PASS、(b) validate-plugin PASS | 111.4.1, 111.4.2, 111.4.3 | cc:TODO |
+
+### Phase 111.5 — Grok → floor then `supported`
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 111.5.1 | `[Spike — make-or-break]` `[tdd:skip:spike-verification]` Grok hooks が `harness hook pre-tool --host grok` で live deny 可能か実測。可否で 111.5.2 分岐 | (a) research note 追記、(b) go/no-go | - | cc:TODO |
+| 111.5.2a | `[lane:fast]` `[tdd:required]` **go**: hosts.toml + hookcodec + floor membership + gen で Grok を 3cli+1 に参加 | (a) deny smoke、(b) go test PASS | 111.5.1 | cc:TODO |
+| 111.5.2b | `[lane:docs]` `[tdd:skip:docs-only]` **no-go**: floor 対象外を matrix/README に固定。max tier を H5 非 hook モデルで定義（post-gate only） | (a) 「4 host 同一ガード」文言禁止、(b) claim tests | 111.5.1 | cc:TODO |
+| 111.5.3 | `[lane:gate]` `[tdd:required]` Grok workflow smoke REQUIRED + candidate→internal-compatible（Cursor 先例、H4 前でも可なら 111.5.3 で internal、supported は 111.5.4） | (a) tier 更新一致、(b) inspect+plan artifact | 111.2.2, 111.5.2a or 111.5.2b | cc:TODO |
+| 111.5.4 | `[lane:release]` `[tdd:required]` Grok H1–H8 満たしたら `supported`。未達なら internal で停止し理由を decisions に Why 付き | (a) 全面一致 or 明示停止、(b) validate-plugin PASS | 111.5.3 | cc:TODO |
+
+### Phase 111.6 — Closeout + N+1 dry-run
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 111.6.1 | `[lane:docs]` `[tdd:skip:docs-only]` 4 host の最終 tier 表 + 未達 cap 脚注を README 1 画面に固定。JP マーケ安全ワンライナー | (a) 正式対応は H1–H8 達成 host のみ、(b) wording tests PASS | 111.3.3, 111.4.4, 111.5.4 | cc:TODO |
+| 111.6.2 | `[lane:fast]` `[tdd:required]` N+1 dry-run: 架空 host `examplehost` を registry に追加する PR テンプレ（実装は stub）で追加手順が 1 PR に収まることを検証 | (a) checklist 完了記録、(b) 不要 case 文が無い | 111.1.3, 111.1.4 | cc:TODO |
+| 111.6.3 | `[Closeout]` `[lane:release]` `[tdd:skip:test-aggregation]` decisions.md に Why 付き closeout。CHANGELOG Unreleased | (a) decisions Why、(b) CHANGELOG、(c) no accidental supported overclaim | 111.6.1 | cc:TODO |
+
+### Reject / Optional
+
+| Item | Class | Why |
+|------|-------|-----|
+| 4 host 同時 `supported` バッジ（脚注なし） | **Reject** | false parity / 信用事故 |
+| Breezing multitask を supported 条件に含める | **Reject** | smoke target のまま |
+| Codex app を CLI と同時昇格 | **Reject** | 別 host |
+| memory_bridge 全 host | **Optional** | 別 phase |
+| Official marketplace publish (xAI/Cursor) | **Optional** | 本 phase 非目標 |
+

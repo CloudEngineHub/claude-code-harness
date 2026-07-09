@@ -158,6 +158,20 @@ anything.
 
 ## Support Boundary
 
+**Four install routes ≠ four hosts at the public top tier.** Setup scripts mean
+each tool has an **entry path**, not a shared product guarantee. Public
+**正式対応** maps only to EN tier `supported`. Today that tier is **Claude Code
+only**. Other rows in the install table stay at their listed tier
+(`internal-compatible` or `candidate`) until H1–H8 pass on one claim path
+(`docs/spec/planning-and-host-adapter.md`; Phase 111).
+
+| EN tier | JP public wording (safe) |
+|---|---|
+| `supported` | 正式対応 |
+| `internal-compatible` | 互換利用可 / 制限付き対応 |
+| `candidate` | 試験対応 / プレビュー |
+| `future/unsupported` | 非対応 / 将来検討 |
+
 Harness can describe candidate paths, but it does not inherit support claims
 from Superpowers, Hermes Agent, or any other project. A host only moves up when
 Harness has its own bootstrap, trigger, runtime, and release evidence.
