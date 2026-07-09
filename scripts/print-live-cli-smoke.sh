@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Print copy-paste blocks for live CLI H4 smoke (operator runbook).
+# Print ONLY the paste-ready prompt for a host (operator opens CLI and pastes).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -8,29 +8,29 @@ HOST="${1:-}"
 
 usage() {
   cat <<'EOF'
-Usage:
-  bash scripts/print-live-cli-smoke.sh           # full runbook path + keywords
-  bash scripts/print-live-cli-smoke.sh keywords  # reply phrases only
-  bash scripts/print-live-cli-smoke.sh claude|codex|cursor|grok|prep|check
+Usage: bash scripts/print-live-cli-smoke.sh <claude|codex|cursor|grok|keywords|all>
+
+You open the CLI; this prints the prompt to paste. Nothing else.
 EOF
 }
 
-if [ ! -f "$DOC" ]; then
-  echo "missing $DOC" >&2
-  exit 1
-fi
+extract_fence_after() {
+  local heading="$1"
+  # Print the first fenced code block after the given heading line.
+  awk -v h="$heading" '
+    $0 ~ h { found=1; next }
+    found && /^```/ {
+      if (!inblock) { inblock=1; next }
+      else { exit }
+    }
+    found && inblock { print }
+  ' "$DOC"
+}
 
-case "${HOST}" in
-  ""|all|help|-h|--help)
+case "$HOST" in
+  -h|--help|help|"")
     usage
-    echo
-    echo "Runbook: $DOC"
-    echo
-    echo "=== keywords (paste results as one line) ==="
-    grep -E '^\| `LIVE:' "$DOC" | sed 's/^| //;s/ |.*//'
-    echo
-    echo "Open full copy-paste blocks: less $DOC"
-    echo "Or: bash scripts/print-live-cli-smoke.sh claude"
+    exit 0
     ;;
   keywords)
     cat <<'EOF'
@@ -39,30 +39,30 @@ LIVE: codex PASS
 LIVE: cursor PASS
 LIVE: grok PASS
 LIVE: all PASS
-LIVE: status
 LIVE: claude FAIL: <reason>
 LIVE: codex FAIL: <reason>
 LIVE: cursor FAIL: <reason>
 LIVE: grok FAIL: <reason>
 EOF
     ;;
-  prep)
-    sed -n '/## 0\. 共通 prep/,/^## 1\./p' "$DOC" | sed '$d'
-    ;;
-  check)
-    sed -n '/## 5\. 一括チェック/,/^## 6\./p' "$DOC" | sed '$d'
-    ;;
   claude)
-    sed -n '/## 1\. Claude Code/,/^## 2\./p' "$DOC" | sed '$d'
+    extract_fence_after "## Claude Code に貼る"
     ;;
   codex)
-    sed -n '/## 2\. Codex CLI/,/^## 3\./p' "$DOC" | sed '$d'
+    extract_fence_after "## Codex に貼る"
     ;;
   cursor)
-    sed -n '/## 3\. Cursor/,/^## 4\./p' "$DOC" | sed '$d'
+    extract_fence_after "## Cursor に貼る"
     ;;
   grok)
-    sed -n '/## 4\. Grok/,/^## 5\./p' "$DOC" | sed '$d'
+    extract_fence_after "## Grok に貼る"
+    ;;
+  all)
+    for h in claude codex cursor grok; do
+      echo "########## $h ##########"
+      bash "$0" "$h"
+      echo
+    done
     ;;
   *)
     usage

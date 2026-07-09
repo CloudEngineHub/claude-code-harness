@@ -1,260 +1,140 @@
-# Live CLI smoke（正式対応 H4）— オペレーター用コピペ帳
+# Live CLI smoke — コピペだけ版
 
-最終更新: 2026-07-09  
-対象: Phase 111 残り（`supported` / 正式対応に上げる前の **live H4**）
+**あなたがやること**
 
-## ひとこと
+1. CCH リポジトリをカレントにした状態で、各 CLI を開く  
+2. 下のプロンプトを **そのまま貼る**  
+3. 終わったら、この Grok/Claude チャットに結果 1 行を返す  
 
-**「その CLI で、本当に plan が 1 回回ったか」**を、あなたが手で確認する用。  
-structural テスト（`test-host-workflow-smoke.sh`）とは別物。
+**あなたがやらなくていいこと**
+
+- 長い bash の準備  
+- `setup-*.sh` の再実行（すでに入れてあれば）  
+- 成果物パスを自分で考える  
+
+成果物は AI 側が書いてくれる想定:  
+`out/workflow-smoke/live/<host>/plan-artifact.md`
 
 ---
 
-## あなたが言ったら、AI がすぐ解釈するキーワード
-
-結果を返すときは **下の 1 行フレーズだけ**でよい。
-
-| あなたの発話（そのままコピペ可） | 意味 | AI が次にやること |
-|----------------------------------|------|-------------------|
-| `LIVE: claude PASS` | Claude live H4 合格 | 111.7 記録・必要なら昇格 PR 準備 |
-| `LIVE: codex PASS` | Codex live H4 合格 | 同上 |
-| `LIVE: cursor PASS` | Cursor live H4 合格 | 同上 |
-| `LIVE: grok PASS` | Grok live H4 合格 | 同上 |
-| `LIVE: claude FAIL: <理由>` | 不合格 | 原因分類（auth / skill 未発見 / 成果物なし） |
-| `LIVE: all PASS` | 4 host 全部 live 合格 | 正式対応昇格可否を H1–H8 で再判定 |
-| `LIVE: status` | 進捗確認 | どの host が PASS/未実施か一覧 |
-
-**PASS の最低条件（全 host 共通）**
-
-1. 対象 CLI が **スキルを認識**した（`/harness-plan` や skill 起動）  
-2. **成果物**が残った（下の「成功の見た目」）  
-3. 失敗理由が「モデルが雑」ではなく **Harness 経路**の問題なら FAIL  
-
-成果物の置き場（推奨）:
+## 返す言葉（これだけ）
 
 ```text
-out/workflow-smoke/live/<host>/plan-artifact.md
+LIVE: claude PASS
+LIVE: codex PASS
+LIVE: cursor PASS
+LIVE: grok PASS
 ```
 
----
-
-## 0. 共通 prep（1 回）
-
-CCH リポジトリで:
-
-```bash
-cd /Users/tachibanashuuta/LocalWork/Code/CC-harness/claude-code-harness
-
-# structural は先に緑である前提
-bash tests/test-host-workflow-smoke.sh --host claude
-bash tests/test-host-workflow-smoke.sh --host codex
-bash tests/test-host-workflow-smoke.sh --host cursor
-bash tests/test-host-workflow-smoke.sh --host grok
-
-mkdir -p out/workflow-smoke/live/{claude,codex,cursor,grok}
-```
-
----
-
-## 1. Claude Code（live）
-
-### コピペ
-
-```bash
-cd /Users/tachibanashuuta/LocalWork/Code/CC-harness/claude-code-harness
-
-# 成果物パス
-export LIVE_OUT="$PWD/out/workflow-smoke/live/claude"
-mkdir -p "$LIVE_OUT"
-
-# Claude Code をこの repo で起動して、次をそのまま貼る:
-```
-
-Claude セッションに貼るプロンプト:
+失敗したら:
 
 ```text
-/harness-plan
-Live H4 smoke only.
-Write ONE short plan for: "Add a single-line comment to README.md that says live-h4-claude".
-Do NOT implement.
-Save the plan markdown to: out/workflow-smoke/live/claude/plan-artifact.md
-Include a section titled "Acceptance criteria" with at least 2 bullets.
-When done, reply with exactly: LIVE: claude PASS
+LIVE: grok FAIL: <一言>
 ```
-
-### 成功の見た目
-
-```bash
-test -f out/workflow-smoke/live/claude/plan-artifact.md \
-  && rg -n "Acceptance criteria|受け入れ" out/workflow-smoke/live/claude/plan-artifact.md \
-  && echo "LIVE: claude PASS (file ok)"
-```
-
-あなた → AI: `LIVE: claude PASS`
 
 ---
 
-## 2. Codex CLI（live）
+## Claude Code に貼る
 
-### コピペ
+（`claude-code-harness` を開いた Claude Code の入力欄へ）
 
-```bash
-cd /Users/tachibanashuuta/LocalWork/Code/CC-harness/claude-code-harness
-export LIVE_OUT="$PWD/out/workflow-smoke/live/codex"
-mkdir -p "$LIVE_OUT"
+```text
+Live H4 only. Use harness-plan if available. Do NOT implement code.
 
-# モデルは環境の既定でよい。必要なら:
-# export CODEX_MODEL="$(bash scripts/model-routing.sh --host codex --role worker --field model)"
+Write one short plan for: "Add a single-line comment to README.md that says live-h4-claude".
 
-codex exec --skip-git-repo-check "$(cat <<'EOF'
-Use the harness-plan skill (or $harness-plan) for this Live H4 smoke.
-Do NOT implement code.
-Write ONE short plan for: "Add a single-line comment to README.md that says live-h4-codex".
-Save markdown to out/workflow-smoke/live/codex/plan-artifact.md
-Must include a section "Acceptance criteria" with >=2 bullets.
-When finished, print exactly: LIVE: codex PASS
-EOF
-)"
+Save the full plan markdown to exactly:
+out/workflow-smoke/live/claude/plan-artifact.md
+(create directories if needed)
+
+The file MUST include a heading "Acceptance criteria" with at least 2 bullets.
+
+When the file is written, reply with exactly this one line and nothing else:
+LIVE: claude PASS
 ```
-
-### 成功の見た目
-
-```bash
-test -f out/workflow-smoke/live/codex/plan-artifact.md \
-  && rg -n "Acceptance criteria|受け入れ" out/workflow-smoke/live/codex/plan-artifact.md \
-  && echo "LIVE: codex PASS (file ok)"
-```
-
-あなた → AI: `LIVE: codex PASS`
 
 ---
 
-## 3. Cursor（cursor-agent live）
+## Codex に貼る
 
-### コピペ
+（同じ repo で Codex を開いて貼る。CLI なら `codex` 起動後でも、`codex exec '...'` でも可）
 
-```bash
-cd /Users/tachibanashuuta/LocalWork/Code/CC-harness/claude-code-harness
-export LIVE_OUT="$PWD/out/workflow-smoke/live/cursor"
-mkdir -p "$LIVE_OUT"
+```text
+Live H4 only. Use $harness-plan or harness-plan skill if available. Do NOT implement code.
 
-# setup 済みであること
-bash scripts/setup-cursor.sh --check
+Write one short plan for: "Add a single-line comment to README.md that says live-h4-codex".
 
-MODEL="$(bash scripts/model-routing.sh --host cursor --role worker --field model)"
+Save the full plan markdown to exactly:
+out/workflow-smoke/live/codex/plan-artifact.md
+(create directories if needed)
 
-cursor-agent -p --mode plan --model "$MODEL" --output-format text \
-  "Live H4 smoke. Use harness-plan skill if available.
-Do NOT implement.
-Write ONE short plan for: Add a single-line comment to README.md that says live-h4-cursor.
-Save markdown to out/workflow-smoke/live/cursor/plan-artifact.md
-Include section 'Acceptance criteria' with at least 2 bullets.
-When done print exactly: LIVE: cursor PASS"
+The file MUST include a heading "Acceptance criteria" with at least 2 bullets.
+
+When the file is written, reply with exactly this one line and nothing else:
+LIVE: codex PASS
 ```
-
-Desktop でやる場合:
-
-1. Cursor でこの repo を開く  
-2. Reload Window  
-3. `/harness-plan` または同等で同じ内容を依頼  
-4. 成果物パスは同じ  
-
-### 成功の見た目
-
-```bash
-test -f out/workflow-smoke/live/cursor/plan-artifact.md \
-  && rg -n "Acceptance criteria|受け入れ" out/workflow-smoke/live/cursor/plan-artifact.md \
-  && echo "LIVE: cursor PASS (file ok)"
-```
-
-あなた → AI: `LIVE: cursor PASS`
 
 ---
 
-## 4. Grok（live）
+## Cursor に貼る
 
-### コピペ
+（同じ repo を Cursor で開き、Agent 入力欄へ。`/harness-plan` が出るなら先にそれを起動してからでも可）
 
-```bash
-cd /Users/tachibanashuuta/LocalWork/Code/CC-harness/claude-code-harness
-export LIVE_OUT="$PWD/out/workflow-smoke/live/grok"
-mkdir -p "$LIVE_OUT"
+```text
+Live H4 only. Use harness-plan skill if available. Do NOT implement code. Prefer plan/ask read-only if possible.
 
-# Grok 公式 install 済みであること
-bash scripts/setup-grok.sh --check
-grok plugin list | rg -n 'claude-code-harness' || true
+Write one short plan for: "Add a single-line comment to README.md that says live-h4-cursor".
 
-MODEL="$(bash scripts/model-routing.sh --host grok --role worker --field model)"
+Save the full plan markdown to exactly:
+out/workflow-smoke/live/cursor/plan-artifact.md
+(create directories if needed)
 
-# headless
-grok -p --model "$MODEL" --cwd "$PWD" "$(cat <<'EOF'
-Live H4 smoke. Use the harness-plan skill (/harness-plan).
-Do NOT implement code.
-Write ONE short plan for: "Add a single-line comment to README.md that says live-h4-grok".
-Save markdown to out/workflow-smoke/live/grok/plan-artifact.md
-Must include a section titled "Acceptance criteria" with at least 2 bullets.
-When done, reply with exactly: LIVE: grok PASS
-EOF
-)"
+The file MUST include a heading "Acceptance criteria" with at least 2 bullets.
+
+When the file is written, reply with exactly this one line and nothing else:
+LIVE: cursor PASS
 ```
-
-TUI でやる場合: 同じ repo で `grok` 起動 → 上の EOF 内プロンプトを貼る。
-
-### 成功の見た目
-
-```bash
-test -f out/workflow-smoke/live/grok/plan-artifact.md \
-  && rg -n "Acceptance criteria|受け入れ" out/workflow-smoke/live/grok/plan-artifact.md \
-  && echo "LIVE: grok PASS (file ok)"
-```
-
-あなた → AI: `LIVE: grok PASS`
 
 ---
 
-## 5. 一括チェック（ファイルだけ）
+## Grok に貼る
+
+（同じ repo で `grok` を開いて入力欄へ）
+
+```text
+Live H4 only. Use harness-plan skill (/harness-plan) if available. Do NOT implement code.
+
+Write one short plan for: "Add a single-line comment to README.md that says live-h4-grok".
+
+Save the full plan markdown to exactly:
+out/workflow-smoke/live/grok/plan-artifact.md
+(create directories if needed)
+
+The file MUST include a heading "Acceptance criteria" with at least 2 bullets.
+
+When the file is written, reply with exactly this one line and nothing else:
+LIVE: grok PASS
+```
+
+---
+
+## 終わったあと（任意・確認用）
+
+ファイルができたかだけ見るなら:
 
 ```bash
-cd /Users/tachibanashuuta/LocalWork/Code/CC-harness/claude-code-harness
 for h in claude codex cursor grok; do
   f="out/workflow-smoke/live/$h/plan-artifact.md"
-  if test -f "$f" && rg -q "Acceptance criteria|受け入れ" "$f"; then
-    echo "OK  $h"
-  else
-    echo "NG  $h  (missing or no Acceptance criteria)"
-  fi
+  if test -f "$f"; then echo "OK  $h"; else echo "NG  $h"; fi
 done
 ```
 
-全部 OK なら AI へ:
-
-```text
-LIVE: all PASS
-```
+このチャットには **`LIVE: <host> PASS`** を貼るだけでよい。
 
 ---
 
-## 6. FAIL の書き方（テンプレ）
+## メモ
 
-```text
-LIVE: codex FAIL: skill harness-plan not found
-LIVE: cursor FAIL: no plan-artifact.md written
-LIVE: grok FAIL: auth / model unavailable
-LIVE: claude FAIL: permission blocked write to out/
-```
-
----
-
-## 7. 合格後に何が起きるか
-
-| 状況 | 次のアクション |
-|------|----------------|
-| 1 host だけ PASS | その host の live 証拠を `docs/research/*` or Plans に日付付き追記 |
-| 4 host PASS | H1–H8 を再判定 → 111.3.3 / 111.4.4 / 111.5.4 の **昇格 PR** を切れる |
-| structural だけ PASS | **正式対応にはしない**（今の状態） |
-
-関連:
-
-- 方針: `docs/research/host-workflow-smoke-policy.md`
-- H1–H8: `docs/spec/planning-and-host-adapter.md`
-- 印刷用: `bash scripts/print-live-cli-smoke.sh`
+- まだ CCH を入れてない CLI だけ、初回はいつもどおり install が必要（Grok: `setup-grok`、Cursor: `setup-cursor` など）。**毎回のテストでは不要**。  
+- structural 自動テストとは別。これは「その CLI で本当に plan が回ったか」用。  
+- 印刷: `bash scripts/print-live-cli-smoke.sh claude` など（プロンプトだけ出す）。
