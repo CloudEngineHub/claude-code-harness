@@ -682,4 +682,40 @@ Purpose: 「今の redesign Ver を区切りの良いところまでやり終え
 | 109.2 | `[lane:gate]` `[tdd:skip:docs-and-cut]` DP-2 / DP-4 承認の反映（2026-07-07 承認済）。DP-4: README / spec の auto-approve 主張を「ledger 記録のみ」に訂正し、approval-skip 実装の主張を HOTL Phase 送りと明記（§7-6 の撤回パスを green 化）。DP-2: `go/internal/{bridge,mailbox,bridgedelivery,triaddispatcher,impactscore}` の各 package が「importer ≥1」または「削除済み + retired-alias registry 登録」または「Plans.md に wired:no 注記」のいずれかを満たすことを確認し、未処理があれば cut を実行（知見の spec 翻訳記録を含む） | (a) `grep -rn "auto.approve" README.md spec.md` の主張が「ledger 記録のみ」と整合、(b) §7-7 の 5 package 全てが判定可能状態、(c) cut した package は `templates/registry/retired-aliases.v1.yaml` に登録され `bin/harness retired-alias scan` 0 件、(d) `cd go && go test ./...` PASS | - | cc:done [984456bf] |
 | 109.3 | `[lane:release]` `[tdd:skip:verification-run]` S5 受け入れ基準 11 項目の機械検証 run。**基準 11 項目の本文を `docs/release/s5-acceptance-2026-07.md` に inline 転記する**（正本 GOD_plans.md は local-only で branch から到達不能のため、台帳を self-contained にする）。各項目を実コマンドで検証し evidence（コマンド + exit code + 出力要点）を台帳化。M2 未適用による CI 側 binary drift は「ローカル green + M2 blocked 注記」で記録 | (a) 台帳に 11 項目の基準本文 + evidence 付き判定が記録され red 0 件（M2 起因の CI 側のみ blocked 注記可）、(b) 台帳ファイルが存在し `bash scripts/ci/check-consistency.sh` PASS | 106.2, 108.4, 108.5, 109.1, 109.2 | cc:done [92d1aa8d] |
 | 109.4 | `[lane:release]` `[tdd:skip:release-prep]` version 整合 + 本流化 PR 準備。**merge 戦略を確定する**: main を redesign へ merge して衝突解消（両線の history 保持、109.1 の分類台帳を衝突解消の根拠に使う）→ plan/zero-base-redesign → main の PR は通常 merge。DP-3（本流化 = major 相当）に従い v5.0.0 を提案（`./scripts/sync-version.sh bump` は operator GO 後の 109.5 で実行）。CHANGELOG [Unreleased] に redesign 統合の Before/After を書く。draft PR を作成し本文に §7 台帳（109.3 の docs/release/s5-acceptance-2026-07.md）への参照を付ける | (a) main が redesign へ merge 済みで conflict 0・全 test PASS、(b) CHANGELOG [Unreleased] に Before/After が存在、(c) draft PR が存在し台帳参照あり、(d) VERSION/plugin.json/harness.toml は本 task では不変 | 109.3 | cc:done [bb8176ef] (draft PR #235、-s ours merge、v5.0.0 提案、S5 台帳参照) |
-| 109.5 | `[lane:release]` `[tdd:skip:release-gate]` harness-release 実行。単一 Confirmation Gate（version bump / CHANGELOG promote / PR merge / tag / GitHub Release の一括提示）で operator の GO を取得してから実行する。自動では実行しない | (a) operator が Confirmation Gate で承認した evidence、(b) tag と GitHub Release が作成され 4 点同期（VERSION/plugin.json/harness.toml/CHANGELOG）green、(c) `bash tests/validate-plugin.sh` PASS | 109.4 | cc:todo |
+| 109.5 | `[lane:release]` `[tdd:skip:release-gate]` harness-release 実行。単一 Confirmation Gate（version bump / CHANGELOG promote / PR merge / tag / GitHub Release の一括提示）で operator の GO を取得してから実行する。自動では実行しない | (a) operator が Confirmation Gate で承認した evidence、(b) tag と GitHub Release が作成され 4 点同期（VERSION/plugin.json/harness.toml/CHANGELOG）green、(c) `bash tests/validate-plugin.sh` PASS | 109.4 | cc:done [c100dbb4] (PR #235+#236, tag v5.0.0, assets=4, EN release notes 2026-07-09; URL https://github.com/Chachamaru127/claude-code-harness/releases/tag/v5.0.0) |
+
+---
+
+## Phase 110: Post-v5.0.0 Operator Closeout [P0]
+
+Purpose: v5.0.0 本流化後の operator hygiene。product contract 変更なし。詳細: `docs/plans/phase-110-post-v5-operator-closeout.md`。
+
+Spec skip reason: ledger sync / git hygiene / docs judgment / dependency triage only.
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 110.0 | `[lane:gate]` `[tdd:skip:ops]` token rotation（GH_TOKEN / FIRECRAWL）。**operator 判断 2026-07-09: 漏洩未確認のため skip**。`/.codex/` は gitignore 済み（origin 既定） | (a) skip 理由が Plans/decisions に記録、(b) 平文 token を commit しない | - | cc:done [skipped-no-leak-confirmed] |
+| 110.1 | `[lane:gate]` `[tdd:skip:git-ops]` local main を origin/main に align。archive branch 退避後 hard reset | (a) HEAD == origin/main at start of closeout work、(b) `archive/local-main-pre-v5` 存在、(c) VERSION=5.0.0 | - | cc:done [archive/local-main-pre-v5 @ ed6b18c9 → reset c100dbb4] |
+| 110.2 | `[lane:gate]` `[tdd:skip:ledger]` 109.5 marker を cc:done に同期 | (a) 109.5 が cc:done、(b) evidence 付き | 110.1 | cc:done |
+| 110.3 | `[lane:release]` `[tdd:skip:docs-only]` README_HOTL_ja owner レビュー + EN 判断 | (a) A/B/C 決定記録、(b) EN Yes/No | 110.1 | cc:done [A: docs/research/README_HOTL_ja.md gitignored research draft, EN=No] |
+| 110.4 | `[lane:release]` `[tdd:skip:dependency-triage]` Dependabot 21 alerts + open PRs 再評価 | (a) 分類表、(b) merge/defer/accept-risk | 110.1 | cc:done (see triage note below) |
+| 110.5 | `[lane:fast]` `[tdd:skip:optional-salvage]` archive 15 commit 取捨 | (a) keep/drop 表、(b) keep=0 なら close | 110.1 | cc:done [all drop; archive retained] |
+| 110.6 | `[Closeout]` `[lane:release]` `[tdd:skip:test-aggregation]` Phase 110 closeout。no tag | (a) 110.1–110.5 done、(b) no tag | 110.2, 110.3, 110.4, 110.5 | cc:done |
+
+**110.3 裁定 (2026-07-09)**:
+- **A**: 製品フロントドアにしない。`docs/research/README_HOTL_ja.md` に vision draft として格納（`docs/research/*` は gitignore 対象 = 公開面に出ない）。冒頭に non-canonical banner。
+- **EN**: 作らない（JA draft の claim 固定後に再判断）。
+- v5 時点で plan-brief / progress hook / accept は skill+hook 配線済み。HOTL 統治本体は 🔜 のまま正しい。
+
+**110.4 裁定 (2026-07-09)**:
+- GitHub alerts 21: ほぼ vitest CRITICAL が `benchmarks/**` 配下の fixture/package。production runtime path に vitest なし → **accept-risk (bench-only)**。
+- PR #232 / #234 / #230: branch update 実施・merge 推奨。branch protection が required checks 完了を要求するため、checks 完了後に merge（admin bypass はしない）。
+- PR #233 @vercel/agent-eval 1.x: validate FAILURE + bench 隔離 → **defer**（comment 済み）。
+
+**110.5 keep/drop**:
+| 群 | 判定 |
+|----|------|
+| guard 4 commits | drop（109.1 port 済み） |
+| skill prune / progressive disclosure | drop（redesign skill 木が別物） |
+| f6cdb042 HOTL wiring | drop（origin に plan-brief/accept/progress 配線済み） |
+| dirty model-routing Sonnet5 | drop（origin 既に sonnet-5） |
