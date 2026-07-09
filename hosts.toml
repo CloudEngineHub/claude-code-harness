@@ -31,3 +31,16 @@ transport  = "stdin-json"
 model      = "default"
 delivery_strategy = "turn"
 delivery_event_turn = "stop"
+
+# Grok: PreToolUse can block; deny envelope shares Claude JSON shape via
+# hookcodec.HostGrok. Project hooks live under .grok/hooks/*.json (see Grok
+# user-guide). Floor membership is opt-in per install (Phase 111.5).
+[grok]
+hook_event = "PreToolUse"
+hook_path  = ".grok/hooks/harness-pretool.json"
+matcher    = "*"
+deny       = "permissionDecision"
+transport  = "stdin-json"
+model      = "grok-4.5"
+delivery_strategy = "turn"
+delivery_event_turn = "Stop"

@@ -8,6 +8,15 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **Phase 111 multi-host bar (H1–H8) + host registry**: `hosts/registry.json`,
+  `scripts/lib/host-registry.sh`, structural workflow smoke
+  (`tests/test-host-workflow-smoke.sh`), admission docs, and CI structural smoke.
+  Grok promoted to `internal-compatible` (install/inspect/structural smoke +
+  `hookcodec.HostGrok`). Public `supported` / 正式対応 remains Claude-only until
+  live H4 workflow smoke lands (111.3.3/111.4.4/111.5.4 blocked on purpose).
+
+### Added
+
 - **Grok host adapter (candidate)**: `.grok-plugin/plugin.json`, `.grok/AGENTS.md`,
   `scripts/setup-grok.sh` (`--check` + isolated HOME install),
   `scripts/build-host-plugin-dist.sh --host grok` (package-local `./skills/` paths),

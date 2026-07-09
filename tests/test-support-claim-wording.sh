@@ -95,7 +95,7 @@ assert_contains() {
 
 assert_contains "${ROOT_DIR}/README.md" "| Claude Code | \`supported\` |"
 assert_contains "${ROOT_DIR}/README.md" "| Cursor | \`internal-compatible\` |"
-assert_contains "${ROOT_DIR}/README.md" "| Grok | \`candidate\` |"
-assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Grok | \`candidate\` |"
+assert_contains "${ROOT_DIR}/README.md" "| Grok | \`internal-compatible\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Grok | \`internal-compatible\` |"
 
 echo "test-support-claim-wording: ok"

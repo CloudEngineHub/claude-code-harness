@@ -263,7 +263,7 @@ const [dstPath, version] = process.argv.slice(2);
 const manifest = {
   name: "claude-code-harness",
   version,
-  description: "Candidate Grok adapter for Claude Code Harness Plan, Work, Review, and Release workflows.",
+  description: "Internal-compatible Grok adapter for Claude Code Harness Plan, Work, Review, and Release workflows.",
   author: {
     name: "Chachamaru",
     url: "https://github.com/Chachamaru127"
@@ -275,8 +275,8 @@ const manifest = {
   skills: "./skills/",
   interface: {
     displayName: "Claude Code Harness for Grok",
-    shortDescription: "Candidate Harness workflow adapter for Grok",
-    longDescription: "Use Claude Code Harness skills in Grok for evidence-backed planning, implementation, review, release, setup, sync, and team execution workflows.",
+    shortDescription: "Internal-compatible Harness workflow adapter for Grok",
+    longDescription: "Use Claude Code Harness skills in Grok for evidence-backed planning, implementation, review, release, setup, sync, and team execution workflows. This is an internal-compatible adapter route; live H1-H8 workflow smoke is required before any public top-tier claim.",
     developerName: "Chachamaru",
     category: "Coding",
     capabilities: ["Read", "Write", "Interactive"],

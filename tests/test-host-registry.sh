@@ -19,9 +19,9 @@ for id in claude codex cursor grok; do
   host_registry_require_id "$id" || fail "registry missing ${id}"
 done
 
-# Grok must not be a floor member yet
+# Grok floor membership (Phase 111.5 codec HostGrok)
 grok_floor="$(host_registry_field grok floor_member)"
-[ "$grok_floor" = "false" ] || fail "grok floor_member must be false (got ${grok_floor})"
+[ "$grok_floor" = "true" ] || fail "grok floor_member must be true (got ${grok_floor})"
 
 # Claude must be supported + floor member
 [ "$(host_registry_field claude tier)" = "supported" ] || fail "claude tier must be supported"

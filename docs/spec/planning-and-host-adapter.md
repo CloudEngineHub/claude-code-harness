@@ -194,7 +194,7 @@ Breezing multitask, memory_bridge) are **not** required for multi-host
 | Codex app | `candidate` under the Codex adapter | App behavior must be verified separately from CLI help output. |
 | OpenCode | `internal-compatible` until runtime bootstrap smoke passes | Existing mirror/setup validation exists; runtime parity is not yet proven. |
 | Cursor | `internal-compatible` | Dist + `setup-cursor` + static smoke + observed Desktop skill loading; CI workflow smoke and full containment disclosure still gate public `supported`. |
-| Grok | `candidate` | Dist + `setup-grok` + install/inspect discovery; not on 3cli floor; no CI workflow smoke; no public support claim. |
+| Grok | `internal-compatible` | Dist + `setup-grok` + install/inspect + structural workflow smoke + hookcodec HostGrok floor; public `supported` still needs live H4 + H8. |
 | GitHub Copilot CLI | `candidate` | Current CLI docs must be verified and Harness-specific bootstrap proof is missing. |
 | Antigravity CLI | `future/unsupported` until an official/verified adapter route exists | No local Harness or Superpowers adapter evidence has been observed. |
 

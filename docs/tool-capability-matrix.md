@@ -16,7 +16,7 @@ The current support-tier scope is:
 | Codex app | `candidate` | App behavior must be proven separately from Codex CLI help output. |
 | OpenCode | `internal-compatible` | Existing mirror/package validation and Node-level bootstrap plugin checks can be described as internal compatibility; real OpenCode binary runtime bootstrap parity is not proven. |
 | Cursor | `internal-compatible` | Host-specific dist build, `scripts/setup-cursor.sh` real-directory install, CI-gated package smoke, and observed Desktop skill loading justify internal compatibility; CI-gated workflow smoke and runtime guard/hook parity are not proven; no public supported claim. |
-| Grok | `candidate` | Host-specific dist build, `scripts/setup-grok.sh` install/check, static smoke via `tests/test-grok-adapter-candidate.sh`, and observed `grok plugin install` + `grok inspect` skill discovery justify a candidate route; CI-gated workflow smoke and Claude SessionStart/PreToolUse parity are not proven; no public supported claim. |
+| Grok | `internal-compatible` | Host-specific dist build, `scripts/setup-grok.sh` install/check, static smoke via `tests/test-grok-adapter-candidate.sh`, and observed `grok plugin install` + `grok inspect` skill discovery justify internal compatibility; structural workflow smoke + hookcodec HostGrok floor; live H4 and public supported still not claimed. |
 | GitHub Copilot CLI | `candidate` | Candidate adapter only; Superpowers evidence and official docs are not Harness bootstrap proof. |
 | Antigravity CLI | `future/unsupported` | No public setup, README support, or release claim until an official or verified route plus local bootstrap smoke exists. |
 
@@ -56,7 +56,7 @@ bootstrap claims of supported hosts. See
 |---|---|---|
 | Codex app | `candidate` | app-specific candidate or research gate | supported, same as Codex CLI |
 | Cursor | `internal-compatible` | adapter candidate route, handoff integration, setup-cursor install, static smoke, observed Desktop skill loading | public top-tier Cursor claim |
-| Grok | `candidate` | adapter candidate route, setup-grok install, static smoke, observed plugin inspect skill discovery | public top-tier Grok claim |
+| Grok | `internal-compatible` | setup-grok install, static smoke, inspect discovery, structural workflow smoke, HostGrok floor | public top-tier Grok claim |
 | GitHub Copilot CLI | `candidate` | adapter candidate, CLI capability investigation | supported Copilot adapter |
 | Antigravity CLI | `future/unsupported` | future scope, unsupported public claim, not observed | supported Antigravity adapter |
 
@@ -68,7 +68,7 @@ The matrix is valid only when all of the following stay true:
 - Claude Code is `supported`.
 - Codex CLI and OpenCode are `internal-compatible`.
 - Cursor is `internal-compatible` with observed Desktop skill-loading evidence.
-- Grok is `candidate` with setup-grok package smoke and optional CLI inspect evidence.
+- Grok is `internal-compatible` with setup-grok package smoke, inspect skill discovery, structural workflow smoke, and hookcodec floor membership (Claude-envelope PreToolUse).
 - Codex app and GitHub Copilot CLI are `candidate`.
 - Antigravity CLI is `future/unsupported` for public claim.
 - Codex CLI runtime evidence includes direct plugin marketplace/install smoke
