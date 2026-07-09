@@ -5,16 +5,23 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=lib/host-registry.sh
+source "${SCRIPT_DIR}/lib/host-registry.sh"
+HOST_REGISTRY_PATH="${ROOT_DIR}/hosts/registry.json"
 
 HOST=""
 OUT_DIR=""
 
 usage() {
-  cat <<'EOF'
-Usage: build-host-plugin-dist.sh --host claude|codex|cursor|grok --out <directory>
+  local hosts
+  hosts="$(host_registry_dist_hosts 2>/dev/null | tr '\n' '|' | sed 's/|$//')"
+  [ -n "$hosts" ] || hosts="claude|codex|cursor|grok"
+  cat <<EOF
+Usage: build-host-plugin-dist.sh --host ${hosts} --out <directory>
 
 Generates a host-specific distribution package. Output directory is created or
 replaced. Generated packages must not reference sibling paths with '..'.
+Allowed --host values come from hosts/registry.json (dist_host).
 EOF
 }
 
@@ -45,13 +52,11 @@ if [ -z "$HOST" ] || [ -z "$OUT_DIR" ]; then
   exit 2
 fi
 
-case "$HOST" in
-  claude|codex|cursor|grok) ;;
-  *)
-    echo "invalid --host: $HOST" >&2
-    exit 2
-    ;;
-esac
+if ! host_registry_is_dist_host "$HOST"; then
+  echo "invalid --host: $HOST (not in hosts/registry.json dist_host list)" >&2
+  usage
+  exit 2
+fi
 
 if [ -e "$OUT_DIR" ]; then
   rm -rf "$OUT_DIR"

@@ -13,6 +13,12 @@ runtime auto-routing proof. Passing this contract means the repository declares
 the expected routing surface; it does not prove that a model invocation will
 always auto-fire the matching skill at runtime.
 
+## Host admission (N+1)
+
+To add another host without false parity, follow
+`docs/onboarding/host-admission.md` and register the host in
+`hosts/registry.json` (machine SSOT for tier, setup, dist, routing, floor, smoke).
+
 ## False Parity Rule
 
 False parity is forbidden.
