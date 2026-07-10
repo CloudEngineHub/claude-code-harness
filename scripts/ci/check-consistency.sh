@@ -690,6 +690,13 @@ check_fixed_string "$RUBRIC_DOC" "| Static evidence |" "benchmark-rubric static 
 check_fixed_string "$RUBRIC_DOC" "| Executed evidence |" "benchmark-rubric executed evidence"
 check_fixed_string "$POSITIONING_DOC" "runtime enforcement" "positioning-notes runtime enforcement"
 
+if bash "$PLUGIN_ROOT/tests/test-public-claims-contract.sh"; then
+  echo "  ✅ public claims publication contract"
+else
+  echo "  ❌ public claims publication contract"
+  README_ISSUES=$((README_ISSUES + 1))
+fi
+
 if [ $README_ISSUES -eq 0 ]; then
   echo "  ✅ README claim drift チェックOK"
 else
