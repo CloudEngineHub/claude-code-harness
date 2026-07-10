@@ -1032,6 +1032,7 @@ TDD_DETECT_SCRIPT="$PLUGIN_ROOT/scripts/detect-test-framework.sh"
 TDD_LOG_SCRIPT="$PLUGIN_ROOT/scripts/log-tdd-red.sh"
 SPRINT_CONTRACT_GO="$PLUGIN_ROOT/go/internal/hookhandler/sprint_contract.go"
 TDD_LOCAL_TRIAL_TEST="$PLUGIN_ROOT/tests/test-tdd-enforcement-l1l2l4.sh"
+JAVA_KOTLIN_DETECTION_TEST="$PLUGIN_ROOT/tests/test-java-kotlin-detection.sh"
 CODEX_HARNESS_WORK_SKILL="$PLUGIN_ROOT/skills-codex/harness-work/SKILL.md"
 CODEX_HARNESS_WORK_MIRROR="$PLUGIN_ROOT/codex/.codex/skills/harness-work/SKILL.md"
 
@@ -1057,6 +1058,12 @@ if [ -x "$TDD_DETECT_SCRIPT" ]; then
     fi
 else
     fail_test "scripts/detect-test-framework.sh is missing or not executable"
+fi
+
+if bash "$JAVA_KOTLIN_DETECTION_TEST" > /dev/null 2>&1; then
+    pass_test "Java/Kotlin Maven/Gradle detection and generated settings parity PASS"
+else
+    fail_test "Java/Kotlin detection regression failed — 'bash tests/test-java-kotlin-detection.sh'"
 fi
 
 if [ -x "$TDD_LOG_SCRIPT" ]; then
