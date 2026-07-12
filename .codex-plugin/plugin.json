@@ -17,6 +17,10 @@
     "harness"
   ],
   "skills": "../codex/.codex/skills/",
+  "hooks": {
+    "description": "Codex project hooks are generated separately; do not inherit Claude-only bundled hooks.",
+    "hooks": {}
+  },
   "interface": {
     "displayName": "Claude Code Harness",
     "shortDescription": "Harness workflow skills for Codex CLI",

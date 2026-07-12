@@ -95,7 +95,9 @@ func Load(path string) (map[string]Host, error) {
 // A deny is expressed by the policy engine at runtime (exit 2 + hookSpecific
 // output), not by this static config, so the generated file only declares the
 // wiring; the deny mechanism column in hosts.toml documents how each host reads
-// that engine result.
+// that engine result. Host-neutral audit metadata such as FloorPolicyFragment
+// must stay outside vendor hook documents because strict parsers reject unknown
+// top-level keys.
 // GenerateDeliveryHooksJSON emits per-host delivery-notice hook wiring for
 // livemsg inbox check (turn boundary) and, for Claude only, inbox monitor
 // (SessionStart blocking stream). Returns (nil, false, nil) when delivery
@@ -169,7 +171,6 @@ func GenerateHooksJSON(h Host) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("hostgen: unknown host %q (expected claude, codex, or cursor)", h.Name)
 	}
-	doc["floor_policy"] = FloorPolicyFragment()
 	return marshalStable(doc)
 }
 

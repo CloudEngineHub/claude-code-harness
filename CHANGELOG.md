@@ -28,6 +28,21 @@ Change history for claude-code-harness.
   `tests/test-grok-adapter-candidate.sh` plus host-dist / model-routing /
   bootstrap / capability-matrix gates.
 
+### Fixed
+
+- **Codex / Orca hook compatibility (Phase 112.10)**: the Codex plugin manifest
+  now explicitly overrides plugin-bundled hooks with an inline empty hook map,
+  so Codex no longer falls back to Claude-only agent / async handlers. Generated
+  Codex and Cursor project hook JSON now contains vendor-supported top-level keys
+  only; the shared runtime floor and generated command hooks remain active.
+
+#### Before/After（shared hook compatibility）
+
+| Before | After |
+|--------|-------|
+| Codex / Orca fell back to Claude's `hooks/hooks.json` and warned about unsupported agent / async handlers | Codex manifest uses an inline empty hook override; Claude's agent hooks remain unchanged and are not parsed by Codex |
+| Generated `.codex/hooks.json` included an unknown `floor_policy` top-level key and was rejected | Vendor hook JSON contains only supported keys; the generated `PreToolUse` and delivery command hooks load without parse warnings |
+
 ## [5.0.0] - 2026-07-08
 
 ### テーマ: 0 ベース再設計線の本流化 + 事前確認フローの導入
