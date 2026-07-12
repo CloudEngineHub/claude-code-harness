@@ -17,6 +17,7 @@ The current support-tier scope is:
 | OpenCode | `internal-compatible` | Existing mirror/package validation and Node-level bootstrap plugin checks can be described as internal compatibility; real OpenCode binary runtime bootstrap parity is not proven. |
 | Cursor | `internal-compatible` | Host-specific dist build, `scripts/setup-cursor.sh` real-directory install, CI-gated package smoke, and observed Desktop skill loading justify internal compatibility; CI-gated workflow smoke and runtime guard/hook parity are not proven; no public supported claim. |
 | Grok | `candidate` | Host-specific dist build, `scripts/setup-grok.sh` install/check, static smoke via `tests/test-grok-adapter-candidate.sh`, and observed `grok plugin install` + `grok inspect` skill discovery justify a candidate route; CI-gated workflow smoke and Claude SessionStart/PreToolUse parity are not proven; no public supported claim. |
+| Hermes Agent | `candidate` | Manual symlink research route and local dynamic slash discovery only; no setup script, host dist, routing model, runtime floor parity, or public support claim. |
 | GitHub Copilot CLI | `candidate` | Candidate adapter only; Superpowers evidence and official docs are not Harness bootstrap proof. |
 | Antigravity CLI | `future/unsupported` | No public setup, README support, or release claim until an official or verified route plus local bootstrap smoke exists. |
 
@@ -36,6 +37,8 @@ smoke proves the marketplace/cache route only. OpenCode is currently a
 packaging and instruction surface with Node-level bootstrap validation, not
 proof of runtime guard parity. Candidate hosts do not inherit the safety or
 bootstrap claims of supported hosts.
+Hermes Agent remains `candidate`: local skill discovery does not prove runtime
+workflow parity or Harness safety parity.
 
 ## Capability Status
 
@@ -56,6 +59,7 @@ bootstrap claims of supported hosts.
 | Codex app | `candidate` | app-specific candidate or research gate | supported, same as Codex CLI |
 | Cursor | `internal-compatible` | adapter candidate route, handoff integration, setup-cursor install, static smoke, observed Desktop skill loading | supported Cursor adapter |
 | Grok | `candidate` | adapter candidate route, setup-grok install, static smoke, observed plugin inspect skill discovery | supported Grok adapter |
+| Hermes Agent | `candidate` | manual symlink research route, local dynamic slash command discovery | blocked: supported Hermes adapter |
 | GitHub Copilot CLI | `candidate` | adapter candidate, CLI capability investigation | supported Copilot adapter |
 | Antigravity CLI | `future/unsupported` | future scope, unsupported public claim, not observed | supported Antigravity adapter |
 
@@ -68,6 +72,7 @@ The matrix is valid only when all of the following stay true:
 - Codex CLI and OpenCode are `internal-compatible`.
 - Cursor is `internal-compatible` with observed Desktop skill-loading evidence.
 - Grok is `candidate` with setup-grok package smoke and optional CLI inspect evidence.
+- Hermes Agent is `candidate` with manual symlink research evidence only.
 - Codex app and GitHub Copilot CLI are `candidate`.
 - Antigravity CLI is `future/unsupported` for public claim.
 - Codex CLI runtime evidence is limited to direct plugin marketplace/install
@@ -89,3 +94,5 @@ The matrix is valid only when all of the following stay true:
 - `scripts/setup-grok.sh` builds a package-local dist (no `..` manifest paths)
   and installs via `grok plugin install` or a real-directory copy under
   `~/.grok/plugins/`.
+- Hermes Agent static smoke is limited to `tests/test-hermes-agent-candidate.sh`
+  until a clean-profile Hermes workflow smoke is observed.
