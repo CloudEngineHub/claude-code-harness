@@ -41,7 +41,7 @@ grep -Fq 'level = "off"' "$ROOT_DIR/harness.toml" \
 for stale in \
   'Plugin version: `3.10.2`' \
   'Node.js: `18+`' \
-  'TypeScript guardrail engine' \
+  'TypeScript guardrail'" engine" \
   'validate-plugin-v3.sh' \
   'cd core && npm test'
 do

@@ -20,11 +20,16 @@ package hostgen
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 
 	"github.com/BurntSushi/toml"
 )
+
+// ErrHookGenerationDeferred marks a registered host whose runtime adapter is
+// present but whose native lifecycle-hook schema has not passed live admission.
+var ErrHookGenerationDeferred = errors.New("native hook generation deferred")
 
 // preToolCommand is the argv tail every generated host hook appends after the
 // harness binary: all three hosts converge on this single policy entrypoint.
@@ -62,6 +67,7 @@ type Host struct {
 	DeliveryStrategy     string `toml:"delivery_strategy"`
 	DeliveryEventTurn    string `toml:"delivery_event_turn"`
 	DeliveryEventMonitor string `toml:"delivery_event_monitor"`
+	HookGeneration       string `toml:"hook_generation"`
 }
 
 // Load parses hosts.toml and returns a map keyed by host name (claude, codex,
@@ -160,6 +166,9 @@ func deliveryTurnGroups(h Host, entry commandEntry) interface{} {
 }
 
 func GenerateHooksJSON(h Host) ([]byte, error) {
+	if h.HookGeneration == "deferred" {
+		return nil, fmt.Errorf("hostgen: %s for host %q: %w", h.HookGeneration, h.Name, ErrHookGenerationDeferred)
+	}
 	var doc map[string]interface{}
 	switch h.Name {
 	case "cursor":

@@ -72,7 +72,7 @@ copy_tree() {
 
 copy_runtime_helpers() {
   local dst_root="$1"
-  mkdir -p "${dst_root}/scripts"
+  mkdir -p "${dst_root}/scripts/lib" "${dst_root}/hosts"
   for script in \
     build-host-plugin-dist.sh \
     calculate-effort.sh \
@@ -89,6 +89,12 @@ copy_runtime_helpers() {
       chmod +x "${dst_root}/scripts/${script}" 2>/dev/null || true
     fi
   done
+  if [ -f "${ROOT_DIR}/scripts/lib/host-registry.sh" ]; then
+    cp "${ROOT_DIR}/scripts/lib/host-registry.sh" "${dst_root}/scripts/lib/host-registry.sh"
+  fi
+  if [ -f "${ROOT_DIR}/hosts/registry.json" ]; then
+    cp "${ROOT_DIR}/hosts/registry.json" "${dst_root}/hosts/registry.json"
+  fi
 }
 
 copy_hook_script_closure() {

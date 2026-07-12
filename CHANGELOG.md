@@ -36,6 +36,12 @@ Change history for claude-code-harness.
   secret-directory nesting, and symlink targets remain fail-closed across the
   Go policy engine and legacy shell guard.
 
+- **Host package release gates**: generated hooks now skip Grok's explicitly
+  deferred native-hook surface instead of failing all Claude/Codex/Cursor
+  generation. Codex host packages include the registry helper closure required
+  to build the advertised Cursor package, and an unconfigured `cursor-agent`
+  deterministically reports exit 3 before optional model routing.
+
 - **Codex / Orca hook compatibility (Phase 112.10)**: the Codex plugin manifest
   now explicitly overrides plugin-bundled hooks with an inline empty hook map,
   so Codex no longer falls back to Claude-only agent / async handlers. Generated

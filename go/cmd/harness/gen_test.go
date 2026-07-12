@@ -41,6 +41,9 @@ func TestGeneratedHooks_ContainsCodexAndCursor(t *testing.T) {
 			t.Errorf("generatedHooks missing output for %s", name)
 		}
 	}
+	if _, generated := gen["grok"]; generated {
+		t.Error("Grok native hook config must remain deferred until live schema admission")
+	}
 	for _, name := range []string{"codex", "cursor"} {
 		if !strings.Contains(string(gen[name]), "hook pre-tool") {
 			t.Errorf("%s generated hooks.json does not invoke 'hook pre-tool':\n%s", name, gen[name])

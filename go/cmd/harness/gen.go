@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -170,6 +171,9 @@ func generatedHooks(root string) (map[string][]byte, error) {
 	for _, name := range hostgen.SortedNames(hosts) {
 		b, genErr := generateHostHooksJSON(hosts[name])
 		if genErr != nil {
+			if errors.Is(genErr, hostgen.ErrHookGenerationDeferred) {
+				continue
+			}
 			return nil, genErr
 		}
 		out[name] = b
