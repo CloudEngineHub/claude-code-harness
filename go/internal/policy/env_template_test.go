@@ -154,6 +154,10 @@ func TestEnvTemplateStagingRespectsGitWorkingDirectory(t *testing.T) {
 		`git -C ` + secretDir + ` add -- .env.sample`,
 		`git -C secrets/nested add -- ../.env.dist`,
 		`git -C secrets -C nested add -- ../.env.example`,
+		`git --work-tree secrets add -- .env.example`,
+		`git --work-tree=secrets add -- .env.template`,
+		`git --work-tree secrets commit -- .env.sample`,
+		`git -C secrets/nested --work-tree .. add -- .env.dist`,
 	}
 	for _, command := range commands {
 		ctx := makeCtx("Bash", map[string]interface{}{"command": command})

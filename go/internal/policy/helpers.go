@@ -731,10 +731,11 @@ type gitStagedPath struct {
 }
 
 func gitInvocationRoot(tokens []shellToken, subcommandIndex int, projectRoot string) string {
-	root := projectRoot
-	if root == "" {
-		root = "."
+	gitCWD := projectRoot
+	if gitCWD == "" {
+		gitCWD = "."
 	}
+	workTree := ""
 
 	gitIndex := -1
 	for i := 0; i < subcommandIndex; i++ {
@@ -744,22 +745,31 @@ func gitInvocationRoot(tokens []shellToken, subcommandIndex int, projectRoot str
 		}
 	}
 	if gitIndex < 0 {
-		return filepath.Clean(root)
+		return filepath.Clean(gitCWD)
 	}
 
 	for i := gitIndex + 1; i < subcommandIndex; i++ {
-		if tokens[i].value != "-C" || i+1 >= subcommandIndex {
-			continue
+		option := tokens[i].value
+		switch {
+		case option == "-C" && i+1 < subcommandIndex:
+			dir := tokens[i+1].value
+			if filepath.IsAbs(dir) {
+				gitCWD = filepath.Clean(dir)
+			} else {
+				gitCWD = filepath.Join(gitCWD, dir)
+			}
+			i++
+		case option == "--work-tree" && i+1 < subcommandIndex:
+			workTree = effectiveGitPath(tokens[i+1].value, gitCWD)
+			i++
+		case strings.HasPrefix(option, "--work-tree="):
+			workTree = effectiveGitPath(strings.TrimPrefix(option, "--work-tree="), gitCWD)
 		}
-		dir := tokens[i+1].value
-		if filepath.IsAbs(dir) {
-			root = filepath.Clean(dir)
-		} else {
-			root = filepath.Join(root, dir)
-		}
-		i++
 	}
-	return filepath.Clean(root)
+	if workTree != "" {
+		return filepath.Clean(workTree)
+	}
+	return filepath.Clean(gitCWD)
 }
 
 func effectiveGitPath(path, gitRoot string) string {
