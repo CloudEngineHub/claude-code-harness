@@ -122,6 +122,7 @@ func TestEnvTemplateStagingCommandForms(t *testing.T) {
 		`git add -- ".env.example"`,
 		`git -C . add -- config/.env.template`,
 		`git commit -- .env.sample`,
+		`FOO=bar /usr/bin/git add -- .env.dist`,
 	}
 	for _, command := range allowed {
 		if result := EvaluateRules(makeCtx("Bash", map[string]interface{}{"command": command})); result.Decision != hookproto.DecisionApprove {
@@ -166,6 +167,14 @@ func TestEnvTemplateStagingRespectsGitWorkingDirectory(t *testing.T) {
 		`pushd secrets >/dev/null && git commit -- .env.template`,
 		`env -C secrets git add -- .env.sample`,
 		`env --chdir=secrets git commit -- .env.dist`,
+		`WT=secrets git -C "$WT" add -- .env.example`,
+		`WT=secrets git --work-tree "$WT" add -- .env.template`,
+		`export WT=secrets; git --work-tree "$WT" commit -- .env.sample`,
+		`git --work-tree "${WT:-secrets}" add -- .env.dist`,
+		`git -C 'secr?ts' add -- .env.example`,
+		`git --work-tree 'secr*ts' commit -- .env.template`,
+		`git -C "$(printf secrets)" add -- .env.sample`,
+		`git --work-tree "$(pwd)/secrets" commit -- .env.dist`,
 	}
 	for _, command := range commands {
 		ctx := makeCtx("Bash", map[string]interface{}{"command": command})

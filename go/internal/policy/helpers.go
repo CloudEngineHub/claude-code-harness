@@ -781,7 +781,8 @@ func effectiveGitPath(path, gitRoot string) string {
 
 func hasUnresolvedGitWorkingDirectoryOverride(command string) bool {
 	envPrefix := false
-	for _, token := range shellLex(command) {
+	tokens := shellLex(command)
+	for i, token := range tokens {
 		if token.op {
 			envPrefix = false
 			continue
@@ -793,6 +794,14 @@ func hasUnresolvedGitWorkingDirectoryOverride(command string) bool {
 			return true
 		}
 		if strings.HasPrefix(value, "GIT_WORK_TREE=") {
+			return true
+		}
+		if (value == "-C" || value == "--work-tree") && i+1 < len(tokens) {
+			if !isStaticGitDirectoryArgument(tokens[i+1].value) {
+				return true
+			}
+		}
+		if strings.HasPrefix(value, "--work-tree=") && !isStaticGitDirectoryArgument(strings.TrimPrefix(value, "--work-tree=")) {
 			return true
 		}
 
@@ -810,6 +819,13 @@ func hasUnresolvedGitWorkingDirectoryOverride(command string) bool {
 		}
 	}
 	return false
+}
+
+func isStaticGitDirectoryArgument(value string) bool {
+	if value == "" || strings.HasPrefix(value, "~") {
+		return false
+	}
+	return !strings.ContainsAny(value, "$`*?[]{}%")
 }
 
 func extractGitStagedPaths(command, projectRoot string) []gitStagedPath {
