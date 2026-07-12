@@ -34,6 +34,20 @@ type protectedPathRule struct {
 	pattern *regexp.Regexp
 }
 
+var (
+	publicEnvTemplateBasenames = []string{".env.example", ".env.template", ".env.sample", ".env.dist"}
+	envFileDenyPattern         = regexp.MustCompile(`(?:^|/)\.env(?:$|\.)`)
+	publicEnvTemplatePattern   = regexp.MustCompile(`(?:^|/)(?:` + strings.Join(quotedPublicEnvTemplateBasenames(), "|") + `)$`)
+)
+
+func quotedPublicEnvTemplateBasenames() []string {
+	quoted := make([]string, 0, len(publicEnvTemplateBasenames))
+	for _, name := range publicEnvTemplateBasenames {
+		quoted = append(quoted, regexp.QuoteMeta(name))
+	}
+	return quoted
+}
+
 // Claude Code 2.1.121/2.1.126 protected path taxonomy:
 //   - deny: .git/, secrets, shell rc/profile files, destructive hook entrypoints.
 //   - ask: .claude/skills/, .claude/agents/, .claude/commands/, .vscode/.
@@ -44,7 +58,7 @@ type protectedPathRule struct {
 var protectedPathRules = []protectedPathRule{
 	// deny: repository internals, secrets, hook entrypoints, and shell startup files
 	{protectedPathDeny, "Git internal metadata", regexp.MustCompile(`(?:^|/)\.git(?:/|$)`)},
-	{protectedPathDeny, "secret or credential file", regexp.MustCompile(`(?:^|/)\.env(?:$|\.)`)},
+	{protectedPathDeny, "secret or credential file", envFileDenyPattern},
 	{protectedPathDeny, "secret or credential file", regexp.MustCompile(`(?:^|/)\.envrc$`)},
 	{protectedPathDeny, "secret or credential file", regexp.MustCompile(`(?:^|/)secrets?(?:/|$)`)},
 	{protectedPathDeny, "secret or credential file", regexp.MustCompile(`(?:^|/)(?:id_rsa|id_ed25519|id_ecdsa|id_dsa)$`)},
@@ -81,6 +95,11 @@ func classifyProtectedPathPattern(filePath string) protectedPathMatch {
 	normalized := normalizePathForGuardrail(filePath)
 	best := protectedPathMatch{Level: protectedPathNone, Path: normalized}
 	for _, rule := range protectedPathRules {
+		// Exact public templates are exempt only from the generic .env rule.
+		// Independent protections (for example secrets/.env.example) still apply.
+		if rule.pattern == envFileDenyPattern && isPublicEnvTemplatePath(normalized) {
+			continue
+		}
 		if rule.pattern.MatchString(normalized) && rule.level > best.Level {
 			best = protectedPathMatch{
 				Level:  rule.level,
@@ -90,6 +109,10 @@ func classifyProtectedPathPattern(filePath string) protectedPathMatch {
 		}
 	}
 	return best
+}
+
+func isPublicEnvTemplatePath(filePath string) bool {
+	return publicEnvTemplatePattern.MatchString(normalizePathForGuardrail(filePath))
 }
 
 func strongerProtectedPathMatch(a, b protectedPathMatch) protectedPathMatch {
@@ -119,6 +142,49 @@ func classifyProtectedPath(filePath string) protectedPathMatch {
 	}
 
 	return strongerProtectedPathMatch(match, classifyProtectedPathPattern(realPath))
+}
+
+// classifyProtectedPathAtRoot resolves relative paths from the hook project
+// root, including symlinked parents whose final child does not exist yet.
+func classifyProtectedPathAtRoot(filePath, projectRoot string) protectedPathMatch {
+	match := classifyProtectedPathPattern(filePath)
+	physicalPath := filePath
+	if !filepath.IsAbs(physicalPath) && projectRoot != "" {
+		physicalPath = filepath.Join(projectRoot, physicalPath)
+	}
+
+	resolved, err := evalSymlinksAllowMissing(physicalPath)
+	if err != nil {
+		return protectedPathMatch{
+			Level:  protectedPathDeny,
+			Reason: "unresolvable protected path",
+			Path:   normalizePathForGuardrail(filePath),
+		}
+	}
+	return strongerProtectedPathMatch(match, classifyProtectedPathPattern(resolved))
+}
+
+func evalSymlinksAllowMissing(filePath string) (string, error) {
+	current := filepath.Clean(filePath)
+	var suffix []string
+	for {
+		resolved, err := filepath.EvalSymlinks(current)
+		if err == nil {
+			for i := len(suffix) - 1; i >= 0; i-- {
+				resolved = filepath.Join(resolved, suffix[i])
+			}
+			return resolved, nil
+		}
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return current, nil
+		}
+		suffix = append(suffix, filepath.Base(current))
+		current = parent
+	}
 }
 
 // isProtectedPath checks whether filePath matches any protected taxonomy level.
@@ -173,10 +239,10 @@ func extractBashWriteTargets(command string) []string {
 	return targets
 }
 
-func classifyBashProtectedWrite(command string) protectedPathMatch {
+func classifyBashProtectedWrite(command, projectRoot string) protectedPathMatch {
 	best := protectedPathMatch{Level: protectedPathNone}
 	for _, target := range extractBashWriteTargets(command) {
-		best = strongerProtectedPathMatch(best, classifyProtectedPathPattern(target))
+		best = strongerProtectedPathMatch(best, classifyProtectedPathAtRoot(target, projectRoot))
 	}
 	return best
 }
@@ -186,7 +252,7 @@ func bashProtectedWriteHookResult(ctx hookproto.RuleContext, command string) *ho
 	var warnResult *hookproto.HookResult
 
 	for _, target := range extractBashWriteTargets(command) {
-		match := classifyProtectedPathPattern(target)
+		match := classifyProtectedPathAtRoot(target, ctx.ProjectRoot)
 		switch match.Level {
 		case protectedPathDeny:
 			if result := r03ProtectedPathAskResult(ctx, match.Path); result != nil {
@@ -492,8 +558,10 @@ var gitGlobalValueOpts = map[string]bool{
 
 // r15SecretStagingPatterns targets credential-bearing pathspecs that must not
 // be staged by name. Bulk adds remain governed by .gitignore plus R02/R03.
+var r15EnvFileStagingPattern = regexp.MustCompile(`(?:^|/)\.env(?:\.[^/]+)?$`)
+
 var r15SecretStagingPatterns = []*regexp.Regexp{
-	regexp.MustCompile(`(?:^|/)\.env(?:\.[^/]+)?$`),
+	r15EnvFileStagingPattern,
 	regexp.MustCompile(`(?:^|/)id_rsa(?:\.[^/]+)?$`),
 	regexp.MustCompile(`(?:^|/)id_ed25519(?:\.[^/]+)?$`),
 	regexp.MustCompile(`\.pem$`),
@@ -687,9 +755,16 @@ func extractGitStagedPaths(command string) []string {
 	return paths
 }
 
-func secretFileStaging(command string) (string, bool) {
+func secretFileStaging(command, projectRoot string) (string, bool) {
 	for _, path := range extractGitStagedPaths(command) {
+		isPublicTemplate := isPublicEnvTemplatePath(path)
+		if isPublicTemplate && classifyProtectedPathAtRoot(path, projectRoot).Level == protectedPathDeny {
+			return path, true
+		}
 		for _, p := range r15SecretStagingPatterns {
+			if p == r15EnvFileStagingPattern && isPublicTemplate {
+				continue
+			}
 			if p.MatchString(path) {
 				return path, true
 			}

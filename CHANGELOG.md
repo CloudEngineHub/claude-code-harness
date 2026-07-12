@@ -30,6 +30,12 @@ Change history for claude-code-harness.
 
 ### Fixed
 
+- **Public environment templates (Issue #238)**: writes and staging now allow
+  the exact public template names `.env.example`, `.env.template`,
+  `.env.sample`, and `.env.dist`. Real environment files, added suffixes,
+  secret-directory nesting, and symlink targets remain fail-closed across the
+  Go policy engine and legacy shell guard.
+
 - **Codex / Orca hook compatibility (Phase 112.10)**: the Codex plugin manifest
   now explicitly overrides plugin-bundled hooks with an inline empty hook map,
   so Codex no longer falls back to Claude-only agent / async handlers. Generated

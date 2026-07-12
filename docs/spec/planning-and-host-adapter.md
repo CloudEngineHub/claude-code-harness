@@ -95,6 +95,14 @@ user-facing triggers, inputs/outputs, required evidence, acceptance criteria,
 review/completion rules, and the R01-R13 adjudication surface. Host-specific
 mechanics are derived from it, never hand-maintained alongside it.
 
+R02/R03 distinguish secret-bearing environment files from public templates.
+Exact basenames `.env.example`, `.env.template`, `.env.sample`, and `.env.dist`
+are writable templates; `.env`, `.env.local`, `.env.production`, additional
+suffix variants, and environment files under an independently protected path
+remain denied. A template-named symlink that resolves to a protected target is
+also denied. The exemption is part of the deny-surface self-audit descriptor,
+and the legacy shell guard must match the Go kernel behavior.
+
 A single descriptor, `hosts.toml`, holds every host difference: per host, the
 native pre-action hook event name, the hook config path, the matcher, the deny
 mechanism, the transport, and the model/effort. `harness gen` reads that one
@@ -216,4 +224,3 @@ Having an install route for four hosts is **not** the same as four hosts being
 If a host is not observed in the current runtime, Harness must say `unknown` or
 `not observed`, not `unsupported`, unless the relevant source of truth was
 checked.
-
