@@ -647,7 +647,7 @@ func shellLex(command string) []shellToken {
 			curHas = true
 		case ' ', '\t', '\n', '\r':
 			emit()
-		case ';', ')', '`':
+		case ';', '(', ')', '`':
 			emitOp()
 		case '|', '&':
 			if i+1 < len(command) && command[i+1] == c {
@@ -673,7 +673,7 @@ func shellLex(command string) []shellToken {
 
 func indexOfGitSubcommand(tokens []shellToken) int {
 	for i := 0; i < len(tokens); i++ {
-		if tokens[i].quoted || tokens[i].value != "git" {
+		if filepath.Base(tokens[i].value) != "git" {
 			continue
 		}
 		for j := i + 1; j < len(tokens); j++ {
@@ -739,7 +739,7 @@ func gitInvocationRoot(tokens []shellToken, subcommandIndex int, projectRoot str
 
 	gitIndex := -1
 	for i := 0; i < subcommandIndex; i++ {
-		if !tokens[i].quoted && tokens[i].value == "git" {
+		if filepath.Base(tokens[i].value) == "git" {
 			gitIndex = i
 			break
 		}
@@ -777,6 +777,39 @@ func effectiveGitPath(path, gitRoot string) string {
 		return filepath.Clean(path)
 	}
 	return filepath.Clean(filepath.Join(gitRoot, path))
+}
+
+func hasUnresolvedGitWorkingDirectoryOverride(command string) bool {
+	envPrefix := false
+	for _, token := range shellLex(command) {
+		if token.op {
+			envPrefix = false
+			continue
+		}
+
+		value := token.value
+		switch value {
+		case "cd", "pushd", "popd":
+			return true
+		}
+		if strings.HasPrefix(value, "GIT_WORK_TREE=") {
+			return true
+		}
+
+		if filepath.Base(value) == "env" {
+			envPrefix = true
+			continue
+		}
+		if envPrefix {
+			if value == "-C" || value == "--chdir" || strings.HasPrefix(value, "--chdir=") {
+				return true
+			}
+			if filepath.Base(value) == "git" {
+				envPrefix = false
+			}
+		}
+	}
+	return false
 }
 
 func extractGitStagedPaths(command, projectRoot string) []gitStagedPath {
@@ -818,9 +851,13 @@ func extractGitStagedPaths(command, projectRoot string) []gitStagedPath {
 }
 
 func secretFileStaging(command, projectRoot string) (string, bool) {
+	unresolvedWorkingDirectory := hasUnresolvedGitWorkingDirectoryOverride(command)
 	for _, stagedPath := range extractGitStagedPaths(command, projectRoot) {
 		path := stagedPath.effectivePath
 		isPublicTemplate := isPublicEnvTemplatePath(path)
+		if isPublicTemplate && unresolvedWorkingDirectory {
+			return stagedPath.displayPath, true
+		}
 		if isPublicTemplate && classifyProtectedPathAtRoot(path, projectRoot).Level == protectedPathDeny {
 			return stagedPath.displayPath, true
 		}
