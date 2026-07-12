@@ -141,6 +141,29 @@ func TestEnvTemplateStagingCommandForms(t *testing.T) {
 	}
 }
 
+func TestEnvTemplateStagingRespectsGitWorkingDirectory(t *testing.T) {
+	root := t.TempDir()
+	secretDir := filepath.Join(root, "secrets")
+	if err := os.MkdirAll(filepath.Join(secretDir, "nested"), 0o700); err != nil {
+		t.Fatalf("mkdir secret fixture: %v", err)
+	}
+
+	commands := []string{
+		`git -C secrets add -- .env.example`,
+		`git -C secrets commit -- .env.template`,
+		`git -C ` + secretDir + ` add -- .env.sample`,
+		`git -C secrets/nested add -- ../.env.dist`,
+		`git -C secrets -C nested add -- ../.env.example`,
+	}
+	for _, command := range commands {
+		ctx := makeCtx("Bash", map[string]interface{}{"command": command})
+		ctx.ProjectRoot = root
+		if result := EvaluateRules(ctx); result.Decision != hookproto.DecisionDeny {
+			t.Errorf("%q: expected deny, got %s (%s)", command, result.Decision, result.Reason)
+		}
+	}
+}
+
 func TestTemplateNamedSymlinkToSecretRemainsDenied(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, ".env")

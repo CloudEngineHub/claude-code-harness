@@ -34,7 +34,8 @@ Change history for claude-code-harness.
   the exact public template names `.env.example`, `.env.template`,
   `.env.sample`, and `.env.dist`. Real environment files, added suffixes,
   secret-directory nesting, and symlink targets remain fail-closed across the
-  Go policy engine and legacy shell guard.
+  Go policy engine and legacy shell guard, including staged paths resolved
+  through relative, absolute, nested, or repeated `git -C` options.
 
 - **Host package release gates**: generated hooks now skip Grok's explicitly
   deferred native-hook surface instead of failing all Claude/Codex/Cursor

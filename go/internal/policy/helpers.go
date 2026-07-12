@@ -725,8 +725,52 @@ func gitCommitPathspecs(args []shellToken) []string {
 	return out
 }
 
-func extractGitStagedPaths(command string) []string {
-	var paths []string
+type gitStagedPath struct {
+	displayPath   string
+	effectivePath string
+}
+
+func gitInvocationRoot(tokens []shellToken, subcommandIndex int, projectRoot string) string {
+	root := projectRoot
+	if root == "" {
+		root = "."
+	}
+
+	gitIndex := -1
+	for i := 0; i < subcommandIndex; i++ {
+		if !tokens[i].quoted && tokens[i].value == "git" {
+			gitIndex = i
+			break
+		}
+	}
+	if gitIndex < 0 {
+		return filepath.Clean(root)
+	}
+
+	for i := gitIndex + 1; i < subcommandIndex; i++ {
+		if tokens[i].value != "-C" || i+1 >= subcommandIndex {
+			continue
+		}
+		dir := tokens[i+1].value
+		if filepath.IsAbs(dir) {
+			root = filepath.Clean(dir)
+		} else {
+			root = filepath.Join(root, dir)
+		}
+		i++
+	}
+	return filepath.Clean(root)
+}
+
+func effectiveGitPath(path, gitRoot string) string {
+	if filepath.IsAbs(path) {
+		return filepath.Clean(path)
+	}
+	return filepath.Clean(filepath.Join(gitRoot, path))
+}
+
+func extractGitStagedPaths(command, projectRoot string) []gitStagedPath {
+	var paths []gitStagedPath
 	var segment []shellToken
 
 	flush := func() {
@@ -734,11 +778,19 @@ func extractGitStagedPaths(command string) []string {
 			return
 		}
 		if idx := indexOfGitSubcommand(segment); idx >= 0 {
+			gitRoot := gitInvocationRoot(segment, idx, projectRoot)
+			var pathspecs []string
 			switch segment[idx].value {
 			case "add", "stage":
-				paths = append(paths, gitAddPathspecs(segment[idx+1:])...)
+				pathspecs = gitAddPathspecs(segment[idx+1:])
 			case "commit":
-				paths = append(paths, gitCommitPathspecs(segment[idx+1:])...)
+				pathspecs = gitCommitPathspecs(segment[idx+1:])
+			}
+			for _, path := range pathspecs {
+				paths = append(paths, gitStagedPath{
+					displayPath:   path,
+					effectivePath: effectiveGitPath(path, gitRoot),
+				})
 			}
 		}
 		segment = nil
@@ -756,17 +808,18 @@ func extractGitStagedPaths(command string) []string {
 }
 
 func secretFileStaging(command, projectRoot string) (string, bool) {
-	for _, path := range extractGitStagedPaths(command) {
+	for _, stagedPath := range extractGitStagedPaths(command, projectRoot) {
+		path := stagedPath.effectivePath
 		isPublicTemplate := isPublicEnvTemplatePath(path)
 		if isPublicTemplate && classifyProtectedPathAtRoot(path, projectRoot).Level == protectedPathDeny {
-			return path, true
+			return stagedPath.displayPath, true
 		}
 		for _, p := range r15SecretStagingPatterns {
 			if p == r15EnvFileStagingPattern && isPublicTemplate {
 				continue
 			}
 			if p.MatchString(path) {
-				return path, true
+				return stagedPath.displayPath, true
 			}
 		}
 	}
