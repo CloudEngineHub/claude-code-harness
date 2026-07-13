@@ -32,54 +32,54 @@ thin setup/smoke scripts.
 
 Complete **before** raising public tier above `future/unsupported`.
 
-1. **Native intercept or explicit none**  
+1. **Native intercept or explicit none**
    Can the host stop an action before it runs? If no, set
    `safety_model: none` and **max** public tier is packaging / candidate until a
    documented post-gate model exists.
 
-2. **Deny semantics**  
+2. **Deny semantics**
    Document fail-closed vs fail-open (e.g. Cursor non-exit-2 fail-open).
 
-3. **Event coverage**  
+3. **Event coverage**
    Shell only? File write? MCP? Read? Record Bash-only gaps honestly.
 
-4. **Install unit test**  
+4. **Install unit test**
    Isolated HOME / install root; no writes to the operator's live config in CI.
 
-5. **Static smoke in CI**  
+5. **Static smoke in CI**
    Package shape, no `..` in dist manifests, core skills present.
 
-6. **Optional runtime flag**  
+6. **Optional runtime flag**
    `HARNESS_<HOST>_*_SMOKE_REQUIRED=1` for hard fail when CLI is expected.
 
-7. **Bootstrap route named**  
+7. **Bootstrap route named**
    Entry in `docs/bootstrap-routing-contract.md` (not false SessionStart parity).
 
-8. **support-claim wording**  
+8. **support-claim wording**
    Block EN `supported` and JP 正式対応 / 対応済み for this host until H1–H8 green
    (`tests/test-support-claim-wording.sh`).
 
-9. **Evidence research note**  
+9. **Evidence research note**
    `docs/research/<host>-adapter-candidate.md` with observed / missing / commands.
 
-10. **Floor join or explicit exclusion**  
+10. **Floor join or explicit exclusion**
     `floor_member: true` only after `harness hook pre-tool --host <id>` live deny;
     otherwise `false` and never claim 3cli parity.
 
-11. **Public wording template**  
+11. **Public wording template**
     Allowed vs blocked phrases in registry `blocked_public_phrases` + onboarding.
 
-12. **Capability matrix row**  
+12. **Capability matrix row**
     Every capability cell has strength language; same name ≠ same enforcement.
 
 ## How to add host `example`
 
-1. Implement thin `scripts/setup-example.sh` (`--check` + isolated install).  
-2. Add dist profile in `build-host-plugin-dist.sh` **or** generic copy profile driven by registry fields (prefer generic).  
-3. Add routing catalog in `model-routing.sh` if the host is an execution/routing surface.  
-4. Append a row to `hosts/registry.json`.  
-5. Add `tests/test-example-adapter-*.sh` and point `smoke.adapter` at it.  
-6. Update README / matrix / onboarding tier tables (or generate from registry later).  
+1. Implement thin `scripts/setup-example.sh` (`--check` + isolated install).
+2. Add dist profile in `build-host-plugin-dist.sh` **or** generic copy profile driven by registry fields (prefer generic).
+3. Add routing catalog in `model-routing.sh` if the host is an execution/routing surface.
+4. Append a row to `hosts/registry.json`.
+5. Add `tests/test-example-adapter-*.sh` and point `smoke.adapter` at it.
+6. Update README / matrix / onboarding tier tables (or generate from registry later).
 7. Run:
 
 ```bash

@@ -2,17 +2,17 @@
 
 **あなたがやること**
 
-1. CCH リポジトリをカレントにした状態で、各 CLI を開く  
-2. 下のプロンプトを **そのまま貼る**  
-3. 終わったら、この Grok/Claude チャットに結果 1 行を返す  
+1. CCH リポジトリをカレントにした状態で、各 CLI を開く
+2. 下のプロンプトを **そのまま貼る**
+3. 終わったら、この Grok/Claude チャットに結果 1 行を返す
 
 **あなたがやらなくていいこと**
 
-- 長い bash の準備  
-- `setup-*.sh` の再実行（すでに入れてあれば）  
-- 成果物パスを自分で考える  
+- 長い bash の準備
+- `setup-*.sh` の再実行（すでに入れてあれば）
+- 成果物パスを自分で考える
 
-成果物は AI 側が書いてくれる想定:  
+成果物は AI 側が書いてくれる想定:
 `out/workflow-smoke/live/<host>/plan-artifact.md`
 
 ---
@@ -135,6 +135,6 @@ done
 
 ## メモ
 
-- まだ CCH を入れてない CLI だけ、初回はいつもどおり install が必要（Grok: `setup-grok`、Cursor: `setup-cursor` など）。**毎回のテストでは不要**。  
-- structural 自動テストとは別。これは「その CLI で本当に plan が回ったか」用。  
+- まだ CCH を入れてない CLI だけ、初回はいつもどおり install が必要（Grok: `setup-grok`、Cursor: `setup-cursor` など）。**毎回のテストでは不要**。
+- structural 自動テストとは別。これは「その CLI で本当に plan が回ったか」用。
 - 印刷: `bash scripts/print-live-cli-smoke.sh claude` など（プロンプトだけ出す）。

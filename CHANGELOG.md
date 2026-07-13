@@ -15,20 +15,25 @@ Change history for claude-code-harness.
   `hookcodec.HostGrok`). Public `supported` / 正式対応 remains Claude-only until
   live H4 workflow smoke lands (111.3.3/111.4.4/111.5.4 blocked on purpose).
 
-### Added
-
-- **Grok host adapter (candidate)**: `.grok-plugin/plugin.json`, `.grok/AGENTS.md`,
+- **Grok host adapter packaging**: `.grok-plugin/plugin.json`, `.grok/AGENTS.md`,
   `scripts/setup-grok.sh` (`--check` + isolated HOME install),
   `scripts/build-host-plugin-dist.sh --host grok` (package-local `./skills/` paths),
   and `scripts/model-routing.sh --host grok` (role/tier → `grok-4.5` /
   `grok-composer-2.5-fast`). Other projects can install Harness workflow skills
-  without Claude Code as the session host. Tier stays `candidate` (no public
-  `supported` claim, no Claude SessionStart/PreToolUse parity). Evidence:
+  without Claude Code as the session host. Tier is `internal-compatible`; this
+  is not a public `supported` claim and does not imply Claude
+  SessionStart/PreToolUse parity. Evidence:
   `docs/research/grok-adapter-candidate.md`. Tests:
   `tests/test-grok-adapter-candidate.sh` plus host-dist / model-routing /
   bootstrap / capability-matrix gates.
 
 ### Fixed
+
+- **Release documentation reconciliation**: aligned the Phase 111 plan,
+  onboarding link, and `[Unreleased]` notes with Grok's verified
+  `internal-compatible` tier while keeping public `supported` promotion blocked
+  on live H4 evidence. The R15 specification now records effective Git context
+  handling for `git -C`, `--work-tree`, and unresolved dynamic working context.
 
 - **Public environment templates (Issue #238)**: writes and staging now allow
   the exact public template names `.env.example`, `.env.template`,

@@ -1,4 +1,4 @@
-# Grok Adapter Candidate
+# Grok Adapter Evidence Boundary
 
 Status: internal-compatible evidence boundary
 Checked at: 2026-07-09 JST
@@ -83,7 +83,7 @@ grok plugin validate /tmp/cch-grok-dist
 
 | Allowed | Blocked |
 |---|---|
-| candidate Grok adapter | public top-tier product claim for this host |
+| internal-compatible Grok adapter | public top-tier product claim for this host |
 | setup-grok install / package smoke | Claude SessionStart parity |
 | skill discovery via inspect | PreToolUse deny parity |
 | model-routing host `grok` | Breezing multitask public support claim |

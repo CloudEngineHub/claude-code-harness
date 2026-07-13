@@ -69,16 +69,16 @@ host native hook → bin/harness hook pre-tool --host <claude|codex|cursor>
 
 Codex は **hook を持つ**（2026-06 3cli floor 以降）。ただし:
 
-1. **PreToolUse は Bash のみ**  
+1. **PreToolUse は Bash のみ**
    non-Bash（例: Read `~/.ssh/...`）は hook で hard-deny されない
-2. **実行前 contract 注入**  
+2. **実行前 contract 注入**
    companion / instructions に禁止事項を明示
-3. **post-exec quality gate + merge gate**  
+3. **post-exec quality gate + merge gate**
    通らない成果物は main に取り込まない
-4. **worktree fingerprint**  
+4. **worktree fingerprint**
    敏感 path の事後差分で補完
 
-「Codex に hook が無い」は **古い記述**です。正しい短文は  
+「Codex に hook が無い」は **古い記述**です。正しい短文は
 **「Bash PreToolUse floor + 事後ゲート。non-Bash は Claude と非対称」**。
 
 ### Cursor

@@ -103,6 +103,15 @@ remain denied. A template-named symlink that resolves to a protected target is
 also denied. The exemption is part of the deny-surface self-audit descriptor,
 and the legacy shell guard must match the Go kernel behavior.
 
+When R15 evaluates a staged path from `git add` or `git commit`, it must use
+Git's effective working context rather than assuming the Harness process
+directory. Literal `git -C` and `--work-tree` options are resolved before the
+public-template exemption is applied, including nested or repeated `-C` forms.
+If the effective working directory or work tree is supplied by dynamic shell
+input and cannot be resolved deterministically, classification
+fails closed. A public template name under an independently protected directory
+therefore remains denied regardless of the Git invocation form.
+
 A single descriptor, `hosts.toml`, holds every host difference: per host, the
 native pre-action hook event name, the hook config path, the matcher, the deny
 mechanism, the transport, and the model/effort. `harness gen` reads that one

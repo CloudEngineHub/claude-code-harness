@@ -19,7 +19,7 @@ Public wording must keep these tiers unchanged:
 | Codex app | `candidate` | Use the candidate smoke checklist in [install.md](install.md#codex-app-candidate); do not reuse Codex CLI proof. |
 | OpenCode | `internal-compatible` | Use `scripts/setup-opencode.sh` in [install.md](install.md#opencode-internal-compatible). |
 | Cursor | `internal-compatible` | Use `scripts/setup-cursor.sh` in [install.md](install.md#cursor-internal-compatible); PM handoff docs remain separate from adapter install. |
-| Grok | `internal-compatible` | Use `scripts/setup-grok.sh` in [install.md](install.md#grok-candidate); package install and skill discovery only, not Claude hook parity. |
+| Grok | `internal-compatible` | Use `scripts/setup-grok.sh` in [install.md](install.md#grok-internal-compatible); package install and skill discovery only, not Claude hook parity. |
 | GitHub Copilot CLI | `candidate` | Use the candidate boundary in [install.md](install.md#github-copilot-cli-candidate). |
 | Antigravity CLI | `future/unsupported` | Use the unsupported boundary in [install.md](install.md#antigravity-cli-futureunsupported). |
 
