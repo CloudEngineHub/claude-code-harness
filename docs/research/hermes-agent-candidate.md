@@ -36,7 +36,7 @@ Operator-local observation on a user-controlled checkout:
 
 | Observation | Evidence | Limit |
 |---|---|---|
-| Skill source | CCH `skills/` is the SSOT; `.agents/skills` is a public mirror | Local checkout only |
+| Skill source | CCH `skills/` is the SSOT; `.agents/skills` is an optional read-only mirror (`not-configured` when absent) | Local checkout only |
 | Hermes exposure | Directory symlinks under `~/.hermes/skills/cch/<skill>` point to CCH `skills/<skill>` | Manual operator setup; no setup script |
 | Skill discovery | `hermes skills list` showed the pilot skills as enabled | Single local profile |
 | Dynamic slash commands | Hermes command registry built invocations for `/breezing`, `/harness-plan`, `/harness-work`, `/harness-review`, `/harness-sync`, `/harness-setup`, `/harness-loop`, and `/harness-release` | Invocation parsing only, not full workflow execution |

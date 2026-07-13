@@ -23,6 +23,12 @@ assert_contains() {
 
 assert_contains "$DOC" "Hermes Agent is a **candidate** Harness host path."
 assert_contains "$DOC" "CCH \`skills/\` is the SSOT"
+# .agents/skills is an optional read-only distribution mirror
+# (.claude/rules/skill-editing.md Client Mirror Contract), never "public".
+assert_contains "$DOC" "\`.agents/skills\` is an optional read-only mirror"
+if grep -Fq '`.agents/skills` is a public mirror' "$DOC"; then
+  fail "'.agents/skills' must not be described as a public mirror"
+fi
 assert_contains "$DOC" "not a public \`supported\` claim"
 assert_contains "$DOC" "Dynamic slash commands"
 assert_contains "$DOC" "do not create \`cch-*\` command aliases"
@@ -36,9 +42,12 @@ assert_contains "$README" "| Hermes Agent | \`candidate\` |"
 assert_contains "$README_JA" "| Hermes Agent | \`candidate\` |"
 assert_contains "$ONBOARDING" "| Hermes Agent | \`candidate\` |"
 
-if grep -RInE 'Hermes Agent.*`supported`|supported Hermes adapter|Hermes.*正式対応|正式対応.*Hermes' \
+# Overclaim scan: only `blocked:`-prefixed blocked-wording cells may mention
+# these phrases. Broad tokens (Blocked / 主張しない / supported` claim) must
+# not excuse a positive claim elsewhere on the line.
+if grep -InE 'Hermes Agent.*`supported`|supported Hermes adapter|Hermes.*正式対応|正式対応.*Hermes' \
   "$README" "$README_JA" "$ONBOARDING" "$MATRIX" "$DOC" \
-  | grep -Eiv 'not a public|Blocked|Blocked wording|Do not promote|Blocked Wording|主張しない|blocked|supported\` claim|Blocked \|' \
+  | grep -Eiv 'blocked:' \
   | grep -Eq .; then
   fail "Hermes public support overclaim found"
 fi
