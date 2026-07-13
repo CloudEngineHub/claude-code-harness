@@ -39,6 +39,7 @@ required_hosts=(
   "OpenCode"
   "Cursor"
   "Grok"
+  "Hermes Agent"
   "GitHub Copilot CLI"
   "Antigravity CLI"
 )
@@ -54,6 +55,7 @@ tier_rows=(
   "| OpenCode | \`internal-compatible\` |"
   "| Cursor | \`internal-compatible\` |"
   "| Grok | \`internal-compatible\` |"
+  "| Hermes Agent | \`candidate\` |"
   "| GitHub Copilot CLI | \`candidate\` |"
   "| Antigravity CLI | \`future/unsupported\` |"
 )
@@ -80,5 +82,7 @@ assert_contains "Cursor Breezing multitask mapping is a smoke target"
 assert_contains "tests/test-grok-adapter-candidate.sh"
 assert_contains "scripts/setup-grok.sh"
 assert_contains "Grok Breezing multitask mapping is a smoke target"
+assert_contains "Hermes Agent remains \`candidate\`"
+assert_contains "tests/test-hermes-agent-candidate.sh"
 
 echo "test-tool-capability-matrix: ok"

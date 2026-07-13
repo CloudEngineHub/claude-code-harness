@@ -27,6 +27,17 @@ Change history for claude-code-harness.
   `tests/test-grok-adapter-candidate.sh` plus host-dist / model-routing /
   bootstrap / capability-matrix gates.
 
+- **Hermes Agent candidate host path (docs)**: operator-local evidence that CCH
+  `skills/` can be exposed to Hermes Agent via manual directory symlinks, with
+  dynamic slash discovery for `/harness-*` and `/breezing`. Tier is
+  `candidate` only — no setup script, host dist, routing model, runtime floor
+  parity, or public `supported` claim; `.agents/skills` is documented as an
+  optional read-only mirror, not a public one. Evidence:
+  `docs/research/hermes-agent-candidate.md`. Tests:
+  `tests/test-hermes-agent-candidate.sh` plus capability-matrix / onboarding /
+  support-wording gates. (Fresh port of PR #239 + its review fixes; no
+  registry/tier change for existing hosts.)
+
 ### Fixed
 
 - **Release documentation reconciliation**: aligned the Phase 111 plan,
@@ -34,6 +45,22 @@ Change history for claude-code-harness.
   `internal-compatible` tier while keeping public `supported` promotion blocked
   on live H4 evidence. The R15 specification now records effective Git context
   handling for `git -C`, `--work-tree`, and unresolved dynamic working context.
+
+- **Support wording gate: partial-denial overclaim detection**: the public
+  claim checker (`tests/test-support-claim-wording.sh`) no longer accepts
+  lines like "supported, but runtime floor parity is not proven" — a
+  denial-looking token (`not proven` / `blocked` / `support wording` / 未主張)
+  used to excuse the whole line or file. The checker now removes only denial
+  phrases that consume the support word itself (neutralize-then-scan) and
+  fails on any remaining host-adjacent support claim; Grok/Cursor
+  `internal-compatible` tier pins are kept. Contract fixtures:
+  `tests/test-support-claim-wording-selftest.sh`.
+
+- **Onboarding host-tier test drift**: `tests/test-tool-first-onboarding.sh`
+  still expected the pre-promotion `Cursor|candidate` row and had no Grok row,
+  so it failed against the released `internal-compatible` tier tables. The
+  expectations now match the shipped tiers (Cursor/Grok `internal-compatible`,
+  Hermes Agent `candidate`).
 
 - **Public environment templates (Issue #238)**: writes and staging now allow
   the exact public template names `.env.example`, `.env.template`,
