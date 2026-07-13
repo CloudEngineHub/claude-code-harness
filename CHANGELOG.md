@@ -8,6 +8,11 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **Java/Kotlin project detection**: setup now recognizes Maven and Gradle
+  projects, gives Java the intended precedence when Java and Kotlin markers
+  coexist, generates the correct test naming guidance, and selects the matching
+  test command.
+
 - **Phase 111 multi-host bar (H1–H8) + host registry**: `hosts/registry.json`,
   `scripts/lib/host-registry.sh`, structural workflow smoke
   (`tests/test-host-workflow-smoke.sh`), admission docs, and CI structural smoke.
@@ -28,6 +33,22 @@ Change history for claude-code-harness.
   bootstrap / capability-matrix gates.
 
 ### Fixed
+
+- **English-default completion output**: completion reports and Breezing output
+  now use English unless Japanese is explicitly selected. English/Japanese
+  templates and their Claude/Codex/OpenCode mirrors are regression-tested.
+
+- **Deterministic Windows Stop guard**: a Stop event during `cc:WIP` now blocks
+  deterministically on Windows as well as POSIX hosts, without moving safety
+  hooks to asynchronous execution or weakening plugin-root validation.
+
+- **Host hook generation**: normal `harness gen` now skips hosts whose native
+  hook generation is explicitly deferred, matching `--check` behavior, instead
+  of returning an error after partially generating the supported host files.
+
+- **Release tag/version safety**: tag-triggered publishing now fails closed
+  unless the pushed `vX.Y.Z` tag exactly matches the repository `VERSION`,
+  preventing mislabeled release binaries.
 
 - **Release documentation reconciliation**: aligned the Phase 111 plan,
   onboarding link, and `[Unreleased]` notes with Grok's verified

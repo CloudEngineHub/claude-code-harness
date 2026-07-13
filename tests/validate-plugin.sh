@@ -1179,6 +1179,12 @@ else
     fail_test "harness-release governance contract failed — 'bash tests/test-harness-release-governance.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-release-tag-version.sh" > /dev/null 2>&1; then
+    pass_test "release tag は VERSION と一致しない限り公開されません"
+else
+    fail_test "release tag/version contract failed — 'bash tests/test-release-tag-version.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-cch-branch-protection-policy.sh" > /dev/null 2>&1; then
     pass_test "CCH branch protection policy は harness-review gate と required checks を固定します"
 else

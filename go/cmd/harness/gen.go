@@ -261,6 +261,10 @@ func runGenWrite(root string) error {
 		}
 		data, genErr := generateHostHooksJSON(h)
 		if genErr != nil {
+			if errors.Is(genErr, hostgen.ErrHookGenerationDeferred) {
+				fmt.Printf("gen: %-7s %s  skipped (native hook generation deferred)\n", name, h.HookPath)
+				continue
+			}
 			return genErr
 		}
 		if mkErr := os.MkdirAll(filepath.Dir(dest), 0o755); mkErr != nil {
