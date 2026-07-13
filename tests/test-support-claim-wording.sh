@@ -48,15 +48,16 @@ NON_PUBLIC_HOSTS='codex app|cursor|grok|hermes agent|hermes|github copilot cli|c
 SUPPORT_WORDS='[^[:alpha:]]supported([^[:alpha:]]|$)|サポート済み|サポート対象|対応済み|正式対応'
 PROXIMITY="(${NON_PUBLIC_HOSTS}).{0,100}(${SUPPORT_WORDS})|(${SUPPORT_WORDS}).{0,100}(${NON_PUBLIC_HOSTS})"
 
-# Every pattern must consume the support word it excuses. A denial token that
-# does not contain the support word never neutralizes the rest of the line.
+# Every pattern must consume the support word it excuses and nothing more:
+# no pattern may span free text wide enough to swallow a host name together
+# with an unrelated later claim. "blocked:" neutralizes only a closed
+# blocked-wording table cell (up to the next "|"); in prose it stays live.
 neutralize_denials() {
   sed -E \
     -e 's/not a public[[:space:]]+`?supported`?([[:space:]]+claim)?//g' \
     -e 's/no public[[:space:]]+`?supported`?([[:space:]]+claim)?//g' \
     -e 's/not( yet)?( publicly)?[[:space:]]+`?supported`?//g' \
-    -e 's/(do not|must not|never)[^.|]{0,80}`?supported`?//g' \
-    -e 's/blocked:[^|]*//g' \
+    -e 's/blocked:[^|]*[|]/|/g' \
     -e 's/(正式対応|サポート済み|サポート対象|対応済み)(で|と)はない//g' \
     -e 's/(正式対応|サポート済み|サポート対象|対応済み)(を|は|と)?(主張|表明)しない//g' \
     -e 's/(正式対応|サポート済み|サポート対象|対応済み)にしない//g'

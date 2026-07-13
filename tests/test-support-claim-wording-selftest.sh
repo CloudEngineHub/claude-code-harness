@@ -65,6 +65,27 @@ Hermes Agent は対応済み。runtime parity は未主張。
 EOF
 expect_fail "JP 対応済み + 未主張 token" "${TMP_DIR}/overclaim-ja.md"
 
+# A negator phrase must not swallow an unrelated later claim (the denial
+# phrase itself must contain the support word it excuses, nothing more).
+
+cat > "${TMP_DIR}/overclaim-negator-preamble.md" <<'EOF'
+We must not let anyone believe otherwise: Hermes Agent is supported.
+EOF
+expect_fail "must-not preamble + positive claim" "${TMP_DIR}/overclaim-negator-preamble.md"
+
+cat > "${TMP_DIR}/overclaim-never-preamble.md" <<'EOF'
+Never mind the caveats: Grok is fully supported in production today.
+EOF
+expect_fail "never preamble + positive claim" "${TMP_DIR}/overclaim-never-preamble.md"
+
+# "blocked:" only neutralizes a blocked-wording table cell (closed by "|");
+# outside a table it must not consume the rest of the line.
+
+cat > "${TMP_DIR}/overclaim-blocked-no-table.md" <<'EOF'
+blocked: for the record, Hermes Agent is supported starting today.
+EOF
+expect_fail "blocked: prose (no table cell)" "${TMP_DIR}/overclaim-blocked-no-table.md"
+
 # --- Legitimate denial fixtures: every one of these must stay green. ---
 
 cat > "${TMP_DIR}/denial-public-claim.md" <<'EOF'
