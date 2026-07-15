@@ -719,3 +719,16 @@ Spec skip reason: ledger sync / git hygiene / docs judgment / dependency triage 
 | skill prune / progressive disclosure | drop（redesign skill 木が別物） |
 | f6cdb042 HOTL wiring | drop（origin に plan-brief/accept/progress 配線済み） |
 | dirty model-routing Sonnet5 | drop（origin 既に sonnet-5） |
+
+---
+
+## Phase 113: Hermes Agent Candidate Host Path — PR #239 レビュー修正 [P1]
+
+Purpose: PR #239（Hermes Agent candidate host path docs、fa2b9c37）のレビュー修正 lane。release/v5.1.0 の Phase 112 reconciliation（2026-07-13）で PR #239 は 5.1.0 非対象と裁定済みのため、5.1.0 とは分離した branch（`fix/pr239-hermes-candidate-review`）で進める。番号は release 側 Phase 111/112 との衝突を避けて 113 を使用。
+
+Spec skip reason: docs / wording-gate tests のみ。product contract・tier・runtime の変更なし。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 113.1 | `[lane:docs]` `[tdd:skip:docs-only]` Hermes Agent candidate host path の初版 docs/tests（PR #239 原本）。README / README_ja / onboarding / capability-matrix に `candidate` 行、`docs/research/hermes-agent-candidate.md` に evidence boundary、`tests/test-hermes-agent-candidate.sh` に static contract | (a) 5 surface に `| Hermes Agent | \`candidate\` |` 行、(b) `bash tests/test-hermes-agent-candidate.sh` PASS | - | cc:done [fa2b9c37] |
+| 113.2 | `[lane:gate]` `[tdd:required]` PR #239 レビュー修正: (i) `.agents/skills` の「public mirror」誤記を Client Mirror Contract（`.claude/rules/skill-editing.md`）準拠の optional read-only mirror へ訂正、(ii) `tests/test-support-claim-wording.sh` の行単位 allowlist（`not proven` / `blocked` / `support wording` 等のトークンが同一行にあるだけで素通り）を廃止し、support 語自体を含む否定フレーズのみ除去してから再スキャンする neutralize-then-scan 方式へ強化、(iii) `tests/test-support-claim-wording-selftest.sh` で overclaim 5 fixture（"supported, but ... not proven" 型を含む）の FAIL と denial 5 fixture の PASS を固定、(iv) CHANGELOG [Unreleased] / claims-audit へ反映 | (a) RED evidence: 旧 checker で selftest が `overclaim fixture was accepted: supported + not proven` で FAIL、(b) GREEN: selftest + support-claim-wording + hermes-agent-candidate + capability-matrix + tool-first-onboarding PASS、(c) `bash tests/validate-plugin.sh` + `bash scripts/ci/check-consistency.sh` + mirror check PASS、(d) Grok / Cursor の tier 行は不変（Grok `candidate` / Cursor `internal-compatible` のまま。5.1.0 側 tier への干渉なし） | 113.1 | cc:done |

@@ -341,6 +341,36 @@ Workflow smoke and Claude SessionStart/PreToolUse parity are not proven, so the
 tier stays `candidate`. Evidence boundary:
 `docs/research/grok-adapter-candidate.md`.
 
+### Hermes Agent (`candidate`)
+
+Unsupported reason: Hermes Agent has local operator evidence for manual skill
+symlink exposure and dynamic slash command discovery, but this repository has no
+Hermes setup script, packaged host distribution, routing model, runtime floor
+parity, or CI-gated workflow smoke.
+
+First prompt:
+
+```text
+Use the Harness onboarding doc to identify the next safe planning step.
+```
+
+First command:
+
+```text
+No Harness install command in this phase; candidate symlink research only.
+```
+
+Verification command:
+
+```bash
+bash tests/test-hermes-agent-candidate.sh
+```
+
+Success look: the result is recorded as `candidate`, `manual`, or
+`not observed`. Local dynamic slash discovery for `/harness-*` and `/breezing`
+is not counted as public support, runtime floor parity, or Claude hook parity.
+Evidence boundary: `docs/research/hermes-agent-candidate.md`.
+
 ### GitHub Copilot CLI (`candidate`)
 
 Unsupported reason: GitHub Copilot CLI may become a manual instruction profile

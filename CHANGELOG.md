@@ -18,6 +18,29 @@ Change history for claude-code-harness.
   `docs/research/grok-adapter-candidate.md`. Tests:
   `tests/test-grok-adapter-candidate.sh` plus host-dist / model-routing /
   bootstrap / capability-matrix gates.
+- **Hermes Agent candidate host path (docs)**: operator-local evidence that CCH
+  `skills/` can be exposed to Hermes Agent via manual directory symlinks, with
+  dynamic slash discovery for `/harness-*` and `/breezing`. Tier is
+  `candidate` only — no setup script, host dist, routing model, runtime floor
+  parity, or public `supported` claim. Evidence:
+  `docs/research/hermes-agent-candidate.md`. Tests:
+  `tests/test-hermes-agent-candidate.sh` plus capability-matrix / onboarding /
+  support-wording gates.
+
+### Fixed
+
+- **Support wording gate: partial-denial overclaim detection**: the public
+  claim checker (`tests/test-support-claim-wording.sh`) no longer accepts
+  lines like "supported, but runtime floor parity is not proven" — a
+  denial-looking token (`not proven` / `blocked` / `support wording` / 未主張)
+  used to excuse the whole line. The checker now removes only denial phrases
+  that consume the support word itself (neutralize-then-scan) and fails on any
+  remaining host-adjacent support claim. Contract fixtures:
+  `tests/test-support-claim-wording-selftest.sh`.
+- **`.agents/skills` mirror label**: `docs/research/hermes-agent-candidate.md`
+  described `.agents/skills` as a "public mirror"; corrected to the Client
+  Mirror Contract wording — an optional read-only mirror that is
+  `not-configured` when absent (`.claude/rules/skill-editing.md`).
 
 ## [5.0.0] - 2026-07-08
 
