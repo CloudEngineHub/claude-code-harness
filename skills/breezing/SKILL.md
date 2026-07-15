@@ -199,6 +199,10 @@ Go orchestrator 経路（`harness work --team`）では、Breezing の Lead/Work
 
 品質面では `HARNESS_REVIEW_ITERATE=on` で worker 出力を review→iterate ループで wrap できる。fresh-context 並列 advisory + cross-CLI review のあと **brain-only verdict** を経て、DoD 未達なら同 worktree へ精緻化タスクを再投入し、**OK まで反復**する（`HARNESS_REVIEW_ITERATE_MAX` で上限、未収束は human escalation）。配線・契約の詳細は `harness-work` の「Mode 1 — Producer → Sub-Lead → Composer 階層」「review→iterate ループ」節を正本とする。
 
+- If you grep the same symbol twice in the same session, switch to harness_ast_search.
+- For a bugfix where homologous implementations appear across multiple modules, run harness_ast_search to find all implementations before editing.
+- Only when changed files include .ts or .tsx, the DoD requires zero new harness_lsp_diagnostics errors; if the harness MCP is not connected or the changed file types are not eligible, treat diagnostics as not-configured and non-blocking.
+
 ### Codex Mode (`--codex`)
 
 公式プラグイン `codex-plugin-cc` 経由で Codex CLI にすべての実装を委託するモード:
