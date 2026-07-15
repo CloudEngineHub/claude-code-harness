@@ -19,7 +19,7 @@ Public wording must keep these tiers unchanged:
 | Codex app | `candidate` | Use the candidate smoke checklist in [install.md](install.md#codex-app-candidate); do not reuse Codex CLI proof. |
 | OpenCode | `internal-compatible` | Use `scripts/setup-opencode.sh` in [install.md](install.md#opencode-internal-compatible). |
 | Cursor | `internal-compatible` | Use `scripts/setup-cursor.sh` in [install.md](install.md#cursor-internal-compatible); PM handoff docs remain separate from adapter install. |
-| Grok | `candidate` | Use `scripts/setup-grok.sh` in [install.md](install.md#grok-candidate); package install and skill discovery only, not Claude hook parity. |
+| Grok | `internal-compatible` | Use `scripts/setup-grok.sh` in [install.md](install.md#grok-internal-compatible); package install and skill discovery only, not Claude hook parity. |
 | Hermes Agent | `candidate` | Use the candidate boundary in [install.md](install.md#hermes-agent-candidate); manual symlink research only. |
 | GitHub Copilot CLI | `candidate` | Use the candidate boundary in [install.md](install.md#github-copilot-cli-candidate). |
 | Antigravity CLI | `future/unsupported` | Use the unsupported boundary in [install.md](install.md#antigravity-cli-futureunsupported). |
@@ -27,6 +27,18 @@ Public wording must keep these tiers unchanged:
 `not_observed != absent`: missing local runtime evidence means the capability is
 not observed in the current artifact set. It does not prove the capability is
 absent.
+
+**Four install routes ≠ four hosts at the public top tier.** Public **正式対応**
+maps only to EN `supported` (Claude Code only today). Use 互換利用可 for
+`internal-compatible` and 試験対応 for `candidate`. Do not apply 正式対応 to
+non-Claude rows until H1–H8 pass (`docs/spec/planning-and-host-adapter.md`).
+
+| EN tier | JP public wording |
+|---|---|
+| `supported` | 正式対応 |
+| `internal-compatible` | 互換利用可 / 制限付き対応 |
+| `candidate` | 試験対応 / プレビュー |
+| `future/unsupported` | 非対応 / 将来検討 |
 
 ## Choose The Route
 

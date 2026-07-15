@@ -59,7 +59,7 @@ Codex CLI|internal-compatible
 Codex app|candidate
 OpenCode|internal-compatible
 Cursor|internal-compatible
-Grok|candidate
+Grok|internal-compatible
 Hermes Agent|candidate
 GitHub Copilot CLI|candidate
 Antigravity CLI|future/unsupported
@@ -87,7 +87,7 @@ assert_section_contains "Codex CLI" 'test -d "${CODEX_HOME:-$HOME/.codex}/skills
 assert_section_contains "OpenCode" "scripts/setup-opencode.sh"
 assert_section_contains "Codex app" "not counted as Codex CLI parity"
 assert_section_contains "Cursor" 'tier stays `internal-compatible`'
-assert_section_contains "Grok" 'tier stays `candidate`'
+assert_section_contains "Grok" 'tier stays `internal-compatible`'
 assert_section_contains "Hermes Agent" "candidate symlink research only"
 assert_section_contains "GitHub Copilot CLI" "no support claim is made"
 assert_section_contains "Antigravity CLI" "public onboarding path does not present it as installable"

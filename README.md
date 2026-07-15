@@ -145,7 +145,7 @@ sponsor can judge without reading code:
 | Codex app | `candidate` | Candidate smoke only; do not reuse Codex CLI proof. |
 | OpenCode | `internal-compatible` | `scripts/setup-opencode.sh`; runtime parity is not claimed. |
 | Cursor | `internal-compatible` | `scripts/setup-cursor.sh` real-directory local install; top support tier still gated on workflow smoke. |
-| Grok | `candidate` | `scripts/setup-grok.sh` plugin package install/check; workflow smoke and Claude hook parity not claimed. |
+| Grok | `internal-compatible` | `scripts/setup-grok.sh` plugin package install/check; workflow smoke and Claude hook parity not claimed. |
 | Hermes Agent | `candidate` | Manual symlink research route only; dynamic slash discovery observed locally, runtime parity not claimed. |
 | GitHub Copilot CLI | `candidate` | Manual profile research only. |
 | Antigravity CLI | `future/unsupported` | No end-user install route in this phase. |
@@ -158,6 +158,20 @@ symlinks, OpenCode backup paths, and harness-mem state without deleting
 anything.
 
 ## Support Boundary
+
+**Four install routes ≠ four hosts at the public top tier.** Setup scripts mean
+each tool has an **entry path**, not a shared product guarantee. Public
+**正式対応** maps only to EN tier `supported`. Today that tier is **Claude Code
+only**. Other rows in the install table stay at their listed tier
+(`internal-compatible` or `candidate`) until H1–H8 pass on one claim path
+(`docs/spec/planning-and-host-adapter.md`; Phase 111).
+
+| EN tier | JP public wording (safe) |
+|---|---|
+| `supported` | 正式対応 |
+| `internal-compatible` | 互換利用可 / 制限付き対応 |
+| `candidate` | 試験対応 / プレビュー |
+| `future/unsupported` | 非対応 / 将来検討 |
 
 Harness can describe candidate paths, but it does not inherit support claims
 from Superpowers, Hermes Agent, or any other project. A host only moves up when

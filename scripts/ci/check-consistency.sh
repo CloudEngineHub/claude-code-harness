@@ -586,6 +586,24 @@ for changelog in "$PLUGIN_ROOT/CHANGELOG.md" "$PLUGIN_ROOT/CHANGELOG_ja.md"; do
     echo "  ❌ $cl_name: [Unreleased] セクションがありません"
     CHANGELOG_ISSUES=$((CHANGELOG_ISSUES + 1))
   fi
+
+  # Check 4: [Unreleased] 単一性（Phase 114.5 — auto-merge が見出しを無音で
+  # 二重化する既知リスクの機械検知。## [Unreleased] は 1 回、セクション内の
+  # ### Added / ### Fixed は各 1 以下でなければならない）
+  UNRELEASED_COUNT=$(grep -c '^\#\# \[Unreleased\]' "$changelog" || true)
+  if [ "$UNRELEASED_COUNT" -gt 1 ]; then
+    echo "  ❌ $cl_name: [Unreleased] 見出しが ${UNRELEASED_COUNT} 回出現（1 回であるべき）"
+    CHANGELOG_ISSUES=$((CHANGELOG_ISSUES + 1))
+  elif [ "$UNRELEASED_COUNT" -eq 1 ]; then
+    for heading in Added Fixed; do
+      H_COUNT=$(awk '/^## \[Unreleased\]/{f=1;next} /^## \[/{f=0} f' "$changelog" \
+        | grep -c "^### ${heading}" || true)
+      if [ "$H_COUNT" -gt 1 ]; then
+        echo "  ❌ $cl_name: [Unreleased] 内の ### ${heading} が ${H_COUNT} 回出現（merge 見出し二重化の疑い、1 以下であるべき）"
+        CHANGELOG_ISSUES=$((CHANGELOG_ISSUES + 1))
+      fi
+    done
+  fi
 done
 
 if [ $CHANGELOG_ISSUES -eq 0 ]; then
@@ -690,6 +708,13 @@ check_fixed_string "$RUBRIC_DOC" "| Static evidence |" "benchmark-rubric static 
 check_fixed_string "$RUBRIC_DOC" "| Executed evidence |" "benchmark-rubric executed evidence"
 check_fixed_string "$POSITIONING_DOC" "runtime enforcement" "positioning-notes runtime enforcement"
 
+if bash "$PLUGIN_ROOT/tests/test-public-claims-contract.sh"; then
+  echo "  ✅ public claims publication contract"
+else
+  echo "  ❌ public claims publication contract"
+  README_ISSUES=$((README_ISSUES + 1))
+fi
+
 if [ $README_ISSUES -eq 0 ]; then
   echo "  ✅ README claim drift チェックOK"
 else
@@ -783,6 +808,8 @@ run_i18n_gate "setup language rendering" \
   bash "$PLUGIN_ROOT/tests/test-setup-language-rendering.sh"
 run_i18n_gate "Japanese UX opt-in surfaces" \
   bash "$PLUGIN_ROOT/tests/test-i18n-japanese-ux-regression.sh"
+run_i18n_gate "harness-work completion report locale and mirror parity" \
+  bash "$PLUGIN_ROOT/tests/test-harness-work-completion-i18n.sh"
 
 if [ $I18N_ISSUES -eq 0 ]; then
   echo "  ✅ i18n 回帰ゲートOK"

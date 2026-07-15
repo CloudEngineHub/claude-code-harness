@@ -54,7 +54,7 @@ tier_rows=(
   "| Codex app | \`candidate\` |"
   "| OpenCode | \`internal-compatible\` |"
   "| Cursor | \`internal-compatible\` |"
-  "| Grok | \`candidate\` |"
+  "| Grok | \`internal-compatible\` |"
   "| Hermes Agent | \`candidate\` |"
   "| GitHub Copilot CLI | \`candidate\` |"
   "| Antigravity CLI | \`future/unsupported\` |"

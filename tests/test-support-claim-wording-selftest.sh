@@ -117,6 +117,17 @@ Hermes Agent is a candidate Harness host path.
 EOF
 expect_pass "clean candidate wording" "${TMP_DIR}/clean-candidate.md"
 
+cat > "${TMP_DIR}/denial-promote-idiom.md" <<'EOF'
+Do not promote Grok to public `supported` until live H4 evidence exists.
+EOF
+expect_pass "do-not-promote idiom" "${TMP_DIR}/denial-promote-idiom.md"
+
+# The promote idiom must not hide a separate positive claim after it.
+cat > "${TMP_DIR}/overclaim-after-promote-idiom.md" <<'EOF'
+Do not promote Grok to public `supported` yet; Hermes Agent is supported now.
+EOF
+expect_fail "promote idiom + trailing claim" "${TMP_DIR}/overclaim-after-promote-idiom.md"
+
 # --- Real public surfaces must stay green with the default file list. ---
 bash "$CHECKER" >/dev/null 2>&1 \
   || fail "default public surface scan is red"

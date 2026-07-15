@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Blocks public surfaces from claiming non-Claude hosts as publicly
-# "supported" (or Japanese equivalents) near a non-public host name.
+# "supported" (or Japanese 正式対応 / 対応済み / サポート対象) near a
+# non-public host name. Claude Code is intentionally omitted (only public
+# supported host today); Codex CLI / Cursor / Grok stay internal-compatible
+# and must not receive a bare public "supported" claim.
 #
 # Detection model (neutralize-then-scan):
 #   1. Collect lines where a non-public host name and a support word appear
@@ -26,8 +29,10 @@ PUBLIC_FILES=(
   "${ROOT_DIR}/docs/onboarding/skill-trigger-acceptance.md"
   "${ROOT_DIR}/docs/CURSOR_INTEGRATION.md"
   "${ROOT_DIR}/docs/research/cursor-adapter-candidate.md"
+  "${ROOT_DIR}/docs/research/grok-adapter-candidate.md"
   "${ROOT_DIR}/docs/research/hermes-agent-candidate.md"
   "${ROOT_DIR}/.cursor-plugin/plugin.json"
+  "${ROOT_DIR}/.grok-plugin/plugin.json"
   "${ROOT_DIR}/docs/research/github-copilot-cli-adapter.md"
   "${ROOT_DIR}/docs/research/antigravity-cli-adapter.md"
 )
@@ -52,11 +57,14 @@ PROXIMITY="(${NON_PUBLIC_HOSTS}).{0,100}(${SUPPORT_WORDS})|(${SUPPORT_WORDS}).{0
 # no pattern may span free text wide enough to swallow a host name together
 # with an unrelated later claim. "blocked:" neutralizes only a closed
 # blocked-wording table cell (up to the next "|"); in prose it stays live.
+# "do not promote <host> to public supported" is a tight prohibition idiom:
+# the span ends at the support word and cannot hide a later claim.
 neutralize_denials() {
   sed -E \
     -e 's/not a public[[:space:]]+`?supported`?([[:space:]]+claim)?//g' \
     -e 's/no public[[:space:]]+`?supported`?([[:space:]]+claim)?//g' \
     -e 's/not( yet)?( publicly)?[[:space:]]+`?supported`?//g' \
+    -e 's/do not promote[[:space:]][^.|]{0,40}to public[[:space:]]+`?supported`?//g' \
     -e 's/blocked:[^|]*[|]/|/g' \
     -e 's/(正式対応|サポート済み|サポート対象|対応済み)(で|と)はない//g' \
     -e 's/(正式対応|サポート済み|サポート対象|対応済み)(を|は|と)?(主張|表明)しない//g' \
@@ -86,5 +94,20 @@ done
 if [ "$violations" -gt 0 ]; then
   fail "${violations} public support overclaim(s): candidate/unsupported host appears supported"
 fi
+
+# Positive pins: public surfaces still name Claude as supported and the other
+# hosts at their release/v5.1.0 tiers (Grok / Cursor must not regress).
+assert_contains() {
+  local file="$1"
+  local needle="$2"
+  grep -Fq "$needle" "$file" || fail "missing '${needle}' in ${file}"
+}
+
+assert_contains "${ROOT_DIR}/README.md" "| Claude Code | \`supported\` |"
+assert_contains "${ROOT_DIR}/README.md" "| Cursor | \`internal-compatible\` |"
+assert_contains "${ROOT_DIR}/README.md" "| Grok | \`internal-compatible\` |"
+assert_contains "${ROOT_DIR}/README.md" "| Hermes Agent | \`candidate\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Grok | \`internal-compatible\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Hermes Agent | \`candidate\` |"
 
 echo "test-support-claim-wording: ok"

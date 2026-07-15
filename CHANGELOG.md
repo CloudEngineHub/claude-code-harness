@@ -6,41 +6,121 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-07-16
+
 ### Added
 
-- **Grok host adapter (candidate)**: `.grok-plugin/plugin.json`, `.grok/AGENTS.md`,
+- **Java/Kotlin project detection**: setup now recognizes Maven and Gradle
+  projects, gives Java the intended precedence when Java and Kotlin markers
+  coexist, generates the correct test naming guidance, and selects the matching
+  test command.
+
+- **Phase 111 multi-host bar (H1–H8) + host registry**: `hosts/registry.json`,
+  `scripts/lib/host-registry.sh`, structural workflow smoke
+  (`tests/test-host-workflow-smoke.sh`), admission docs, and CI structural smoke.
+  Grok promoted to `internal-compatible` (install/inspect/structural smoke +
+  `hookcodec.HostGrok`). Public `supported` / 正式対応 remains Claude-only until
+  live H4 workflow smoke lands (111.3.3/111.4.4/111.5.4 blocked on purpose).
+
+- **Grok host adapter packaging**: `.grok-plugin/plugin.json`, `.grok/AGENTS.md`,
   `scripts/setup-grok.sh` (`--check` + isolated HOME install),
   `scripts/build-host-plugin-dist.sh --host grok` (package-local `./skills/` paths),
   and `scripts/model-routing.sh --host grok` (role/tier → `grok-4.5` /
   `grok-composer-2.5-fast`). Other projects can install Harness workflow skills
-  without Claude Code as the session host. Tier stays `candidate` (no public
-  `supported` claim, no Claude SessionStart/PreToolUse parity). Evidence:
+  without Claude Code as the session host. Tier is `internal-compatible`; this
+  is not a public `supported` claim and does not imply Claude
+  SessionStart/PreToolUse parity. Evidence:
   `docs/research/grok-adapter-candidate.md`. Tests:
   `tests/test-grok-adapter-candidate.sh` plus host-dist / model-routing /
   bootstrap / capability-matrix gates.
+
 - **Hermes Agent candidate host path (docs)**: operator-local evidence that CCH
   `skills/` can be exposed to Hermes Agent via manual directory symlinks, with
   dynamic slash discovery for `/harness-*` and `/breezing`. Tier is
   `candidate` only — no setup script, host dist, routing model, runtime floor
-  parity, or public `supported` claim. Evidence:
+  parity, or public `supported` claim; `.agents/skills` is documented as an
+  optional read-only mirror, not a public one. Evidence:
   `docs/research/hermes-agent-candidate.md`. Tests:
   `tests/test-hermes-agent-candidate.sh` plus capability-matrix / onboarding /
-  support-wording gates.
+  support-wording gates. (Fresh port of PR #239 + its review fixes; no
+  registry/tier change for existing hosts.)
+
+- **LSP/AST workflow wiring**: `harness-work`, `harness-review`, and `breezing`
+  skills (Claude + Codex variants) now state when to use `harness_ast_search`
+  (same-symbol grep twice in one session; homologous multi-module bugfix
+  pre-search) and gate the DoD on `harness_lsp_diagnostics` only for `.ts`/`.tsx`
+  changes — harness MCP not connected or non-eligible file types are treated as
+  not-configured and non-blocking. Contract pinned by
+  `tests/test-lsp-workflow-wiring.sh` and recorded in
+  `docs/spec/workflow-review-and-release.md`. (`harness_lsp_references` /
+  `definition` / `hover` remain instruction stubs and are not wired; the
+  implementation gap is being ticketed cross-repo to harness-mem.)
 
 ### Fixed
+
+- **English-default completion output**: completion reports and Breezing output
+  now use English unless Japanese is explicitly selected. English/Japanese
+  templates and their Claude/Codex/OpenCode mirrors are regression-tested.
+
+- **Deterministic Windows Stop guard**: a Stop event during `cc:WIP` now blocks
+  deterministically on Windows as well as POSIX hosts, without moving safety
+  hooks to asynchronous execution or weakening plugin-root validation.
+
+- **Host hook generation**: normal `harness gen` now skips hosts whose native
+  hook generation is explicitly deferred, matching `--check` behavior, instead
+  of returning an error after partially generating the supported host files.
+
+- **Release tag/version safety**: tag-triggered publishing now fails closed
+  unless the pushed `vX.Y.Z` tag exactly matches the repository `VERSION`,
+  preventing mislabeled release binaries.
+
+- **Release documentation reconciliation**: aligned the Phase 111 plan,
+  onboarding link, and `[Unreleased]` notes with Grok's verified
+  `internal-compatible` tier while keeping public `supported` promotion blocked
+  on live H4 evidence. The R15 specification now records effective Git context
+  handling for `git -C`, `--work-tree`, and unresolved dynamic working context.
 
 - **Support wording gate: partial-denial overclaim detection**: the public
   claim checker (`tests/test-support-claim-wording.sh`) no longer accepts
   lines like "supported, but runtime floor parity is not proven" — a
   denial-looking token (`not proven` / `blocked` / `support wording` / 未主張)
-  used to excuse the whole line. The checker now removes only denial phrases
-  that consume the support word itself (neutralize-then-scan) and fails on any
-  remaining host-adjacent support claim. Contract fixtures:
+  used to excuse the whole line or file. The checker now removes only denial
+  phrases that consume the support word itself (neutralize-then-scan) and
+  fails on any remaining host-adjacent support claim; Grok/Cursor
+  `internal-compatible` tier pins are kept. Contract fixtures:
   `tests/test-support-claim-wording-selftest.sh`.
-- **`.agents/skills` mirror label**: `docs/research/hermes-agent-candidate.md`
-  described `.agents/skills` as a "public mirror"; corrected to the Client
-  Mirror Contract wording — an optional read-only mirror that is
-  `not-configured` when absent (`.claude/rules/skill-editing.md`).
+
+- **Onboarding host-tier test drift**: `tests/test-tool-first-onboarding.sh`
+  still expected the pre-promotion `Cursor|candidate` row and had no Grok row,
+  so it failed against the released `internal-compatible` tier tables. The
+  expectations now match the shipped tiers (Cursor/Grok `internal-compatible`,
+  Hermes Agent `candidate`).
+
+- **Public environment templates (Issue #238)**: writes and staging now allow
+  the exact public template names `.env.example`, `.env.template`,
+  `.env.sample`, and `.env.dist`. Real environment files, added suffixes,
+  secret-directory nesting, and symlink targets remain fail-closed across the
+  Go policy engine and legacy shell guard, including staged paths resolved
+  through relative, absolute, nested, or repeated `git -C` options.
+
+- **Host package release gates**: generated hooks now skip Grok's explicitly
+  deferred native-hook surface instead of failing all Claude/Codex/Cursor
+  generation. Codex host packages include the registry helper closure required
+  to build the advertised Cursor package, and an unconfigured `cursor-agent`
+  deterministically reports exit 3 before optional model routing.
+
+- **Codex / Orca hook compatibility (Phase 112.10)**: the Codex plugin manifest
+  now explicitly overrides plugin-bundled hooks with an inline empty hook map,
+  so Codex no longer falls back to Claude-only agent / async handlers. Generated
+  Codex and Cursor project hook JSON now contains vendor-supported top-level keys
+  only; the shared runtime floor and generated command hooks remain active.
+
+#### Before/After（shared hook compatibility）
+
+| Before | After |
+|--------|-------|
+| Codex / Orca fell back to Claude's `hooks/hooks.json` and warned about unsupported agent / async handlers | Codex manifest uses an inline empty hook override; Claude's agent hooks remain unchanged and are not parsed by Codex |
+| Generated `.codex/hooks.json` included an unknown `floor_policy` top-level key and was rejected | Vendor hook JSON contains only supported keys; the generated `PreToolUse` and delivery command hooks load without parse warnings |
 
 ## [5.0.0] - 2026-07-08
 
@@ -5233,7 +5313,8 @@ Purpose: 自己修正ループ失敗時に「止まるだけ」から「次の�
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v5.1.0...HEAD
+[5.1.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.16.4...v5.0.0
 [4.16.4]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.16.3...v4.16.4
 [4.16.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.16.2...v4.16.3

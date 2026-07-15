@@ -277,7 +277,10 @@ Success look: Cursor lists Harness skills (for example `/breezing`,
 so the tier stays `internal-compatible` and PM handoff docs remain separate
 from adapter install claims.
 
-### Grok (`candidate`)
+Containment limits (no traditional FS jail, allowlist best-effort) are documented in
+[known-limitations.md](../known-limitations.md).
+
+### Grok (`internal-compatible`)
 
 Install:
 
@@ -338,7 +341,7 @@ test -f ~/.local/share/claude-code-harness/grok/skills/breezing/SKILL.md \
 Success look: Grok lists Harness skills (for example `/breezing`,
 `/harness-plan`) after install, including when started from a non-CCH project.
 Workflow smoke and Claude SessionStart/PreToolUse parity are not proven, so the
-tier stays `candidate`. Evidence boundary:
+tier stays `internal-compatible`. Evidence boundary:
 `docs/research/grok-adapter-candidate.md`.
 
 ### Hermes Agent (`candidate`)
