@@ -43,6 +43,17 @@ Change history for claude-code-harness.
   support-wording gates. (Fresh port of PR #239 + its review fixes; no
   registry/tier change for existing hosts.)
 
+- **LSP/AST workflow wiring**: `harness-work`, `harness-review`, and `breezing`
+  skills (Claude + Codex variants) now state when to use `harness_ast_search`
+  (same-symbol grep twice in one session; homologous multi-module bugfix
+  pre-search) and gate the DoD on `harness_lsp_diagnostics` only for `.ts`/`.tsx`
+  changes — harness MCP not connected or non-eligible file types are treated as
+  not-configured and non-blocking. Contract pinned by
+  `tests/test-lsp-workflow-wiring.sh` and recorded in
+  `docs/spec/workflow-review-and-release.md`. (`harness_lsp_references` /
+  `definition` / `hover` remain instruction stubs and are not wired; the
+  implementation gap is ticketed cross-repo to harness-mem.)
+
 ### Fixed
 
 - **English-default completion output**: completion reports and Breezing output
