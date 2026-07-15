@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
-# Blocks public surfaces from claiming non-Claude hosts as public "supported"
-# or Japanese 正式対応 / 対応済み / サポート対象 without matching tier evidence.
+# Blocks public surfaces from claiming non-Claude hosts as publicly
+# "supported" (or Japanese 正式対応 / 対応済み / サポート対象) near a
+# non-public host name. Claude Code is intentionally omitted (only public
+# supported host today); Codex CLI / Cursor / Grok stay internal-compatible
+# and must not receive a bare public "supported" claim.
+#
+# Detection model (neutralize-then-scan):
+#   1. Collect lines where a non-public host name and a support word appear
+#      within 100 characters of each other.
+#   2. Remove only explicit denial phrases that consume the support word
+#      itself (e.g. "not a public `supported` claim",
+#      "blocked: supported Hermes adapter", "正式対応ではない").
+#   3. If a support word still sits near a host name, fail with the line.
+#
+# A denial-looking token elsewhere on the line (not proven / blocked /
+# support wording / 未主張) must NOT excuse a positive claim such as
+# "supported, but runtime floor parity is not proven".
+# Contract fixtures: tests/test-support-claim-wording-selftest.sh
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -14,79 +30,73 @@ PUBLIC_FILES=(
   "${ROOT_DIR}/docs/CURSOR_INTEGRATION.md"
   "${ROOT_DIR}/docs/research/cursor-adapter-candidate.md"
   "${ROOT_DIR}/docs/research/grok-adapter-candidate.md"
+  "${ROOT_DIR}/docs/research/hermes-agent-candidate.md"
   "${ROOT_DIR}/.cursor-plugin/plugin.json"
   "${ROOT_DIR}/.grok-plugin/plugin.json"
   "${ROOT_DIR}/docs/research/github-copilot-cli-adapter.md"
   "${ROOT_DIR}/docs/research/antigravity-cli-adapter.md"
 )
 
-# Hosts that must not receive a public supported / 正式対応 claim.
-# Claude Code is intentionally omitted (only public supported host today).
-# Codex CLI is still internal-compatible: block bare "supported Codex" claims
-# that are not clearly scoped as non-public (tests use "supported" only in
-# blocked-wording tables with care — prefer "public support" phrasing).
-NON_PUBLIC_HOSTS='Codex App|Codex app|Cursor|Grok|GitHub Copilot CLI|Copilot CLI|Antigravity CLI|Antigravity'
-# JP phrases that map to public supported for non-Claude hosts.
-JP_PUBLIC_SUPPORT='正式対応|サポート済み|サポート対象|対応済み'
+# Self-test hook: scan explicit files instead of the public surface list.
+if [ "$#" -gt 0 ]; then
+  PUBLIC_FILES=("$@")
+fi
 
 fail() {
   echo "test-support-claim-wording: FAIL: $1" >&2
   exit 1
 }
 
+# Patterns are lowercase: matching happens case-insensitively (grep -i) and
+# on a lowercased copy of each candidate line.
+NON_PUBLIC_HOSTS='codex app|cursor|grok|hermes agent|hermes|github copilot cli|copilot cli|antigravity cli|antigravity'
+SUPPORT_WORDS='[^[:alpha:]]supported([^[:alpha:]]|$)|サポート済み|サポート対象|対応済み|正式対応'
+PROXIMITY="(${NON_PUBLIC_HOSTS}).{0,100}(${SUPPORT_WORDS})|(${SUPPORT_WORDS}).{0,100}(${NON_PUBLIC_HOSTS})"
+
+# Every pattern must consume the support word it excuses and nothing more:
+# no pattern may span free text wide enough to swallow a host name together
+# with an unrelated later claim. "blocked:" neutralizes only a closed
+# blocked-wording table cell (up to the next "|"); in prose it stays live.
+# "do not promote <host> to public supported" is a tight prohibition idiom:
+# the span ends at the support word and cannot hide a later claim.
+neutralize_denials() {
+  sed -E \
+    -e 's/not a public[[:space:]]+`?supported`?([[:space:]]+claim)?//g' \
+    -e 's/no public[[:space:]]+`?supported`?([[:space:]]+claim)?//g' \
+    -e 's/not( yet)?( publicly)?[[:space:]]+`?supported`?//g' \
+    -e 's/do not promote[[:space:]][^.|]{0,40}to public[[:space:]]+`?supported`?//g' \
+    -e 's/blocked:[^|]*[|]/|/g' \
+    -e 's/(正式対応|サポート済み|サポート対象|対応済み)(で|と)はない//g' \
+    -e 's/(正式対応|サポート済み|サポート対象|対応済み)(を|は|と)?(主張|表明)しない//g' \
+    -e 's/(正式対応|サポート済み|サポート対象|対応済み)にしない//g'
+}
+
+# Lines are padded with one space on both ends so that `[^[:alpha:]]` matches
+# a support word at line start/end without `(^|...)` alternations, which
+# backtrack badly on long single-line JSON files.
+violations=0
 for file in "${PUBLIC_FILES[@]}"; do
   [ -f "$file" ] || fail "missing ${file}"
 
-  # host ... supported / 対応済み
-  if grep -Eiq "(${NON_PUBLIC_HOSTS}).{0,100}([^[:alpha:]]supported([^[:alpha:]]|$)|${JP_PUBLIC_SUPPORT})" "$file"; then
-    # Allow explicit denial phrases that mention the blocked words as forbidden.
-    if grep -Eiq "(${NON_PUBLIC_HOSTS}).{0,100}(no public supported|not .*supported|not a public supported|public supported claim|blocked wording|do not claim|must not claim|never claim|正式対応ではない|正式対応を主張しない|正式対応にしない)" "$file"; then
-      :
-    else
-      # Line-level escape: blocked-wording tables and "Do not claim" columns.
-      if grep -Ein "(${NON_PUBLIC_HOSTS}).{0,100}([^[:alpha:]]supported([^[:alpha:]]|$)|${JP_PUBLIC_SUPPORT})" "$file" \
-        | grep -Eiv 'no public supported|not a public|not .*supported|blocked wording|Do not claim|must not|never claim|禁止|主張しない|正式対応ではない|candidate route|remains `candidate`|remains `internal-compatible`|tier stays|until .*supported|waits for|gated on|not claimed|not claim|≠|!=|ではなく' \
-        | grep -Eq .; then
-        fail "candidate/internal host appears publicly supported in ${file}"
-      fi
+  while IFS= read -r hit; do
+    [ -n "$hit" ] || continue
+    lineno="${hit%%:*}"
+    text="${hit#*:}"
+    lowered="$(printf '%s' "$text" | tr '[:upper:]' '[:lower:]')"
+    stripped="$(printf '%s' "$lowered" | neutralize_denials)"
+    if printf ' %s \n' "$stripped" | grep -Eq "$PROXIMITY"; then
+      echo "test-support-claim-wording: overclaim ${file}:${lineno}:${text}" >&2
+      violations=$((violations + 1))
     fi
-  fi
-
-  # supported / 正式対応 ... host
-  if grep -Eiq "([^[:alpha:]]supported([^[:alpha:]]|$)|${JP_PUBLIC_SUPPORT}).{0,100}(${NON_PUBLIC_HOSTS})" "$file"; then
-    if grep -Ein "([^[:alpha:]]supported([^[:alpha:]]|$)|${JP_PUBLIC_SUPPORT}).{0,100}(${NON_PUBLIC_HOSTS})" "$file" \
-      | grep -Eiv 'no public supported|Do not claim|must not|never claim|blocked wording|禁止|主張しない|正式対応ではない|not claim|until |gated |≠|!=' \
-      | grep -Eq .; then
-      fail "support wording implies non-public host support in ${file}"
-    fi
-  fi
+  done < <(sed -e 's/^/ /' -e 's/$/ /' "$file" | grep -Ein "$PROXIMITY" || true)
 done
 
-# Hard fails: clear overclaim phrases (no denial context needed).
-OVERCLAIMS=(
-  'supported Grok adapter'
-  'supported Cursor adapter'
-  'Grok is `supported`'
-  'Grok is \*\*supported\*\*'
-  'Cursor is `supported`'
-  '正式対応.*Grok'
-  'Grok.*正式対応'
-  '正式対応.*Cursor'
-  'Cursor.*正式対応'
-)
+if [ "$violations" -gt 0 ]; then
+  fail "${violations} public support overclaim(s): candidate/unsupported host appears supported"
+fi
 
-for file in "${PUBLIC_FILES[@]}"; do
-  for pat in "${OVERCLAIMS[@]}"; do
-    if grep -Eqi "$pat" "$file"; then
-      # allow only if the same line denies the claim
-      if grep -Ein "$pat" "$file" | grep -Eiv 'Do not claim|blocked|禁止|must not|never|ではない|主張しない|no public|not a public|remains `' | grep -Eq .; then
-        fail "overclaim pattern '${pat}' in ${file}"
-      fi
-    fi
-  done
-done
-
-# Positive pins: public surfaces still name Claude as supported and others lower.
+# Positive pins: public surfaces still name Claude as supported and the other
+# hosts at their release/v5.1.0 tiers (Grok / Cursor must not regress).
 assert_contains() {
   local file="$1"
   local needle="$2"
@@ -96,6 +106,8 @@ assert_contains() {
 assert_contains "${ROOT_DIR}/README.md" "| Claude Code | \`supported\` |"
 assert_contains "${ROOT_DIR}/README.md" "| Cursor | \`internal-compatible\` |"
 assert_contains "${ROOT_DIR}/README.md" "| Grok | \`internal-compatible\` |"
+assert_contains "${ROOT_DIR}/README.md" "| Hermes Agent | \`candidate\` |"
 assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Grok | \`internal-compatible\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Hermes Agent | \`candidate\` |"
 
 echo "test-support-claim-wording: ok"
