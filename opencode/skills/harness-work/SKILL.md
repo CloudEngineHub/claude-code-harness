@@ -726,6 +726,9 @@ node "${HARNESS_PLUGIN_ROOT}/scripts/generate-sprint-contract.js" 32.1.1
 - `checks`: DoD を分解した確認項目
 - `non_goals`: 今回やらないこと
 - `runtime_validation`: test, lint, typecheck などの検証コマンド
+  - If you grep the same symbol twice in the same session, switch to harness_ast_search.
+  - For a bugfix where homologous implementations appear across multiple modules, run harness_ast_search to find all implementations before editing.
+  - Only when changed files include .ts or .tsx, the DoD requires zero new harness_lsp_diagnostics errors; if the harness MCP is not connected or the changed file types are not eligible, treat diagnostics as not-configured and non-blocking.
 - `browser_validation`: browser reviewer が残すべき UI フロー検証項目
 - `browser_mode`: `scripted` または `exploratory`
 - `route`: browser reviewer が `playwright` / `agent-browser` / `chrome-devtools` のどれを使うか
