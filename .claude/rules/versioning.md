@@ -71,6 +71,10 @@ v3.6.1 (03/09) — Auto Mode 準備         ← prep は patch
 - v1 トリガー（まず 1 ルールで始める）: 最終 tag から **7 日経過** OR `### Breaking` が
   `[Unreleased]` に存在。`### Security` があるときは **2 日**に短縮。N 件カウント等の
   多閾値マトリクスは、運用で cadence が問題化するまで足さない。
+- 見出し照合は `### Breaking` の **prefix match**（`skills/harness-release/references/bump-detection.md`
+  の正記法 `### Breaking Changes` も同一トリガーとして扱う）。実装正本は
+  `go/internal/releasetrain`（`harness release --check`）。対象 tag は `v[0-9]` 始まりの
+  semver tag のみ（`claude-code-harness--v*` の plugin tag は対象外）。
 - これは gate ではなく**提案**。無視はノーコスト、次の閾値で再提案される。Session Monitor
   に tri-state（Candidate / None / NotApplicable）で受動表示し、
   `active-watching-test-policy.md` の 3 状態命名に従う（候補なしは silent）。

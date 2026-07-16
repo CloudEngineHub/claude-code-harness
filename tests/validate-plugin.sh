@@ -483,6 +483,12 @@ else
     fail_test "LSP/AST workflow wiring literal が欠落 — 'bash tests/test-lsp-workflow-wiring.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-test-wiring-auditor.sh" >/dev/null 2>&1; then
+    pass_test "独立 test-wiring auditor の contract が維持されています (test-test-wiring-auditor.sh)"
+else
+    fail_test "test-wiring auditor contract に問題があります — 'bash tests/test-test-wiring-auditor.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then
     pass_test "Claude Code 2.1.80-2.1.86 の統合ポイントが配線されています"
 else
