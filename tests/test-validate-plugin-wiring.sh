@@ -24,6 +24,7 @@ REQUIRED_INVOCATIONS=(
   "tests/test-release-version-sync.sh"
   "tests/test-hermes-agent-candidate.sh"
   "tests/test-lsp-workflow-wiring.sh"
+  "tests/test-test-wiring-auditor.sh"
   "tests/test-claude-upstream-integration.sh"
   "tests/test-harness-review-governance.sh"
   "tests/test-phase-72-mirror-closeout.sh"

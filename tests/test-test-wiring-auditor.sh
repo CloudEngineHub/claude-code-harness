@@ -18,7 +18,7 @@ SCHEMA="${ROOT_DIR}/templates/schemas/test-wiring-audit.v1.json"
 
 # intentional prompt changes require a human-reviewed pin update in the same PR
 # (tamper detection: red-team scenario c)
-AUDITOR_PROMPT_SHA256="PLACEHOLDER-RED"
+AUDITOR_PROMPT_SHA256="bb68c20bb5a81976118d083bc7301efda3fb9d093d36603fc64489fdf7cb612c"
 
 fail() {
   echo "test-test-wiring-auditor: FAIL: $1" >&2

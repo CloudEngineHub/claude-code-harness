@@ -39,6 +39,13 @@ v5.1.0 で新設した 2 テスト（`test-hermes-agent-candidate.sh` / `test-ls
    依頼側は根拠付きで**1 回まで**再申立てできる。auditor は同じ固定プロンプトで裁定し、
    その判定を最終とする（ループ上限 1 = 交渉による基準侵食を防ぐ）
 
+### 実装（Phase 116.1）
+
+- `agents/test-wiring-auditor.md` — 固定プロンプト（read-only agent）
+- `scripts/test-wiring-audit-core.sh` — 機械的第一パス（deterministic floor）
+- `templates/schemas/test-wiring-audit.v1.json` — verdict artifact schema
+- `tests/test-test-wiring-auditor.sh` — contract + SHA pin + core fixture
+
 ## 関連
 
 - `.claude/rules/test-quality.md` — テスト改ざん禁止（弱体化検知の既存層）
