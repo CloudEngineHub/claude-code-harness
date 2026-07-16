@@ -465,6 +465,18 @@ else
     fail_test "plan-preapproval の契約テストに失敗 — 'bash tests/test-plan-preapproval.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-hermes-agent-candidate.sh" >/dev/null 2>&1; then
+    pass_test "Hermes Agent candidate host path の static contract が維持されています (test-hermes-agent-candidate.sh)"
+else
+    fail_test "Hermes Agent candidate contract に問題があります — 'bash tests/test-hermes-agent-candidate.sh' で詳細確認"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-lsp-workflow-wiring.sh" >/dev/null 2>&1; then
+    pass_test "LSP/AST workflow wiring literal が 5 skill ファイルに維持されています (test-lsp-workflow-wiring.sh)"
+else
+    fail_test "LSP/AST workflow wiring literal が欠落 — 'bash tests/test-lsp-workflow-wiring.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then
     pass_test "Claude Code 2.1.80-2.1.86 の統合ポイントが配線されています"
 else
