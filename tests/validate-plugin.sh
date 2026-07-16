@@ -5,7 +5,7 @@
 # Usage: ./tests/validate-plugin.sh [--quick]
 #   --quick  harness-loop wake-up 用の軽量 state 整合性チェックのみ実行（数秒で完了）
 #            検証内容: .claude/state/ 存在確認 / Plans.md 存在+v2フォーマット / sprint-contract 形式
-#            フル検証（39項目）は走らせない
+#            フル検証（全セクション）は走らせない
 
 set -u
 set -o pipefail
@@ -463,6 +463,24 @@ if bash "$PLUGIN_ROOT/tests/test-plan-preapproval.sh" >/dev/null 2>&1; then
     pass_test "plan-preapproval.v1 schema と secret-read runtimefloor bridge が動作します (test-plan-preapproval.sh)"
 else
     fail_test "plan-preapproval の契約テストに失敗 — 'bash tests/test-plan-preapproval.sh' で詳細確認"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-release-version-sync.sh" >/dev/null 2>&1; then
+    pass_test "release version sync checker の contract fixture が通ります (test-release-version-sync.sh)"
+else
+    fail_test "release version sync checker の contract に問題 — 'bash tests/test-release-version-sync.sh' で詳細確認"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-hermes-agent-candidate.sh" >/dev/null 2>&1; then
+    pass_test "Hermes Agent candidate host path の static contract が維持されています (test-hermes-agent-candidate.sh)"
+else
+    fail_test "Hermes Agent candidate contract に問題があります — 'bash tests/test-hermes-agent-candidate.sh' で詳細確認"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-lsp-workflow-wiring.sh" >/dev/null 2>&1; then
+    pass_test "LSP/AST workflow wiring literal が 5 skill ファイルに維持されています (test-lsp-workflow-wiring.sh)"
+else
+    fail_test "LSP/AST workflow wiring literal が欠落 — 'bash tests/test-lsp-workflow-wiring.sh' で詳細確認"
 fi
 
 if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then

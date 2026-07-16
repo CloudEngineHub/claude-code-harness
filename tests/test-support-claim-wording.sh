@@ -35,6 +35,7 @@ PUBLIC_FILES=(
   "${ROOT_DIR}/.grok-plugin/plugin.json"
   "${ROOT_DIR}/docs/research/github-copilot-cli-adapter.md"
   "${ROOT_DIR}/docs/research/antigravity-cli-adapter.md"
+  "${ROOT_DIR}/docs/tool-capability-matrix.md"
 )
 
 # Self-test hook: scan explicit files instead of the public surface list.

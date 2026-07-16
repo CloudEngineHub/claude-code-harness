@@ -16,7 +16,7 @@ The current support-tier scope is:
 | Codex app | `candidate` | App behavior must be proven separately from Codex CLI help output. |
 | OpenCode | `internal-compatible` | Existing mirror/package validation and Node-level bootstrap plugin checks can be described as internal compatibility; real OpenCode binary runtime bootstrap parity is not proven. |
 | Cursor | `internal-compatible` | Host-specific dist build, `scripts/setup-cursor.sh` real-directory install, CI-gated package smoke, and observed Desktop skill loading justify internal compatibility; CI-gated workflow smoke and runtime guard/hook parity are not proven; no public supported claim. |
-| Grok | `internal-compatible` | Host-specific dist build, `scripts/setup-grok.sh` install/check, static smoke via `tests/test-grok-adapter-candidate.sh`, and observed `grok plugin install` + `grok inspect` skill discovery justify internal compatibility; structural workflow smoke + hookcodec HostGrok floor; live H4 and public supported still not claimed. |
+| Grok | `internal-compatible` | Host-specific dist build, `scripts/setup-grok.sh` install/check, static smoke via `tests/test-grok-adapter-candidate.sh`, and observed `grok plugin install` + `grok inspect` skill discovery justify internal compatibility; structural workflow smoke + hookcodec HostGrok floor; live H4 is still pending and Grok is not yet publicly supported. |
 | Hermes Agent | `candidate` | Manual symlink research route and local dynamic slash discovery only; no setup script, host dist, routing model, runtime floor parity, or public support claim. |
 | GitHub Copilot CLI | `candidate` | Candidate adapter only; Superpowers evidence and official docs are not Harness bootstrap proof. |
 | Antigravity CLI | `future/unsupported` | No public setup, README support, or release claim until an official or verified route plus local bootstrap smoke exists. |
@@ -57,12 +57,12 @@ workflow parity or Harness safety parity.
 
 | Host | Phase 73 status | Allowed wording | Blocked wording |
 |---|---|---|
-| Codex app | `candidate` | app-specific candidate or research gate | supported, same as Codex CLI |
+| Codex app | `candidate` | app-specific candidate or research gate | blocked: supported, same as Codex CLI |
 | Cursor | `internal-compatible` | adapter candidate route, handoff integration, setup-cursor install, static smoke, observed Desktop skill loading | public top-tier Cursor claim |
 | Grok | `internal-compatible` | setup-grok install, static smoke, inspect discovery, structural workflow smoke, HostGrok floor | public top-tier Grok claim |
 | Hermes Agent | `candidate` | manual symlink research route, local dynamic slash command discovery | blocked: supported Hermes adapter |
-| GitHub Copilot CLI | `candidate` | adapter candidate, CLI capability investigation | supported Copilot adapter |
-| Antigravity CLI | `future/unsupported` | future scope, unsupported public claim, not observed | supported Antigravity adapter |
+| GitHub Copilot CLI | `candidate` | adapter candidate, CLI capability investigation | blocked: supported Copilot adapter |
+| Antigravity CLI | `future/unsupported` | future scope, unsupported public claim, not observed | blocked: supported Antigravity adapter |
 
 ## Validation Requirements
 

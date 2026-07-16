@@ -6,6 +6,40 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+- **CI wiring for Hermes/LSP pin tests**: `tests/validate-plugin.sh` now runs
+  `test-hermes-agent-candidate.sh` and `test-lsp-workflow-wiring.sh`, so the
+  v5.1.0 host-tier and LSP-workflow contracts are enforced by CI without
+  editing `.github/workflows/` (which stays operator-only). Governance for
+  this split is codified in `.claude/rules/workflow-test-wiring.md`
+  (test additions = AI-allowed, deletions/weakening = REQUEST_CHANGES,
+  workflows layer = operator-only; independent auditor agent planned as
+  Phase 116).
+- **Overclaim scan covers the capability matrix**:
+  `docs/tool-capability-matrix.md` joined the public support-claim wording
+  scan; blocked-wording table cells now use the `blocked:` prefix so accurate
+  denials pass the neutralize-then-scan checker.
+
+### Changed
+
+- **Cross-repo ticketing consolidated to harness-mem**: the
+  `harness-governance-private` XR-Registry is retired (operator ruling
+  2026-07-16); new cross-repo handoffs use harness-mem `Plans.md §NNN`
+  (route A) only. Recorded in `.claude/rules/cross-repo-handoff.md`.
+- **Version-surface SSOT wording**: docs now point at
+  `./scripts/sync-version.sh` as the single source for version-sync targets
+  (7 strings across 6 files including `.grok-plugin/plugin.json`).
+
+### Fixed
+
+- **Reproducible cross-platform builds**: `go/scripts/build-all.sh` now pins
+  `GOTOOLCHAIN` to the `go.mod` directive and builds with `-buildvcs=false`,
+  matching the binary drift gate recipe byte-for-byte.
+- **gitignore negation gaps**: 7 already-tracked `docs/research/*.md` files
+  gained explicit `!` negation lines, closing the silent-untrack trap on
+  future re-adds.
+
 ## [5.1.0] - 2026-07-16
 
 ### Added
@@ -54,7 +88,7 @@ Change history for claude-code-harness.
   `tests/test-lsp-workflow-wiring.sh` and recorded in
   `docs/spec/workflow-review-and-release.md`. (`harness_lsp_references` /
   `definition` / `hover` remain instruction stubs and are not wired; the
-  implementation gap is being ticketed cross-repo to harness-mem.)
+  implementation gap is ticketed cross-repo as harness-mem Plans.md §158.)
 
 ### Fixed
 

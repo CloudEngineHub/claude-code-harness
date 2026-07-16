@@ -51,7 +51,7 @@ v3.6.1 (03/09) — Auto Mode 準備         ← prep は patch
 1. **前回リリースからの変更を一覧化**
 2. **判定基準に照らしてバージョン種別を決定**
 3. **同日の複数変更はバッチ化を検討**
-4. **VERSION / plugin.json / harness.toml / CHANGELOG の4点同期を確認**
+4. **version 面の同期を確認** — 正本は `./scripts/sync-version.sh`（2026-07-16 現在: VERSION / .claude-plugin/plugin.json / .codex-plugin/plugin.json / .cursor-plugin/plugin.json / .grok-plugin/plugin.json / marketplace.json×2 / harness.toml の 7 文字列 6 ファイル + CHANGELOG compare link。対象が増えたら script 側を更新し、この行は数を数え直さない）
 5. **git tag が欠番なく連続していることを確認**
 
 ## 禁止事項
@@ -74,8 +74,8 @@ v3.6.1 (03/09) — Auto Mode 準備         ← prep は patch
 - これは gate ではなく**提案**。無視はノーコスト、次の閾値で再提案される。Session Monitor
   に tri-state（Candidate / None / NotApplicable）で受動表示し、
   `active-watching-test-policy.md` の 3 状態命名に従う（候補なしは silent）。
-- 人間が GO したら既存 `harness-release` がそのまま走る（bump 検出 → 4 点同期 →
-  CHANGELOG promote → PR → main → tag → GitHub Release）。バッチ化は 4 点同期を
+- 人間が GO したら既存 `harness-release` がそのまま走る（bump 検出 → sync-version.sh による全 version 面同期 →
+  CHANGELOG promote → PR → main → tag → GitHub Release）。バッチ化は version 面同期を
   1 リリース 1 回に集約し、「同日 2 minor」違反を構造的に防ぐ。
 
 ## Plan B Stage B Release Trigger

@@ -1092,13 +1092,29 @@ rm -f /tmp/harness-bin-drift.$$
 # 23. i18n hookhandler ratchet
 # ================================
 echo ""
-echo "🌐 [23/23] i18n hookhandler ratchet..."
+echo "🌐 [23/24] i18n hookhandler ratchet..."
 
 if bash "$PLUGIN_ROOT/scripts/ci/check-i18n-hookhandler-ratchet.sh" "$PLUGIN_ROOT" >/tmp/harness-i18n-ratchet.$$ 2>&1; then
   sed 's/^/  /' /tmp/harness-i18n-ratchet.$$ | tail -2
 else
   echo "  ❌ i18n hookhandler ratchet failed"
   sed 's/^/      /' /tmp/harness-i18n-ratchet.$$ | tail -10
+  ERRORS=$((ERRORS + 1))
+fi
+
+# ================================
+# 24. validate-plugin invocation pin（workflow-test-wiring ratchet）
+# ================================
+# validate-plugin.sh からのテスト呼び出し削除（coverage shrink）を、
+# validate job とは別の CI gate で検知する（workflow-test-wiring.md 参照）
+echo ""
+echo "🧷 [24/24] validate-plugin invocation pin..."
+
+if bash "$PLUGIN_ROOT/tests/test-validate-plugin-wiring.sh" >/tmp/harness-vp-wiring.$$ 2>&1; then
+  sed 's/^/  ✅ /' /tmp/harness-vp-wiring.$$ | tail -1
+else
+  echo "  ❌ validate-plugin invocation pin failed（coverage shrink の疑い）"
+  sed 's/^/      /' /tmp/harness-vp-wiring.$$ | tail -10
   ERRORS=$((ERRORS + 1))
 fi
 rm -f /tmp/harness-i18n-ratchet.$$
