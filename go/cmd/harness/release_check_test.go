@@ -169,8 +169,17 @@ func TestReleaseCheck_OutputFormat(t *testing.T) {
 - Tiny fix
 `
 		noneRoot := initFixtureRepo(t, noneChangelog)
+		noneTagDateOut, err := gitport.Output(noneRoot, "log", "-1", "--format=%cI", "v1.0.0")
+		if err != nil {
+			t.Fatalf("git log tag date: %v", err)
+		}
+		noneTagDate, err := time.Parse(time.RFC3339, strings.TrimSpace(noneTagDateOut))
+		if err != nil {
+			t.Fatalf("parse tag date: %v", err)
+		}
+		noneNow := noneTagDate.Add(1 * 24 * time.Hour)
 		var buf bytes.Buffer
-		if err := releaseCheck(noneRoot, now, &buf); err != nil {
+		if err := releaseCheck(noneRoot, noneNow, &buf); err != nil {
 			t.Fatalf("releaseCheck: %v", err)
 		}
 		if strings.TrimSpace(buf.String()) != "" {
