@@ -21,6 +21,28 @@ Change history for claude-code-harness.
   scan; blocked-wording table cells now use the `blocked:` prefix so accurate
   denials pass the neutralize-then-scan checker.
 
+- **Release Train proposer (`harness release --check`)**: read-only のリリース候補
+  提案器。`CHANGELOG.md` の `[Unreleased]` を解析し、最終 semver tag から 7 日経過
+  （`### Security` 有時は 2 日）または `### Breaking` 見出し（prefix match、
+  `### Breaking Changes` も同一トリガー）で
+  `RELEASE_CANDIDATE: bump=<major|minor|patch> ...` を 1 行 emit する。version 面は
+  一切書き換えず常に exit 0（Phase 92.4.1。trigger 定義は
+  `.claude/rules/versioning.md` §Release Train Proposal）。
+- **Session Monitor の RELEASE_CANDIDATE tri-state 表示**: セッション開始時に
+  Candidate のときだけ 📦 1 行を表示し、None / NotApplicable は完全沈黙
+  （active-watching 3 状態流儀。check エラーは not-applicable へ fail-open。
+  Phase 92.4.2）。
+- **独立 test-wiring auditor**: `agents/test-wiring-auditor.md`（固定プロンプト、
+  SHA-256 pin test で無断書換を検知）+ 決定論コア `scripts/test-wiring-audit-core.sh` +
+  `test-wiring-audit.v1` schema（verdict: PASS | ADD_REQUIRED | APPEAL_REJECTED）。
+  テスト追加のみを提案し削除・弱体化は提案しない。appeal は 1 回まで
+  （Phase 116.1、`workflow-test-wiring.md` の auditor 契約の実装）。
+- **edit-time coverage-shrink guard (T13-T16)**: `tests/validate-plugin.sh` /
+  `tests/test-*.sh` への編集で「test 呼び出し削除 / `|| true` 追加 / `set +e` 化 /
+  アサーション行数減」の 4 縮小パターンを PostToolUse hook が warn する
+  （deny しない。Edit は old/new delta 比較、Write は加算パターンのみ。
+  Phase 116.2）。
+
 ### Changed
 
 - **Cross-repo ticketing consolidated to harness-mem**: the
@@ -30,6 +52,10 @@ Change history for claude-code-harness.
 - **Version-surface SSOT wording**: docs now point at
   `./scripts/sync-version.sh` as the single source for version-sync targets
   (7 strings across 6 files including `.grok-plugin/plugin.json`).
+
+- **versioning.md Release Train 節の精密化**: `### Breaking` の prefix match と
+  semver tag スコープ（plugin tag 除外）、実装正本 `go/internal/releasetrain` への
+  pointer を明文化（Phase 92.4.3）。
 
 ### Fixed
 
