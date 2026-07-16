@@ -88,7 +88,7 @@ Change history for claude-code-harness.
   `tests/test-lsp-workflow-wiring.sh` and recorded in
   `docs/spec/workflow-review-and-release.md`. (`harness_lsp_references` /
   `definition` / `hover` remain instruction stubs and are not wired; the
-  implementation gap is being ticketed cross-repo to harness-mem.)
+  implementation gap is ticketed cross-repo as harness-mem Plans.md §158.)
 
 ### Fixed
 
