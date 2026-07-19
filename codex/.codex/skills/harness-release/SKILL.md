@@ -249,7 +249,7 @@ bare release で「今までの作業」を commit したい場合は、この c
 
 `scripts/release-preflight.sh` は tag 作成前に `opencode/`, `skills-codex/`, `codex/.codex/skills/` の mirror drift も検出する。`node scripts/build-opencode.js` が差分を生成した場合は release を止め、その差分を commit してから tag に進む。
 
-release preflight は host workflow smoke を `REQUIRED=1`（fail-closed）で全 dist host に対して実行する。1 host でも FAIL なら release を止める。これは multi-host bar H7（release-preflight consumes host gates fail-closed）の充足配線である。`scripts/release-preflight-host-smoke.sh` 参照。
+release preflight は host workflow smoke を `REQUIRED=1`（fail-closed）で全 dist host に対して実行する。1 host でも FAIL なら release を止める。これは multi-host bar H7（release-preflight consumes host gates fail-closed）の充足配線である。`scripts/release-preflight-host-smoke.sh` 参照。fail-closed の正本は operator マシンの preflight であり、GitHub runner（`GITHUB_ACTIONS=true`）では CLI 未 provision の host を明示 SKIP 行つきで飛ばす（tag-triggered workflow の再実行が全 release を塞がないため。v5.3.0 run 29679591686 の regression 対応）。
 
 ### 2. Version File 自動検出
 
