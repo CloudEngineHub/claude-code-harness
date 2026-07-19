@@ -878,3 +878,32 @@ func TestReleasePlansLock_Nil(t *testing.T) {
 	// panic しないこと
 	releasePlansLock(nil)
 }
+
+// TestCollectPlansState_StatusCellParserFixture は Status セル正規パーサ経由の marker 集計が
+// 凡例・説明文・DoD 言及を数えず、canonical / legacy 実タスクのみ数えることを固定する。
+func TestCollectPlansState_StatusCellParserFixture(t *testing.T) {
+	tmpDir := t.TempDir()
+	fixture, err := os.ReadFile(filepath.Join("..", "plans", "testdata", "marker_count_fixture.md"))
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	plansFile := filepath.Join(tmpDir, "Plans.md")
+	if err := os.WriteFile(plansFile, fixture, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	state, err := collectPlansState(plansFile)
+	if err != nil {
+		t.Fatalf("collectPlansState: %v", err)
+	}
+
+	if state.CcWip != 2 {
+		t.Errorf("CcWip: want 2 (1.2 cc:wip + 1.4 cc:WIP), got %d", state.CcWip)
+	}
+	if state.CcTodo != 1 {
+		t.Errorf("CcTodo: want 1 (1.3 cc:todo), got %d", state.CcTodo)
+	}
+	if state.CcDone != 2 {
+		t.Errorf("CcDone: want 2 (1.1 cc:done + 1.5 cc:完了), got %d", state.CcDone)
+	}
+}

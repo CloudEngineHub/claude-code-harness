@@ -1276,3 +1276,36 @@ func TestMonitorHandler_RegisterNotConfigured(t *testing.T) {
 		}
 	}
 }
+
+// TestMonitorHandler_CollectPlansState_StatusCellParserFixture は Status セル正規パーサ経由の
+// marker 集計が凡例・説明文・DoD 言及を数えず、canonical / legacy 実タスクのみ数えることを固定する。
+func TestMonitorHandler_CollectPlansState_StatusCellParserFixture(t *testing.T) {
+	dir := t.TempDir()
+	fixture, err := os.ReadFile(filepath.Join("..", "plans", "testdata", "marker_count_fixture.md"))
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	plansFile := filepath.Join(dir, "Plans.md")
+	if err := os.WriteFile(plansFile, fixture, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := &MonitorHandler{PlansFile: plansFile}
+	state := h.collectPlansState(plansFile)
+	if !state.Exists {
+		t.Fatal("expected plans state to exist")
+	}
+
+	// 言及を数えない: 凡例・遷移説明・DoD 本文の cc:WIP は除外
+	if state.WIPTasks != 2 {
+		t.Errorf("WIPTasks: want 2 (1.2 cc:wip + 1.4 cc:WIP), got %d", state.WIPTasks)
+	}
+	// canonical cc:todo を数える
+	if state.TODOTasks != 1 {
+		t.Errorf("TODOTasks: want 1 (1.3 cc:todo), got %d", state.TODOTasks)
+	}
+	// legacy cc:完了 + canonical cc:done
+	if state.CompletedTasks != 2 {
+		t.Errorf("CompletedTasks: want 2 (1.1 cc:done + 1.5 cc:完了), got %d", state.CompletedTasks)
+	}
+}
