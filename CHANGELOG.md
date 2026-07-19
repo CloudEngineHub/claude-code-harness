@@ -16,6 +16,7 @@ Change history for claude-code-harness.
 
 ### Added
 
+- **runtime floor `releaseAuto` opt-in — release 完了の全自動化（Phase 118.1、operator 裁定 2026-07-19）**: `RUNTIME_FLOOR:prod-deploy` の「公開の最終 1 手は人間」を、project config `.claude-code-harness.config.json` の `runtimefloor.releaseAuto: true` で release 完了サブセット（`git push origin v*` / `git push --tags` / `gh release` の非破壊動詞）に限り解除できるようにした。`gh release delete` と npm publish / vercel / kubectl / terraform は opt-in 後も遮断。config 不在・parse 失敗は fail-safe（従来どおり全遮断）で、配布既定は不変。信頼の根拠は preflight fail-closed host smoke / validate-plugin / CI / 独立監査 / drift gate の機械ゲート網に移る。本 repo は opt-in を versioned で有効化
 - **release preflight の host workflow smoke 消費（H7 充足、Phase 111.7.6）**: `scripts/release-preflight.sh` が全 dist host（claude / codex / cursor / grok）の workflow smoke を `REQUIRED=1`（fail-closed）で実行する `check_host_workflow_smoke` を獲得。1 host でも FAIL なら release が止まる。standalone 実行は `scripts/release-preflight-host-smoke.sh`（registry SSOT の `host_registry_dist_hosts` を消費、テスト用 seam `HARNESS_PREFLIGHT_HOST_SMOKE_CMD` 付き）。multi-host `supported` bar H7（release-preflight consumes host gates fail-closed）の充足配線であり、Codex / Cursor / Grok の昇格残ゲートは H8（wording pin）のみになった。契約テスト `tests/test-release-preflight-host-smoke.sh` を validate-plugin に配線し、wiring pin は 14 件に増加
 
 ### Changed
