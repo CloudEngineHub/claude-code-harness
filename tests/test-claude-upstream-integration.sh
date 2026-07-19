@@ -1487,8 +1487,8 @@ grep -q 'Auto-inherit' "${PHASE80_ADOPTION_DOC}" || {
   echo "${PHASE80_ADOPTION_DOC} must include Auto-inherit decisions — Phase 80.1.2"
   exit 1
 }
-grep -q 'internal-compatible' "${PHASE80_ADOPTION_DOC}" || {
-  echo "${PHASE80_ADOPTION_DOC} must preserve Codex CLI internal-compatible tier — Phase 80.1.2"
+grep -q 'supported' "${PHASE80_ADOPTION_DOC}" || {
+  echo "${PHASE80_ADOPTION_DOC} must preserve Codex CLI supported tier — Phase 80.1.2 / H8 pin"
   exit 1
 }
 

@@ -46,7 +46,7 @@ EOF
 expect_fail "supported + not proven" "${TMP_DIR}/overclaim-not-proven.md"
 
 cat > "${TMP_DIR}/overclaim-blocked-token.md" <<'EOF'
-Cursor is supported; workflow smoke is blocked.
+Hermes Agent is supported; workflow smoke is blocked.
 EOF
 expect_fail "supported + blocked token" "${TMP_DIR}/overclaim-blocked-token.md"
 
@@ -74,7 +74,7 @@ EOF
 expect_fail "must-not preamble + positive claim" "${TMP_DIR}/overclaim-negator-preamble.md"
 
 cat > "${TMP_DIR}/overclaim-never-preamble.md" <<'EOF'
-Never mind the caveats: Grok is fully supported in production today.
+Never mind the caveats: Antigravity CLI is fully supported in production today.
 EOF
 expect_fail "never preamble + positive claim" "${TMP_DIR}/overclaim-never-preamble.md"
 
@@ -118,13 +118,13 @@ EOF
 expect_pass "clean candidate wording" "${TMP_DIR}/clean-candidate.md"
 
 cat > "${TMP_DIR}/denial-promote-idiom.md" <<'EOF'
-Do not promote Grok to public `supported` until live H4 evidence exists.
+Do not promote Hermes Agent to public `supported` until live H4 evidence exists.
 EOF
 expect_pass "do-not-promote idiom" "${TMP_DIR}/denial-promote-idiom.md"
 
 # The promote idiom must not hide a separate positive claim after it.
 cat > "${TMP_DIR}/overclaim-after-promote-idiom.md" <<'EOF'
-Do not promote Grok to public `supported` yet; Hermes Agent is supported now.
+Do not promote Hermes Agent to public `supported` yet; Antigravity CLI is supported now.
 EOF
 expect_fail "promote idiom + trailing claim" "${TMP_DIR}/overclaim-after-promote-idiom.md"
 

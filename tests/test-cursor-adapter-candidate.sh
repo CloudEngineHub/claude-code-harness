@@ -56,30 +56,32 @@ assert(manifest.name === "claude-code-harness", "manifest name mismatch");
 assert(manifest.version === version, "manifest version mismatch");
 assert(manifest.skills === "../skills/", "manifest skills path must target core skills relative to .cursor-plugin");
 assert(manifest.agents === "../.cursor/agents/", "manifest agents path must target .cursor/agents");
-assert(String(manifest.description || "").includes("Candidate"), "manifest description must keep candidate boundary");
-assert(String(manifest.interface.shortDescription || "").includes("Candidate"), "manifest shortDescription must keep candidate boundary");
-assert(String(manifest.interface.longDescription || "").includes("candidate"), "manifest must not imply supported Cursor adapter");
+assert(String(manifest.description || "").includes("supported"), "manifest description must reflect supported tier");
+assert(String(manifest.interface.shortDescription || "").includes("supported"), "manifest shortDescription must reflect supported tier");
+assert(String(manifest.interface.longDescription || "").includes("supported"), "manifest longDescription must reflect supported Cursor adapter");
 NODE
 
 assert_contains "$AGENTS" "harness-plan"
 assert_contains "$AGENTS" "harness-work"
 assert_contains "$AGENTS" "harness-review"
-assert_contains "$AGENTS" "candidate"
+assert_contains "$AGENTS" "supported"
 assert_contains "$AGENTS" "scripts/model-routing.sh --host cursor"
 
+assert_contains "$EVIDENCE" "promoted to \`supported\` on 2026-07-19"
 assert_contains "$EVIDENCE" "internal-compatible"
 assert_contains "$EVIDENCE" "Observed Runtime Evidence (2026-05-29)"
 assert_contains "$EVIDENCE" "not_observed != absent"
 assert_contains "$EVIDENCE" "PM handoff"
 assert_contains "$EVIDENCE" "tests/test-cursor-adapter-candidate.sh"
 
-assert_contains "${ROOT_DIR}/README.md" "| Cursor | \`internal-compatible\` |"
-assert_contains "${ROOT_DIR}/README_ja.md" "| Cursor | \`internal-compatible\` |"
-assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Cursor | \`internal-compatible\` |"
-assert_contains "${ROOT_DIR}/docs/onboarding/install.md" "### Cursor (\`internal-compatible\`)"
+assert_contains "${ROOT_DIR}/README.md" "| Cursor | \`supported\` |"
+assert_contains "${ROOT_DIR}/README_ja.md" "| Cursor | \`supported\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Cursor | \`supported\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/install.md" "### Cursor (\`supported\`)"
 assert_contains "${ROOT_DIR}/docs/onboarding/install.md" "scripts/setup-cursor.sh"
 
-assert_contains "$INTEGRATION" "not Cursor adapter support"
+assert_contains "$INTEGRATION" "Containment disclosure"
+assert_contains "$INTEGRATION" "supported"
 assert_contains "$INTEGRATION" "docs/research/cursor-adapter-candidate.md"
 
 cursor_worker="$(bash "$ROUTER" --host cursor --role worker --field model)"

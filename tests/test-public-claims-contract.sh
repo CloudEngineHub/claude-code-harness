@@ -125,9 +125,9 @@ if claim["publishable_statuses"] != ["verified"]:
 
 registry = json.loads(registry_path.read_text(encoding="utf-8"))
 tiers = {host["id"]: host["tier"] for host in registry["hosts"]}
-for host in ("cursor", "grok"):
-    if tiers.get(host) != "internal-compatible":
-        raise SystemExit(f"{host} tier must remain internal-compatible")
+for host in ("codex", "cursor", "grok"):
+    if tiers.get(host) != "supported":
+        raise SystemExit(f"{host} tier must be supported (H8 pin)")
 PY
 
 python3 - "$TMP_DIR" <<'PY'
