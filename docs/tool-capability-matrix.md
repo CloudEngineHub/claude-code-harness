@@ -12,7 +12,7 @@ The current support-tier scope is:
 | Host | Support tier | Claim boundary |
 |---|---|---|
 | Claude Code | `supported` | Public Claude-first support is allowed for the verified Claude Code path. |
-| Codex CLI | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed gate; 3cli Bash PreToolUse floor; app behavior and full Claude hook parity are not implied. |
+| Codex CLI | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed gate; 3cli Bash PreToolUse floor; CI-gated direct plugin marketplace/install smoke (isolated `CODEX_HOME`); app behavior and full Claude hook parity are not implied. |
 | Codex app | `candidate` | App behavior must be proven separately from Codex CLI help output. |
 | OpenCode | `internal-compatible` | Existing mirror/package validation and Node-level bootstrap plugin checks can be described as internal compatibility; real OpenCode binary runtime bootstrap parity is not proven. |
 | Cursor | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed gate; dist + setup-cursor + workflow smoke; **no FS jail** — containment is harness-side (`docs/CURSOR_INTEGRATION.md`). |
