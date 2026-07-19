@@ -112,7 +112,7 @@ done < <(host_registry_dist_hosts)
 [ "$dist_count" -gt 0 ] || fail "dist host count is zero"
 
 fail_output="$(mktemp "${TMPDIR:-/tmp}/preflight-host-smoke-out.XXXXXX")"
-if HARNESS_PREFLIGHT_HOST_SMOKE_CMD="$stub_fail" bash "$HOST_SMOKE_SCRIPT" >"$fail_output" 2>&1; then
+if GITHUB_ACTIONS= HARNESS_PREFLIGHT_HOST_SMOKE_CMD="$stub_fail" bash "$HOST_SMOKE_SCRIPT" >"$fail_output" 2>&1; then
   fail "expected non-zero exit when one host stub fails"
 fi
 grep -Fq "FAIL" "$fail_output" || fail "expected FAIL in output when stub fails"
@@ -121,13 +121,51 @@ grep -Fq "host-smoke ${first_host}: FAIL" "$fail_output" \
 rm -f "$fail_output"
 
 pass_output="$(mktemp "${TMPDIR:-/tmp}/preflight-host-smoke-out.XXXXXX")"
-if ! HARNESS_PREFLIGHT_HOST_SMOKE_CMD="$stub_pass" bash "$HOST_SMOKE_SCRIPT" >"$pass_output" 2>&1; then
+if ! GITHUB_ACTIONS= HARNESS_PREFLIGHT_HOST_SMOKE_CMD="$stub_pass" bash "$HOST_SMOKE_SCRIPT" >"$pass_output" 2>&1; then
   cat "$pass_output" >&2
   fail "expected exit 0 when all hosts pass via stub"
 fi
 grep -Fq "host-smoke summary: ${dist_count}/${dist_count} pass" "$pass_output" \
   || fail "expected summary ${dist_count}/${dist_count} pass (got: $(tail -n 1 "$pass_output"))"
 rm -f "$pass_output"
+
+# ---- (g) runner scope: GITHUB_ACTIONS=true + missing CLI -> visible SKIP, exit 0 ----
+# The fail-closed consumer is the operator-machine preflight; a GitHub runner
+# without host CLIs must skip loudly instead of blocking every release
+# (regression fixture for the v5.3.0 run 29679591686 failure).
+
+skip_output="$(mktemp "${TMPDIR:-/tmp}/preflight-host-smoke-out.XXXXXX")"
+if ! GITHUB_ACTIONS=true HARNESS_PREFLIGHT_HOST_CLI_PROBE_CMD=/usr/bin/false \
+    HARNESS_PREFLIGHT_HOST_SMOKE_CMD="$stub_fail" bash "$HOST_SMOKE_SCRIPT" >"$skip_output" 2>&1; then
+  cat "$skip_output" >&2
+  fail "expected exit 0 on runner when all host CLIs are absent (skip path)"
+fi
+grep -Fq "host-smoke ${first_host}: SKIP" "$skip_output" \
+  || fail "expected SKIP line for ${first_host} on runner without CLI"
+grep -Fq "(${dist_count} skipped on runner)" "$skip_output" \
+  || fail "expected skip summary suffix (got: $(tail -n 1 "$skip_output"))"
+rm -f "$skip_output"
+
+# Runner with CLIs present (probe true) still runs the smoke normally.
+runner_pass_output="$(mktemp "${TMPDIR:-/tmp}/preflight-host-smoke-out.XXXXXX")"
+if ! GITHUB_ACTIONS=true HARNESS_PREFLIGHT_HOST_CLI_PROBE_CMD=/usr/bin/true \
+    HARNESS_PREFLIGHT_HOST_SMOKE_CMD="$stub_pass" bash "$HOST_SMOKE_SCRIPT" >"$runner_pass_output" 2>&1; then
+  cat "$runner_pass_output" >&2
+  fail "expected exit 0 on runner when CLIs present and smoke passes"
+fi
+grep -Fq "host-smoke summary: ${dist_count}/${dist_count} pass" "$runner_pass_output" \
+  || fail "expected full pass summary on runner with CLIs present"
+rm -f "$runner_pass_output"
+
+# Outside GITHUB_ACTIONS the probe must NOT enable skipping: fail stays fail.
+local_fail_output="$(mktemp "${TMPDIR:-/tmp}/preflight-host-smoke-out.XXXXXX")"
+if GITHUB_ACTIONS= HARNESS_PREFLIGHT_HOST_CLI_PROBE_CMD=/usr/bin/false \
+    HARNESS_PREFLIGHT_HOST_SMOKE_CMD="$stub_fail" bash "$HOST_SMOKE_SCRIPT" >"$local_fail_output" 2>&1; then
+  fail "expected non-zero exit locally even when probe reports missing CLIs"
+fi
+grep -Fq "host-smoke ${first_host}: FAIL" "$local_fail_output" \
+  || fail "expected FAIL (not SKIP) locally for ${first_host}"
+rm -f "$local_fail_output"
 
 # ---- (f) validate-plugin wiring ----
 
