@@ -6,6 +6,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+- **release preflight の host workflow smoke 消費（H7 充足、Phase 111.7.6）**: `scripts/release-preflight.sh` が全 dist host（claude / codex / cursor / grok）の workflow smoke を `REQUIRED=1`（fail-closed）で実行する `check_host_workflow_smoke` を獲得。1 host でも FAIL なら release が止まる。standalone 実行は `scripts/release-preflight-host-smoke.sh`（registry SSOT の `host_registry_dist_hosts` を消費、テスト用 seam `HARNESS_PREFLIGHT_HOST_SMOKE_CMD` 付き）。multi-host `supported` bar H7（release-preflight consumes host gates fail-closed）の充足配線であり、Codex / Cursor / Grok の昇格残ゲートは H8（wording pin）のみになった。契約テスト `tests/test-release-preflight-host-smoke.sh` を validate-plugin に配線し、wiring pin は 14 件に増加
+
+### Changed
+
+- Phase 111.7 closeout: 4 host の live H4 smoke が全 PASS（operator 委任の orca terminal 自動化で実測、2026-07-17）。spec host 表の残ゲート記述を H7 → 充足済みに更新
+
 ## [5.2.0] - 2026-07-17
 
 ### テーマ: 統治の三段目 — 独立監査・縮小検知・リリース提案器

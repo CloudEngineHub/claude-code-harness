@@ -234,6 +234,8 @@ bare release で「今までの作業」を commit したい場合は、この c
 
 `scripts/release-preflight.sh` は tag 作成前に `opencode/`, `skills-codex/`, `codex/.codex/skills/` の mirror drift も検出する。`node scripts/build-opencode.js` が差分を生成した場合は release を止め、その差分を commit してから tag に進む。
 
+release preflight は host workflow smoke を `REQUIRED=1`（fail-closed）で全 dist host に対して実行する。1 host でも FAIL なら release を止める。これは multi-host bar H7（release-preflight consumes host gates fail-closed）の充足配線である。`scripts/release-preflight-host-smoke.sh` 参照。
+
 ### 2. Version File 自動検出
 
 以下を優先順で探索。最初に見つかったものを正本とする:
