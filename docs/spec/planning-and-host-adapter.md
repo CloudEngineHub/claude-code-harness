@@ -207,11 +207,11 @@ Breezing multitask, memory_bridge) are **not** required for multi-host
 | Host | Default Tier | Reason |
 |------|--------------|--------|
 | Claude Code | `supported` for Claude-first Harness | Primary product surface; H1–H8 reference host. |
-| Codex CLI | `internal-compatible` until H4–H8 complete on one claim path | Plugin install smoke + 3cli Bash PreToolUse floor exist; workflow smoke and public wording still gated (Phase 111). |
+| Codex CLI | `internal-compatible` until H7–H8 complete on one claim path | Plugin install smoke + 3cli Bash PreToolUse floor exist; live H4 green (2026-07-17 operator-delegated plan session); remaining gate is H7 fail-closed smoke consumption (CI `REQUIRED=1` / release-preflight wiring, operator-owned) before the H8 wording pin. |
 | Codex app | `candidate` under the Codex adapter | App behavior must be verified separately from CLI help output. |
 | OpenCode | `internal-compatible` until runtime bootstrap smoke passes | Existing mirror/setup validation exists; runtime parity is not yet proven. |
-| Cursor | `internal-compatible` | Dist + `setup-cursor` + static smoke + observed Desktop skill loading; CI workflow smoke and full containment disclosure still gate public `supported`. |
-| Grok | `internal-compatible` | Dist + `setup-grok` + install/inspect + structural workflow smoke + hookcodec HostGrok floor; public `supported` still needs live H4 + H8. |
+| Cursor | `internal-compatible` | Dist + `setup-cursor` + static smoke + observed Desktop skill loading + live H4 green (2026-07-17); H7 fail-closed smoke consumption (operator-owned workflows edit) and containment disclosure review still gate public `supported`. |
+| Grok | `internal-compatible` | Dist + `setup-grok` + install/inspect + structural workflow smoke + hookcodec HostGrok floor + live H4 green (2026-07-17, hooks fired live); public `supported` still needs H7 fail-closed consumption, then H8. |
 | GitHub Copilot CLI | `candidate` | Current CLI docs must be verified and Harness-specific bootstrap proof is missing. |
 | Antigravity CLI | `future/unsupported` until an official/verified adapter route exists | No local Harness or Superpowers adapter evidence has been observed. |
 
