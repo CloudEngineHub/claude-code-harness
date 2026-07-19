@@ -28,6 +28,7 @@ REQUIRED_INVOCATIONS=(
   "tests/test-claude-upstream-integration.sh"
   "tests/test-harness-review-governance.sh"
   "tests/test-phase-72-mirror-closeout.sh"
+  "tests/test-release-preflight-host-smoke.sh"
 )
 
 missing=0
