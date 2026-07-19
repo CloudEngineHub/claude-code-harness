@@ -47,6 +47,11 @@ var (
 
 	secretReadVerbs = regexp.MustCompile(`(?i)\b(?:cat|less|head|grep|cp|more|tail|sed)\b`)
 
+	ghReleaseDeletePattern = struct {
+		pattern string
+		re      *regexp.Regexp
+	}{"gh release delete", regexp.MustCompile(`(?i)\bgh\s+release\s+delete\b`)}
+
 	prodDeployPatterns = []struct {
 		pattern string
 		re      *regexp.Regexp
@@ -58,6 +63,12 @@ var (
 		{"terraform apply", regexp.MustCompile(`(?i)\bterraform\s+apply\b`)},
 		{"git push --tags", regexp.MustCompile(`(?i)\bgit\s+push\b.*--tags\b`)},
 		{"git push origin v*", regexp.MustCompile(`(?i)\bgit\s+push\b.*\borigin\s+v`)},
+	}
+
+	prodDeployReleaseAutoBypass = map[string]bool{
+		"gh release ":        true,
+		"git push --tags":    true,
+		"git push origin v*": true,
 	}
 
 	egressToolPattern = regexp.MustCompile(`(?i)\b(?:curl|wget|nc|scp|rsync)\b`)
@@ -284,7 +295,27 @@ func envSecretAllowPatterns() []string {
 type runtimeFloorConfig struct {
 	RuntimeFloor struct {
 		SecretAllow []string `json:"secretAllow"`
+		ReleaseAuto bool     `json:"releaseAuto"`
 	} `json:"runtimefloor"`
+}
+
+// releaseAutoEnabled reports whether the project declares autonomous release
+// completion via .claude-code-harness.config.json runtimefloor.releaseAuto.
+// Config absent, unparseable, or explicitly false → false (fail-safe).
+func releaseAutoEnabled(ctx Context) bool {
+	_, configPath, found := resolveProjectRoot(ctx)
+	if !found {
+		return false
+	}
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return false
+	}
+	var cfg runtimeFloorConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return false
+	}
+	return cfg.RuntimeFloor.ReleaseAuto
 }
 
 func configSecretAllowPatterns(ctx Context) ([]string, bool, bool) {
@@ -459,8 +490,18 @@ func stripLineComment(line string, inSingle, inDouble bool) (string, bool, bool)
 	return line, inSingle, inDouble
 }
 
-func checkProdDeploy(cmd string, _ Context) Decision {
+func checkProdDeploy(cmd string, ctx Context) Decision {
+	if ghReleaseDeletePattern.re.MatchString(cmd) {
+		return stop(CategoryProdDeploy, ghReleaseDeletePattern.pattern,
+			"production deploy or publish requires human approval")
+	}
+
+	releaseAuto := releaseAutoEnabled(ctx)
+
 	for _, item := range prodDeployPatterns {
+		if releaseAuto && prodDeployReleaseAutoBypass[item.pattern] {
+			continue
+		}
 		if item.re.MatchString(cmd) {
 			return stop(CategoryProdDeploy, item.pattern,
 				"production deploy or publish requires human approval")

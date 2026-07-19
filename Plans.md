@@ -841,6 +841,15 @@ Purpose: open alert 21 件（critical 20 = vitest CVE-2026-47429 × 20 benchmark
 |------|------|-----|---------|--------|
 | 117.1 | `[lane:gate]` `[tdd:required]` `benchmarks/breezing-bench/` 配下 20 manifest の vitest を `^4.1.0` に一括更新 + `tests/test-breezing-fixture-deps.sh`（version floor）新設 + validate-plugin 配線 + wiring pin 追加 | (a) 20 manifest すべて `^4.1.0`、(b) 代表 1 fixture で `npm install && npm test` PASS（不可なら理由を明記）、(c) floor テストが旧 version で FAIL / 新 version で PASS、(d) wiring pin 15 件 | - | cc:done [ba88cd0d RED + 7be4b668 GREEN; vitest 4.1.10 で runner 実走確認（fixture 内 2 fail は意図的なベンチ欠陥で正常）] |
 
+### Phase 118 — Full-auto release（operator 裁定 2026-07-19）
+
+Purpose: operator 裁定「release は push / GitHub Release 公開まで全自動で完了せよ。そのためのテスト・鮮度監査・体制である」を実装する。`RUNTIME_FLOOR:prod-deploy` の「人間の物理 1 手」を、配布既定では維持しつつ、project config `runtimefloor.releaseAuto: true` の opt-in で release 完了サブセット（`git push origin v*` / `git push --tags` / `gh release` の非破壊動詞）のみ許可する。`gh release delete` と非 git 系 deploy（npm publish / vercel / kubectl / terraform）は opt-in 後も遮断維持。信頼の根拠は floor ではなく機械ゲート網（preflight fail-closed 4-host smoke / validate-plugin / CI / 独立監査 / drift gate）に移る。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 118.1 | `[lane:gate]` `[tdd:required]` `go/internal/runtimefloor` に `releaseAuto` opt-in 実装 + この repo の `.claude-code-harness.config.json` 新設（versioned な裁定記録） | (a) default（config なし/false/parse 失敗）は現行どおり全遮断、(b) opt-in で release サブセットのみ許可、(c) `gh release delete` は opt-in 後も遮断、(d) `cd go && go test ./...` 全 PASS | - | cc:done [c0ecda99 RED + ad18fc2b GREEN; Lead 独立検証 45 pkg ok / gofmt clean] |
+| 118.2 | `[lane:release]` `[tdd:skip:release-execution]` v5.3.0 リリースを tag push まで**全自動**で完走（118.1 の受け入れ実戦） | (a) bump → CHANGELOG promote → preflight（host smoke gate 初実戦）→ binaries → PR → merge → AI による tag push → auto-release workflow → GitHub Release + 4 assets 検証、(b) evidence を `.claude/state/release-evidence/5.3.0/` に保存 | 118.1 | cc:todo |
+
 ### Reject / Optional
 
 | Item | Class | Why |

@@ -180,7 +180,17 @@ Historical L3 note: an earlier bridge subsystem prototyped a `bridge-event.v1` e
     stop and ask the human and are non-overridable in every config: (1)
     money/billing, (2) external send / network egress to a non-allowlisted
     destination, (3) credential entry or secret read, (4) production deploy or
-    publish, (5) destruction OUTSIDE the task worktree.
+    publish, (5) destruction OUTSIDE the task worktree. Two narrow,
+    operator-declared project-config exceptions relax a category for EXPLICITLY
+    declared cases only: `runtimefloor.secretAllow` (declared secret paths,
+    category 3) and `runtimefloor.releaseAuto` (operator ruling 2026-07-19,
+    category 4: the release-completion subset `git push origin v*` /
+    `git push --tags` / non-delete `gh release` verbs; `gh release delete` and
+    npm/vercel/kubectl/terraform stay stopped even when enabled). releaseAuto
+    moves the release trust basis from the human stop to the machine gate chain
+    (release-preflight fail-closed host smoke, validate-plugin, CI, independent
+    test-wiring auditor, binary drift gate); the distributed default stays the
+    human stop, and a missing or unparseable config fails safe to stop.
 - Auto-approve scope. Inside a CONFINED worktree the Lead may auto-judge
   code/file/git "ask" gates; the runtime hard floor is the only escalation path.
   Auto-approve must NOT be enabled until both the runtime floor and worktree
