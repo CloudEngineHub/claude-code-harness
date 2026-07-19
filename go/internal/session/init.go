@@ -10,7 +10,6 @@
 package session
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 )
 
 // ---------------------------------------------------------------------------
@@ -180,10 +181,14 @@ func buildPlansInfo(plansFile string) string {
 		return "Plans.md: 未検出"
 	}
 
-	wipCount := countMatches(plansFile, "cc:WIP", "pm:依頼中", "cursor:依頼中")
-	todoCount := countMatches(plansFile, "cc:TODO")
+	taskRows, err := plans.ParseFile(plansFile)
+	if err != nil {
+		return "Plans.md: 未検出"
+	}
+	counts := plans.CountTags(taskRows)
+	wipCount := counts.Wip + counts.Pending
 
-	return fmt.Sprintf("Plans.md: 進行中 %d / 未着手 %d", wipCount, todoCount)
+	return fmt.Sprintf("Plans.md: 進行中 %d / 未着手 %d", wipCount, counts.Todo)
 }
 
 // buildAdditionalContext はセッション初期化の additionalContext を構築する。
@@ -248,28 +253,6 @@ func isSymlink(path string) bool {
 		return false
 	}
 	return fi.Mode()&os.ModeSymlink != 0
-}
-
-// countMatches は patterns のいずれかを含む行数の合計を返す。
-func countMatches(filePath string, patterns ...string) int {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return 0
-	}
-	defer f.Close()
-
-	count := 0
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		for _, p := range patterns {
-			if strings.Contains(line, p) {
-				count++
-				break
-			}
-		}
-	}
-	return count
 }
 
 // writeFileAtomic はファイルを一時ファイル経由で原子的に書き出す。

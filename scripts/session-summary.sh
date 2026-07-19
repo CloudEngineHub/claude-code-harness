@@ -20,80 +20,23 @@ if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
   esac
 fi
 
+# shellcheck source=./plans-marker-count.sh
+source "${SCRIPT_DIR}/plans-marker-count.sh"
+
 count_plan_tasks() {
   local pattern="$1"
   local file="$2"
-
-  awk -v pattern="$pattern" '
-    function trim(value) {
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
-      return value
-    }
-    function is_task_line(line, fields, first_cell) {
-      if (line ~ /^[[:space:]]*[-*+][[:space:]]+\[[ xX]\]/) {
-        return 1
-      }
-      if (line ~ /^[[:space:]]*#+[[:space:]]+/) {
-        return 1
-      }
-      if (line !~ /^[[:space:]]*\|/) {
-        return 0
-      }
-      split(line, fields, /\|/)
-      first_cell = trim(fields[2])
-      gsub(/`/, "", first_cell)
-      if (first_cell == "" || first_cell == "Task" || first_cell ~ /^[-]+$/) {
-        return 0
-      }
-      if (first_cell ~ /^(pm|cc|cursor):/) {
-        return 0
-      }
-      return 1
-    }
-    is_task_line($0) && $0 ~ pattern { count++ }
-    END { print count + 0 }
-  ' "$file" 2>/dev/null || printf '0\n'
+  count_status_cells_matching "$pattern" "$file"
 }
 
 list_plan_tasks() {
   local pattern="$1"
   local file="$2"
   local limit="${3:-20}"
-
-  awk -v pattern="$pattern" -v limit="$limit" '
-    function trim(value) {
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
-      return value
-    }
-    function is_task_line(line, fields, first_cell) {
-      if (line ~ /^[[:space:]]*[-*+][[:space:]]+\[[ xX]\]/) {
-        return 1
-      }
-      if (line ~ /^[[:space:]]*#+[[:space:]]+/) {
-        return 1
-      }
-      if (line !~ /^[[:space:]]*\|/) {
-        return 0
-      }
-      split(line, fields, /\|/)
-      first_cell = trim(fields[2])
-      gsub(/`/, "", first_cell)
-      if (first_cell == "" || first_cell == "Task" || first_cell ~ /^[-]+$/) {
-        return 0
-      }
-      if (first_cell ~ /^(pm|cc|cursor):/) {
-        return 0
-      }
-      return 1
-    }
-    is_task_line($0) && $0 ~ pattern {
-      print NR ":" $0
-      count++
-      if (count >= limit) {
-        exit
-      }
-    }
-  ' "$file" 2>/dev/null || true
+  {
+    list_status_cell_tasks "$pattern" "$file" "$limit"
+    list_heading_plan_tasks "$pattern" "$file" "$limit"
+  } | sort -t: -k1,1n | head -n "$limit"
 }
 
 extract_plan_task_title() {

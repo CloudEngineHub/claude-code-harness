@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 )
 
 // tddCheckInput は tdd-order-check.sh に渡される stdin JSON。
@@ -37,8 +39,8 @@ var testFilePatterns = []*regexp.Regexp{
 	regexp.MustCompile(`/tests?/`),
 }
 
-// tddSkipMarkerRe は Plans.md 中の [skip:tdd] + cc:WIP の組み合わせを検出するパターン。
-var tddSkipMarkerRe = regexp.MustCompile(`\[skip:tdd\].*cc:WIP|cc:WIP.*\[skip:tdd\]`)
+// tddSkipMarkerRe は WIP タスク行中の [skip:tdd] マーカーを検出するパターン。
+var tddSkipMarkerRe = regexp.MustCompile(`\[skip:tdd\]`)
 
 // sessionChangesFile はセッション中に編集されたファイルを記録するファイルパス。
 const sessionChangesFile = ".claude/state/session-changes.json"
@@ -164,14 +166,19 @@ func hasActiveWIPTask(projectRoot string) bool {
 	if plansPath == "" {
 		return false
 	}
-	data, err := os.ReadFile(plansPath)
+	taskRows, err := plans.ParseFile(plansPath)
 	if err != nil {
 		return false
 	}
-	return strings.Contains(string(data), "cc:WIP")
+	for _, task := range taskRows {
+		if task.Tags.Wip {
+			return true
+		}
+	}
+	return false
 }
 
-// isTDDSkipped は Plans.md の cc:WIP タスクに [skip:tdd] マーカーがあるかを確認する。
+// isTDDSkipped は Plans.md の WIP タスクに [skip:tdd] マーカーがあるかを確認する。
 // projectRoot が空の場合は resolveProjectRoot() でカレントディレクトリを基準にする。
 // resolvePlansPath が空文字を返した場合（Plans.md が存在しない）は false を返す。
 func isTDDSkipped(projectRoot string) bool {
@@ -182,11 +189,20 @@ func isTDDSkipped(projectRoot string) bool {
 	if plansPath == "" {
 		return false
 	}
-	data, err := os.ReadFile(plansPath)
+	taskRows, err := plans.ParseFile(plansPath)
 	if err != nil {
 		return false
 	}
-	return tddSkipMarkerRe.Match(data)
+	for _, task := range taskRows {
+		if !task.Tags.Wip {
+			continue
+		}
+		row := task.TaskID + " " + task.Title + " " + task.DoD + " " + task.Status
+		if tddSkipMarkerRe.MatchString(row) {
+			return true
+		}
+	}
+	return false
 }
 
 // testEditedThisSession はセッション中にテストファイルが編集されたかどうかを確認する。

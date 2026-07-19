@@ -30,6 +30,7 @@ REQUIRED_INVOCATIONS=(
   "tests/test-phase-72-mirror-closeout.sh"
   "tests/test-release-preflight-host-smoke.sh"
   "tests/test-breezing-fixture-deps.sh"
+  "tests/test-plans-marker-count.sh"
 )
 
 missing=0

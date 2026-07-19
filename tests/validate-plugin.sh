@@ -513,6 +513,12 @@ else
     fail_test "Plans.md status marker protocol の互換性に問題があります"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-plans-marker-count.sh" >/dev/null 2>&1; then
+    pass_test "Plans.md marker 集計は Status セル限定で凡例/本文言及を除外します (test-plans-marker-count.sh)"
+else
+    fail_test "Plans.md marker 集計の Status セル契約に失敗 — 'bash tests/test-plans-marker-count.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-named-plans.sh" >/dev/null 2>&1; then
     pass_test "Named Plans registry は manifest / active pointer / --plan を安全に解決します"
 else

@@ -7,10 +7,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 )
 
 // exitFailClosed は lock 取得失敗など fail-closed パスで呼び出す。
@@ -321,35 +322,25 @@ func isPlansFileWithRoot(changedFile, plansFile, projectRoot string) bool {
 	return isPlansFile(absChanged, plansFile)
 }
 
-// countMarker は Plans.md 内の marker 文字列の出現回数を返す。
-func countMarker(plansFile, marker string) int {
-	data, err := os.ReadFile(plansFile)
-	if err != nil {
-		return 0
-	}
-	re := regexp.MustCompile(regexp.QuoteMeta(marker))
-	return len(re.FindAllIndex(data, -1))
-}
-
 // collectPlansState は Plans.md のマーカーを集計する。
 func collectPlansState(plansFile string) (plansState, error) {
 	if _, err := os.Stat(plansFile); err != nil {
 		return plansState{}, fmt.Errorf("plans file not found: %w", err)
 	}
 
-	pmPending := countMarker(plansFile, localizedHarnessMessage("ja", "pm:pending", "pm:依頼中")) + countMarker(plansFile, localizedHarnessMessage("ja", "cursor:pending", "cursor:依頼中"))
-	ccTodo := countMarker(plansFile, "cc:TODO")
-	ccWip := countMarker(plansFile, "cc:WIP")
-	ccDone := countMarker(plansFile, localizedHarnessMessage("ja", "cc:done", "cc:完了"))
-	pmConfirmed := countMarker(plansFile, localizedHarnessMessage("ja", "pm:confirmed", "pm:確認済")) + countMarker(plansFile, localizedHarnessMessage("ja", "cursor:confirmed", "cursor:確認済"))
+	taskRows, err := plans.ParseFile(plansFile)
+	if err != nil {
+		return plansState{}, fmt.Errorf("parse plans file: %w", err)
+	}
+	counts := plans.CountTags(taskRows)
 
 	return plansState{
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
-		PmPending:   pmPending,
-		CcTodo:      ccTodo,
-		CcWip:       ccWip,
-		CcDone:      ccDone,
-		PmConfirmed: pmConfirmed,
+		PmPending:   counts.Pending,
+		CcTodo:      counts.Todo,
+		CcWip:       counts.Wip,
+		CcDone:      counts.Done,
+		PmConfirmed: counts.Confirmed,
 	}, nil
 }
 

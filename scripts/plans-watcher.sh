@@ -140,6 +140,22 @@ fi
 
 # Plans.md のパス（plansDirectory 設定を考慮）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/plans-marker-count.sh" ]; then
+  # shellcheck source=./plans-marker-count.sh
+  source "${SCRIPT_DIR}/plans-marker-count.sh"
+else
+  count_status_cells() {
+    local marker=$1
+    local file=${2:-${PLANS_FILE:-Plans.md}}
+    local count
+    if [ ! -f "$file" ]; then
+      echo 0
+      return 0
+    fi
+    count=$(grep -c "$marker" "$file" 2>/dev/null || true)
+    echo "${count:-0}"
+  }
+fi
 if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
   source "${SCRIPT_DIR}/config-utils.sh"
   PLANS_FILE=$(get_plans_file_path)
@@ -175,15 +191,9 @@ mkdir -p "$STATE_DIR"
 # 前回の状態を取得
 PREV_STATE_FILE="${STATE_DIR}/plans-state.json"
 
-# マーカーをカウント
+# マーカーをカウント（Status セル限定）
 count_markers() {
-    local marker=$1
-    local count=0
-    if [ -f "$PLANS_FILE" ]; then
-        count=$(grep -c "$marker" "$PLANS_FILE" 2>/dev/null || true)
-        [ -z "$count" ] && count=0
-    fi
-    echo "$count"
+  count_status_cells "$1" "$PLANS_FILE"
 }
 
 # 現在の状態を取得（English marker family を正規。日本語 / cursor は read-compatible）

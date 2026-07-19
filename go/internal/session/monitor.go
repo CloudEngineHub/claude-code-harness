@@ -18,6 +18,7 @@ import (
 	"github.com/Chachamaru127/claude-code-harness/go/internal/channelswake"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/gitport"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/nightwatch"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/releasetrain"
 )
 
@@ -370,18 +371,19 @@ func (h *MonitorHandler) collectPlansState(plansFile string) plansStateJSON {
 		return plansStateJSON{Exists: false}
 	}
 
-	wipCount := countMatches(plansFile, "cc:WIP")
-	todoCount := countMatches(plansFile, "cc:TODO")
-	pendingCount := countMatches(plansFile, "pm:依頼中", "cursor:依頼中")
-	completedCount := countMatches(plansFile, "cc:完了")
+	taskRows, err := plans.ParseFile(plansFile)
+	if err != nil {
+		return plansStateJSON{Exists: false}
+	}
+	counts := plans.CountTags(taskRows)
 
 	return plansStateJSON{
 		Exists:         true,
 		LastModified:   fi.ModTime().Unix(),
-		WIPTasks:       wipCount,
-		TODOTasks:      todoCount,
-		PendingTasks:   pendingCount,
-		CompletedTasks: completedCount,
+		WIPTasks:       counts.Wip,
+		TODOTasks:      counts.Todo,
+		PendingTasks:   counts.Pending,
+		CompletedTasks: counts.Done,
 	}
 }
 

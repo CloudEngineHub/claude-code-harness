@@ -6,6 +6,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Plans.md marker 集計の use-mention 混同 + canonical family 取り残しを根治（Phase 119）**
+
+  **今まで**: session-start の「Plans.md: WIP N件」や plans drift 警告が、凡例表・状態遷移説明文・タスク DoD 本文中の marker **言及**まで数えていました（部分文字列一致）。配布テンプレートにも凡例があるため、全ユーザーが初日から誤カウントを持ち、実タスク 0 件でも「WIP 7件 / ⚠️ plans drift」と表示されることがありました。さらに集計は legacy 表記（`cc:WIP` / `cc:完了`）のみ対象で、Phase 77 以降の正本である小文字英語 family（`cc:wip` / `cc:done` 等）で書かれた実タスクを 0 と数えていました。
+
+  **今後**: 集計は既存の Status セル正規パーサ（`go/internal/plans`、最終セル判定 + case-insensitive）に一本化され、「marker が付いたタスク」だけを数えます。canonical / legacy 両 family を正しく集計し（pending / confirmed 分類も追加）、凡例や本文言及は一切カウントしません。Go 側（session monitor / plans watcher / PostCompact 再注入 / session summary / TDD order check）と repo 開発用 shell 側（`scripts/plans-marker-count.sh` 共通 lib）の両方を再配線し、fixture テストで 3 面（言及を数えない / canonical を数える / legacy read-compat）を固定しました。
+
 ## [5.3.0] - 2026-07-19
 
 ### テーマ: 多 host 正式対応と、人手ゼロで完走するリリース

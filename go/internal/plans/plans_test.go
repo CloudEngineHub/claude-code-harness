@@ -181,3 +181,21 @@ func TestSplitPipeRow(t *testing.T) {
 		t.Errorf("escaped pipe cell: want %q, got %q", " b | c ", cells[1])
 	}
 }
+
+func TestCountTags_MarkerCountFixture(t *testing.T) {
+	fixture, err := os.ReadFile(filepath.Join("testdata", "marker_count_fixture.md"))
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+
+	counts := CountTags(ParseMarkdown(string(fixture)))
+	if counts.Wip != 2 {
+		t.Errorf("Wip: want 2, got %d", counts.Wip)
+	}
+	if counts.Todo != 1 {
+		t.Errorf("Todo: want 1, got %d", counts.Todo)
+	}
+	if counts.Done != 2 {
+		t.Errorf("Done: want 2, got %d", counts.Done)
+	}
+}
