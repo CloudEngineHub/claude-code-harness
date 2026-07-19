@@ -1,13 +1,14 @@
-# AGENTS.md — Cursor Bootstrap Route (Candidate)
+# AGENTS.md — Cursor Bootstrap Route (Supported)
 
-Status: Cursor adapter **candidate**. This file is bootstrap guidance, not a
-public support claim. PM handoff remains documented in
+Status: Cursor adapter **`supported`**. Harness-side containment applies — see
+`docs/CURSOR_INTEGRATION.md#containment-disclosure`. PM handoff remains documented in
 `docs/CURSOR_INTEGRATION.md`.
 
 ## Support Tier
 
-Cursor is `candidate` until `tests/test-cursor-adapter-candidate.sh` and
-workflow smoke pass together with release preflight. `not_observed != absent`.
+Cursor is `supported` after live H4 (2026-07-17) and H7 release-preflight
+fail-closed gate. No traditional FS jail — containment is harness-side.
+`not_observed != absent`.
 
 ## First Commands
 

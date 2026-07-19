@@ -1,5 +1,10 @@
 # Grok Adapter Evidence Boundary
 
+> **Promotion note (2026-07-19):** Grok promoted to `supported` on 2026-07-19
+> (live H4 workflow smoke 2026-07-17 + H7 release-preflight fail-closed gate).
+> The tier statements below are historical evidence; public surfaces now pin
+> `supported` with Claude-envelope PreToolUse floor caveats.
+
 Status: internal-compatible evidence boundary
 Checked at: 2026-07-09 JST
 Phase: Grok host completion (goal plan)

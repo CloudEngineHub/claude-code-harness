@@ -15,11 +15,11 @@ Public wording must keep these tiers unchanged:
 | Tool | Phase 73 tier | Start here |
 |---|---|---|
 | Claude Code | `supported` | Use the Claude plugin install path in [install.md](install.md#claude-code-supported). |
-| Codex CLI | `internal-compatible` | Use `scripts/setup-codex.sh --user` in [install.md](install.md#codex-cli-internal-compatible). |
+| Codex CLI | `supported` | Use `scripts/setup-codex.sh --user` in [install.md](install.md#codex-cli-supported). |
 | Codex app | `candidate` | Use the candidate smoke checklist in [install.md](install.md#codex-app-candidate); do not reuse Codex CLI proof. |
 | OpenCode | `internal-compatible` | Use `scripts/setup-opencode.sh` in [install.md](install.md#opencode-internal-compatible). |
-| Cursor | `internal-compatible` | Use `scripts/setup-cursor.sh` in [install.md](install.md#cursor-internal-compatible); PM handoff docs remain separate from adapter install. |
-| Grok | `internal-compatible` | Use `scripts/setup-grok.sh` in [install.md](install.md#grok-internal-compatible); package install and skill discovery only, not Claude hook parity. |
+| Cursor | `supported` | Use `scripts/setup-cursor.sh` in [install.md](install.md#cursor-supported); containment is harness-side — see [docs/CURSOR_INTEGRATION.md](../CURSOR_INTEGRATION.md). |
+| Grok | `supported` | Use `scripts/setup-grok.sh` in [install.md](install.md#grok-supported); Claude-envelope PreToolUse floor — not full Claude hook parity. |
 | Hermes Agent | `candidate` | Use the candidate boundary in [install.md](install.md#hermes-agent-candidate); manual symlink research only. |
 | GitHub Copilot CLI | `candidate` | Use the candidate boundary in [install.md](install.md#github-copilot-cli-candidate). |
 | Antigravity CLI | `future/unsupported` | Use the unsupported boundary in [install.md](install.md#antigravity-cli-futureunsupported). |
@@ -28,10 +28,11 @@ Public wording must keep these tiers unchanged:
 not observed in the current artifact set. It does not prove the capability is
 absent.
 
-**Four install routes ≠ four hosts at the public top tier.** Public **正式対応**
-maps only to EN `supported` (Claude Code only today). Use 互換利用可 for
-`internal-compatible` and 試験対応 for `candidate`. Do not apply 正式対応 to
-non-Claude rows until H1–H8 pass (`docs/spec/planning-and-host-adapter.md`).
+Public **正式対応** maps to EN `supported` for Claude Code, Codex CLI, Cursor, and
+Grok (H8 pin). Remaining rows use 互換利用可 or 試験対応 per tier. OpenCode, the
+separate app candidate path, Hermes Agent, GitHub Copilot CLI, and Antigravity CLI
+must not borrow that wording until their own H1–H8 pass
+(`docs/spec/planning-and-host-adapter.md`).
 
 | EN tier | JP public wording |
 |---|---|

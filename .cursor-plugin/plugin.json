@@ -1,7 +1,7 @@
 {
   "name": "claude-code-harness",
   "version": "5.2.0",
-  "description": "Candidate Cursor adapter for Claude Code Harness Plan, Work, Review, and Release workflows.",
+  "description": "Public supported Cursor adapter for Claude Code Harness Plan, Work, Review, and Release workflows.",
   "author": {
     "name": "Chachamaru",
     "url": "https://github.com/Chachamaru127"
@@ -20,8 +20,8 @@
   "agents": "../.cursor/agents/",
   "interface": {
     "displayName": "Claude Code Harness",
-    "shortDescription": "Candidate Harness workflow adapter for Cursor",
-    "longDescription": "Use Claude Code Harness skills in Cursor for evidence-backed planning, implementation, review, release, setup, sync, and team execution workflows. This is a Cursor adapter candidate route; Cursor remains candidate until workflow smoke and release preflight pass.",
+    "shortDescription": "Public supported Harness workflow adapter for Cursor",
+    "longDescription": "Use Claude Code Harness skills in Cursor for evidence-backed planning, implementation, review, release, setup, sync, and team execution workflows. Cursor is supported after live H4 (2026-07-17) and H7 release-preflight fail-closed gate; no FS jail — containment is harness-side (docs/CURSOR_INTEGRATION.md).",
     "developerName": "Chachamaru",
     "category": "Coding",
     "capabilities": [

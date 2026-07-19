@@ -12,11 +12,11 @@ The current support-tier scope is:
 | Host | Support tier | Claim boundary |
 |---|---|---|
 | Claude Code | `supported` | Public Claude-first support is allowed for the verified Claude Code path. |
-| Codex CLI | `internal-compatible` | Existing mirrors, setup, companion review, local CLI command surface, and CI-gated direct plugin marketplace/install smoke can be described as internal compatibility; Codex app and hook parity are not implied. |
+| Codex CLI | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed gate; 3cli Bash PreToolUse floor; app behavior and full Claude hook parity are not implied. |
 | Codex app | `candidate` | App behavior must be proven separately from Codex CLI help output. |
 | OpenCode | `internal-compatible` | Existing mirror/package validation and Node-level bootstrap plugin checks can be described as internal compatibility; real OpenCode binary runtime bootstrap parity is not proven. |
-| Cursor | `internal-compatible` | Host-specific dist build, `scripts/setup-cursor.sh` real-directory install, CI-gated package smoke, and observed Desktop skill loading justify internal compatibility; CI-gated workflow smoke and runtime guard/hook parity are not proven; no public supported claim. |
-| Grok | `internal-compatible` | Host-specific dist build, `scripts/setup-grok.sh` install/check, static smoke via `tests/test-grok-adapter-candidate.sh`, and observed `grok plugin install` + `grok inspect` skill discovery justify internal compatibility; structural workflow smoke + hookcodec HostGrok floor; live H4 is still pending and Grok is not yet publicly supported. |
+| Cursor | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed gate; dist + setup-cursor + workflow smoke; **no FS jail** — containment is harness-side (`docs/CURSOR_INTEGRATION.md`). |
+| Grok | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed gate; setup-grok + structural workflow smoke + hookcodec HostGrok Claude-envelope PreToolUse floor; not full Claude SessionStart / PreToolUse parity. |
 | Hermes Agent | `candidate` | Manual symlink research route and local dynamic slash discovery only; no setup script, host dist, routing model, runtime floor parity, or public support claim. |
 | GitHub Copilot CLI | `candidate` | Candidate adapter only; Superpowers evidence and official docs are not Harness bootstrap proof. |
 | Antigravity CLI | `future/unsupported` | No public setup, README support, or release claim until an official or verified route plus local bootstrap smoke exists. |
@@ -58,8 +58,8 @@ workflow parity or Harness safety parity.
 | Host | Phase 73 status | Allowed wording | Blocked wording |
 |---|---|---|
 | Codex app | `candidate` | app-specific candidate or research gate | blocked: supported, same as Codex CLI |
-| Cursor | `internal-compatible` | adapter candidate route, handoff integration, setup-cursor install, static smoke, observed Desktop skill loading | public top-tier Cursor claim |
-| Grok | `internal-compatible` | setup-grok install, static smoke, inspect discovery, structural workflow smoke, HostGrok floor | public top-tier Grok claim |
+| Cursor | `supported` | adapter route, handoff integration, setup-cursor install, workflow smoke, harness-side containment disclosure | blocked: identical Claude FS jail / full-tool parity |
+| Grok | `supported` | setup-grok install, workflow smoke, inspect discovery, HostGrok Claude-envelope PreToolUse floor | blocked: full Claude SessionStart / PreToolUse parity |
 | Hermes Agent | `candidate` | manual symlink research route, local dynamic slash command discovery | blocked: supported Hermes adapter |
 | GitHub Copilot CLI | `candidate` | adapter candidate, CLI capability investigation | blocked: supported Copilot adapter |
 | Antigravity CLI | `future/unsupported` | future scope, unsupported public claim, not observed | blocked: supported Antigravity adapter |
@@ -69,10 +69,10 @@ workflow parity or Harness safety parity.
 The matrix is valid only when all of the following stay true:
 
 - All required capability names are present exactly as code-formatted labels.
-- Claude Code is `supported`.
-- Codex CLI and OpenCode are `internal-compatible`.
-- Cursor is `internal-compatible` with observed Desktop skill-loading evidence.
-- Grok is `internal-compatible` with setup-grok package smoke, inspect skill discovery, structural workflow smoke, and hookcodec floor membership (Claude-envelope PreToolUse).
+- Claude Code, Codex CLI, Cursor, and Grok are `supported` on their verified claim paths (H8 pin).
+- OpenCode is `internal-compatible`.
+- Cursor public `supported` retains **no FS jail** — containment is harness-side.
+- Grok public `supported` retains Claude-envelope PreToolUse floor — not full Claude hook parity.
 - Hermes Agent is `candidate` with manual symlink research evidence only.
 - Codex app and GitHub Copilot CLI are `candidate`.
 - Antigravity CLI is `future/unsupported` for public claim.

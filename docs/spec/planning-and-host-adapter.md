@@ -207,11 +207,11 @@ Breezing multitask, memory_bridge) are **not** required for multi-host
 | Host | Default Tier | Reason |
 |------|--------------|--------|
 | Claude Code | `supported` for Claude-first Harness | Primary product surface; H1–H8 reference host. |
-| Codex CLI | `internal-compatible` until the H8 wording pin lands | Plugin install smoke + 3cli Bash PreToolUse floor exist; live H4 green (2026-07-17 operator-delegated plan session); H7 satisfied via release preflight host smoke (fail-closed, `scripts/release-preflight-host-smoke.sh`, 2026-07-19); only the H8 wording pin (promotion act, operator GO) remains. |
+| Codex CLI | `supported` | Plugin install smoke + 3cli Bash PreToolUse floor; live H4 green (2026-07-17); H7 release-preflight fail-closed (`scripts/release-preflight-host-smoke.sh`, 2026-07-19); H8 wording pin complete — not Codex app parity. |
 | Codex app | `candidate` under the Codex adapter | App behavior must be verified separately from CLI help output. |
 | OpenCode | `internal-compatible` until runtime bootstrap smoke passes | Existing mirror/setup validation exists; runtime parity is not yet proven. |
-| Cursor | `internal-compatible` | Dist + `setup-cursor` + static smoke + observed Desktop skill loading + live H4 green (2026-07-17); H7 satisfied via release preflight host smoke (2026-07-19); containment disclosure review and the H8 wording pin still gate public `supported`. |
-| Grok | `internal-compatible` | Dist + `setup-grok` + install/inspect + structural workflow smoke + hookcodec HostGrok floor + live H4 green (2026-07-17, hooks fired live); H7 satisfied via release preflight host smoke (2026-07-19); public `supported` needs only the H8 wording pin. |
+| Cursor | `supported` | Dist + `setup-cursor` + static smoke + observed Desktop skill loading + live H4 green (2026-07-17); H7 release-preflight fail-closed (2026-07-19); containment disclosure in `docs/CURSOR_INTEGRATION.md`; no FS jail — containment is harness-side. |
+| Grok | `supported` | Dist + `setup-grok` + install/inspect + structural workflow smoke + hookcodec HostGrok floor + live H4 green (2026-07-17, hooks fired live); H7 release-preflight fail-closed (2026-07-19); Claude-envelope PreToolUse floor — not full Claude hook parity. |
 | GitHub Copilot CLI | `candidate` | Current CLI docs must be verified and Harness-specific bootstrap proof is missing. |
 | Antigravity CLI | `future/unsupported` until an official/verified adapter route exists | No local Harness or Superpowers adapter evidence has been observed. |
 
@@ -227,8 +227,10 @@ README, onboarding, and release wording must not imply that `candidate`,
 adapter-candidate work. `future/unsupported` hosts may appear only as future
 scope, unsupported scope, or unknown/unobserved research.
 
-Having an install route for four hosts is **not** the same as four hosts being
-正式対応. Each host promotes independently when H1–H8 are green.
+Having an install route for four hosts is **not** the same as four hosts sharing
+identical capability. Claude Code, Codex CLI, Cursor, and Grok are public
+`supported` after H8; OpenCode and other non-promoted hosts promote independently
+when H1–H8 are green on their claim path.
 
 If a host is not observed in the current runtime, Harness must say `unknown` or
 `not observed`, not `unsupported`, unless the relevant source of truth was

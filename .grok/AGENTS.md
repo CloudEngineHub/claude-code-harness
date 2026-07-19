@@ -1,16 +1,16 @@
-# AGENTS.md — Grok Bootstrap Route (Candidate)
+# AGENTS.md — Grok Bootstrap Route (Supported)
 
-Status: Grok adapter **internal-compatible**. This file is bootstrap guidance, not a
-public support claim. Install for non-CCH projects via
+Status: Grok adapter **`supported`**. Claude-envelope PreToolUse floor — not full
+Claude hook parity. Install for non-CCH projects via
 `scripts/setup-grok.sh`. Evidence boundary:
 `docs/research/grok-adapter-candidate.md`.
 
 ## Support Tier
 
-Grok is `internal-compatible` until `tests/test-grok-adapter-candidate.sh`,
-`scripts/setup-grok.sh --check`, and package smoke pass together. Host-level
-skill install + `grok inspect` discovery are evidence of package loading, not
-Claude SessionStart / PreToolUse hook parity. `not_observed != absent`.
+Grok is `supported` after live H4 (2026-07-17), H7 release-preflight fail-closed
+gate, and green `tests/test-grok-adapter-candidate.sh` / `scripts/setup-grok.sh
+--check`. HostGrok Claude-envelope PreToolUse floor — not Claude SessionStart /
+PreToolUse hook parity. `not_observed != absent`.
 
 ## First Commands
 

@@ -71,7 +71,7 @@ Success look: the session can see the Harness workflow skills, `Plans.md`
 status is readable, and the next suggested action is plan, work, review, or
 release instead of raw ad hoc implementation.
 
-### Codex CLI (`internal-compatible`)
+### Codex CLI (`supported`)
 
 Install:
 
@@ -136,9 +136,11 @@ test -d "${CODEX_HOME:-$HOME/.codex}/skills/harness-plan"
 test -f "${CODEX_HOME:-$HOME/.codex}/config.toml"
 ```
 
-Success look: Codex lists or invokes Harness skills from `CODEX_HOME`. Direct
-plugin install proves Codex CLI marketplace compatibility only; Codex app proof
-is tracked separately and `scripts/setup-codex.sh --user` remains the fallback.
+Success look: Codex lists or invokes Harness skills from `CODEX_HOME`. Live H4
+(2026-07-17) and H7 release-preflight fail-closed gate pin the CLI path at tier
+`supported`. 3cli Bash PreToolUse floor applies. Direct plugin install proves
+marketplace compatibility only; the separate app candidate gate and
+`scripts/setup-codex.sh --user` fallback remain documented.
 
 ### Codex app (`candidate`)
 
@@ -220,7 +222,7 @@ test -f opencode.json
 Success look: OpenCode can see Harness skill files and project guidance. Runtime
 bootstrap parity is still unproven, so the tier stays `internal-compatible`.
 
-### Cursor (`internal-compatible`)
+### Cursor (`supported`)
 
 Install:
 
@@ -273,14 +275,15 @@ test -f ~/.cursor/plugins/local/claude-code-harness/skills/breezing/SKILL.md
 ```
 
 Success look: Cursor lists Harness skills (for example `/breezing`,
-`/harness-plan`) after reload. Workflow smoke and hook parity are not proven,
-so the tier stays `internal-compatible` and PM handoff docs remain separate
-from adapter install claims.
+`/harness-plan`) after reload. Live H4 workflow smoke (2026-07-17) and H7
+release-preflight fail-closed gate pin `supported`. No traditional FS jail —
+containment is harness-side; see [Containment disclosure](../CURSOR_INTEGRATION.md#containment-disclosure).
+PM handoff docs remain separate from adapter install claims.
 
 Containment limits (no traditional FS jail, allowlist best-effort) are documented in
-[known-limitations.md](../known-limitations.md).
+[known-limitations.md](../known-limitations.md) and [CURSOR_INTEGRATION.md](../CURSOR_INTEGRATION.md#containment-disclosure).
 
-### Grok (`internal-compatible`)
+### Grok (`supported`)
 
 Install:
 
@@ -340,8 +343,9 @@ test -f ~/.local/share/claude-code-harness/grok/skills/breezing/SKILL.md \
 
 Success look: Grok lists Harness skills (for example `/breezing`,
 `/harness-plan`) after install, including when started from a non-CCH project.
-Workflow smoke and Claude SessionStart/PreToolUse parity are not proven, so the
-tier stays `internal-compatible`. Evidence boundary:
+Live H4 workflow smoke (2026-07-17) and H7 release-preflight fail-closed gate
+pin `supported`; Claude-envelope PreToolUse floor — not full Claude SessionStart
+/ PreToolUse parity. Evidence boundary:
 `docs/research/grok-adapter-candidate.md`.
 
 ### Hermes Agent (`candidate`)
