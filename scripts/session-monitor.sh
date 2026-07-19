@@ -30,6 +30,23 @@ fi
 # ヘルパー関数
 # ================================
 
+# shellcheck source=./plans-marker-count.sh
+if [ -f "${SCRIPT_DIR}/plans-marker-count.sh" ]; then
+  source "${SCRIPT_DIR}/plans-marker-count.sh"
+else
+  count_status_cells() {
+    local marker=$1
+    local file=${2:-${PLANS_FILE:-Plans.md}}
+    local count
+    if [ ! -f "$file" ]; then
+      echo 0
+      return 0
+    fi
+    count=$(grep -c "$marker" "$file" 2>/dev/null || true)
+    echo "${count:-0}"
+  }
+fi
+
 # 相対時間を計算（秒数から「X分前」「X時間前」等）
 relative_time() {
   local seconds=$1
@@ -44,15 +61,9 @@ relative_time() {
   fi
 }
 
-# Plans.md からタスク数をカウント
+# Plans.md からタスク数をカウント（Status セル限定）
 count_tasks() {
-  local marker=$1
-  local count=0
-  if [ -f "$PLANS_FILE" ]; then
-    count=$(grep -c "$marker" "$PLANS_FILE" 2>/dev/null || true)
-    [ -z "$count" ] && count=0
-  fi
-  echo "$count"
+  count_status_cells "$1" "$PLANS_FILE"
 }
 
 # ================================

@@ -14,6 +14,22 @@ set -euo pipefail
 
 # スクリプトディレクトリを取得
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/plans-marker-count.sh" ]; then
+  # shellcheck source=./plans-marker-count.sh
+  source "${SCRIPT_DIR}/plans-marker-count.sh"
+else
+  count_status_cells() {
+    local marker=$1
+    local file=${2:-Plans.md}
+    local count
+    if [ ! -f "$file" ]; then
+      echo 0
+      return 0
+    fi
+    count=$(grep -c "$marker" "$file" 2>/dev/null || true)
+    echo "${count:-0}"
+  }
+fi
 PROGRESS_SNAPSHOT_LIB="${SCRIPT_DIR}/lib/progress-snapshot.sh"
 if [ -f "${PROGRESS_SNAPSHOT_LIB}" ]; then
   # shellcheck source=/dev/null
@@ -77,14 +93,6 @@ OUTPUT=""
 
 add_line() {
   OUTPUT="${OUTPUT}$1\n"
-}
-
-count_matches() {
-  local pattern="$1"
-  local file="$2"
-  local count
-  count="$(grep -c "$pattern" "$file" 2>/dev/null || true)"
-  printf '%s' "${count:-0}"
 }
 
 # ===== Step 1: プラグインキャッシュ同期 =====
@@ -453,8 +461,17 @@ fi
 
 PLANS_INFO=""
 if [ -f "$PLANS_PATH" ]; then
-  wip_count="$(count_matches "cc:wip\\|cc:WIP\\|pm:requested\\|pm:依頼中\\|cursor:依頼中" "$PLANS_PATH")"
-  todo_count="$(count_matches "cc:todo\\|cc:TODO" "$PLANS_PATH")"
+  wip_count=$(( \
+    $(count_status_cells "cc:wip" "$PLANS_PATH") + \
+    $(count_status_cells "cc:WIP" "$PLANS_PATH") + \
+    $(count_status_cells "pm:requested" "$PLANS_PATH") + \
+    $(count_status_cells "pm:依頼中" "$PLANS_PATH") + \
+    $(count_status_cells "cursor:依頼中" "$PLANS_PATH") \
+  ))
+  todo_count=$(( \
+    $(count_status_cells "cc:todo" "$PLANS_PATH") + \
+    $(count_status_cells "cc:TODO" "$PLANS_PATH") \
+  ))
 
   PLANS_INFO="📄 Plans.md: 進行中 ${wip_count} / 未着手 ${todo_count}"
 else
