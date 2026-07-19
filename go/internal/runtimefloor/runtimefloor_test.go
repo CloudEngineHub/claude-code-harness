@@ -460,3 +460,116 @@ func writeRuntimeFloorConfig(t *testing.T, root, body string) {
 func quoteJSON(s string) string {
 	return `"` + strings.ReplaceAll(s, `\`, `\\`) + `"`
 }
+
+func TestCheckProdDeploy_DefaultBlocksReleaseCompletion(t *testing.T) {
+	root := testWorktreeRoot(t)
+	ctx := Context{WorktreeRoot: root}
+
+	cases := []string{
+		"git push origin v5.3.0",
+		"git push --tags",
+		"gh release create v1 --title x",
+		"gh release view v1",
+	}
+
+	for _, cmd := range cases {
+		t.Run(cmd, func(t *testing.T) {
+			d := CheckCommand(cmd, ctx)
+			if !d.Stopped || d.Category != CategoryProdDeploy {
+				t.Fatalf("default must stop %q, got Stopped=%v Category=%s", cmd, d.Stopped, d.Category)
+			}
+		})
+	}
+}
+
+func TestCheckProdDeploy_ReleaseAutoAllowsReleaseCompletion(t *testing.T) {
+	root := testWorktreeRoot(t)
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"releaseAuto":true}}`)
+	ctx := Context{WorktreeRoot: root}
+
+	cases := []string{
+		"git push origin v5.3.0",
+		"git push --tags",
+		"gh release create v1 --title x",
+		"gh release edit v1",
+		"gh release upload v1 f.tgz",
+		"gh release view v1",
+	}
+
+	for _, cmd := range cases {
+		t.Run(cmd, func(t *testing.T) {
+			d := CheckCommand(cmd, ctx)
+			if d.Stopped {
+				t.Fatalf("releaseAuto opt-in must allow %q, got category=%s pattern=%s reason=%s",
+					cmd, d.Category, d.Pattern, d.Reason)
+			}
+		})
+	}
+}
+
+func TestCheckProdDeploy_ReleaseAutoStillBlocksNonReleaseSubset(t *testing.T) {
+	root := testWorktreeRoot(t)
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"releaseAuto":true}}`)
+	ctx := Context{WorktreeRoot: root}
+
+	cases := []struct {
+		cmd     string
+		pattern string
+	}{
+		{"gh release delete v1", "gh release delete"},
+		{"npm publish", "npm publish"},
+		{"terraform apply -auto-approve", "terraform apply"},
+		{"kubectl apply -f deployment.yaml", "kubectl apply"},
+		{"vercel --prod", "vercel --prod"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.cmd, func(t *testing.T) {
+			d := CheckCommand(tc.cmd, ctx)
+			if !d.Stopped || d.Category != CategoryProdDeploy {
+				t.Fatalf("releaseAuto must still stop %q, got Stopped=%v Category=%s", tc.cmd, d.Stopped, d.Category)
+			}
+			if d.Pattern != tc.pattern {
+				t.Fatalf("expected pattern %q, got %q", tc.pattern, d.Pattern)
+			}
+		})
+	}
+}
+
+func TestCheckProdDeploy_ReleaseAutoFalseExplicit(t *testing.T) {
+	root := testWorktreeRoot(t)
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"releaseAuto":false}}`)
+	ctx := Context{WorktreeRoot: root}
+
+	d := CheckCommand("git push --tags", ctx)
+	if !d.Stopped || d.Category != CategoryProdDeploy {
+		t.Fatalf("releaseAuto:false must stop release completion, got Stopped=%v Category=%s", d.Stopped, d.Category)
+	}
+}
+
+func TestCheckProdDeploy_ReleaseAutoMalformedConfigFailsSafe(t *testing.T) {
+	root := testWorktreeRoot(t)
+	writeRuntimeFloorConfig(t, root, `{"runtimefloor":{"releaseAuto":true`)
+	ctx := Context{WorktreeRoot: root}
+
+	d := CheckCommand("gh release create v1", ctx)
+	if !d.Stopped || d.Category != CategoryProdDeploy {
+		t.Fatalf("malformed config must fail safe (stop), got Stopped=%v Category=%s", d.Stopped, d.Category)
+	}
+}
+
+func TestCheckProdDeploy_ReleaseAutoResolvedFromParentDir(t *testing.T) {
+	parent := t.TempDir()
+	subdir := filepath.Join(parent, "project")
+	if err := os.Mkdir(subdir, 0o755); err != nil {
+		t.Fatalf("mkdir subdir: %v", err)
+	}
+	writeRuntimeFloorConfig(t, parent, `{"runtimefloor":{"releaseAuto":true}}`)
+	ctx := Context{WorktreeRoot: subdir}
+
+	d := CheckCommand("git push --tags", ctx)
+	if d.Stopped {
+		t.Fatalf("releaseAuto from parent config should allow git push --tags, got category=%s pattern=%s",
+			d.Category, d.Pattern)
+	}
+}
