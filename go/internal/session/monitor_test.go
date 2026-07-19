@@ -22,7 +22,7 @@ func TestMonitorHandler_GeneratesSessionFile(t *testing.T) {
 	plansFile := filepath.Join(dir, "Plans.md")
 
 	// Plans.md を作成
-	plans := "| t1 | cc:WIP |\n| t2 | cc:TODO |\n"
+	plans := "| t1 | work | dod | - | cc:WIP |\n| t2 | work | dod | - | cc:TODO |\n"
 	if err := os.WriteFile(plansFile, []byte(plans), 0644); err != nil {
 		t.Fatal(err)
 	}

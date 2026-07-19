@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 )
 
 // SummaryHandler は Stop フックハンドラ（セッション終了サマリー）。
@@ -220,23 +222,20 @@ func (h *SummaryHandler) readChangedFiles(raw map[string]interface{}) ([]string,
 
 // readWIPTasks は Plans.md から WIP/依頼中 タスクを読み取る。
 func (h *SummaryHandler) readWIPTasks(plansFile string) []string {
-	f, err := os.Open(plansFile)
+	taskRows, err := plans.ParseFile(plansFile)
 	if err != nil {
 		return nil
 	}
-	defer f.Close()
 
 	var tasks []string
-	scanner := newLineScanner(f)
-	count := 0
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "cc:WIP") || strings.Contains(line, "pm:依頼中") || strings.Contains(line, "cursor:依頼中") {
-			tasks = append(tasks, line)
-			count++
-			if count >= 20 {
-				break
-			}
+	for _, task := range taskRows {
+		if !task.Tags.Wip && !task.Tags.Pending {
+			continue
+		}
+		tasks = append(tasks, fmt.Sprintf("| %s | %s | %s | %s | %s |",
+			task.TaskID, task.Title, task.DoD, task.Depends, task.Status))
+		if len(tasks) >= 20 {
+			break
 		}
 	}
 	return tasks

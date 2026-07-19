@@ -58,9 +58,9 @@ func TestPostCompactHandler_WithWIPTasks(t *testing.T) {
 	plansFile := filepath.Join(dir, "Plans.md")
 	content := `# Plans
 
-| 1 | Implement feature X | In progress | cc:WIP |
-| 2 | Write tests | Not started | cc:TODO |
-| 3 | Done task | Done | cc:完了 |
+| 1 | Implement feature X | dod | - | cc:WIP |
+| 2 | Write tests | dod | - | cc:TODO |
+| 3 | Done task | dod | - | cc:完了 |
 `
 	if err := os.WriteFile(plansFile, []byte(content), 0600); err != nil {
 		t.Fatal(err)
@@ -209,7 +209,7 @@ func TestPostCompactHandler_WithHandoffArtifact(t *testing.T) {
 func TestPostCompactHandler_WritesCompactionLog(t *testing.T) {
 	dir := t.TempDir()
 	plansFile := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansFile, []byte("# Plans\n| 1 | Task | WIP | cc:WIP |\n"), 0600); err != nil {
+	if err := os.WriteFile(plansFile, []byte("# Plans\n| 1 | Task | dod | - | cc:WIP |\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 

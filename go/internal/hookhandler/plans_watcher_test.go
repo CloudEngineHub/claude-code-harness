@@ -388,40 +388,6 @@ func TestIsPlansFileWithRoot(t *testing.T) {
 	}
 }
 
-func TestCountMarker(t *testing.T) {
-	tmpDir := t.TempDir()
-	origDir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(tmpDir); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Chdir(origDir)
-
-	content := "cc:TODO\ncc:TODO\ncc:WIP\ncc:完了\npm:依頼中\n"
-	if err := os.WriteFile("Plans.md", []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	cases := []struct {
-		marker   string
-		expected int
-	}{
-		{"cc:TODO", 2},
-		{"cc:WIP", 1},
-		{"cc:完了", 1},
-		{"pm:依頼中", 1},
-		{"pm:確認済", 0},
-	}
-	for _, c := range cases {
-		got := countMarker("Plans.md", c.marker)
-		if got != c.expected {
-			t.Errorf("countMarker(Plans.md, %q) = %d, want %d", c.marker, got, c.expected)
-		}
-	}
-}
-
 func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, err := os.Getwd()

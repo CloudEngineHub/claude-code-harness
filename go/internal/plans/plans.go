@@ -21,10 +21,44 @@ import (
 // Tags classifies a task row by its Status marker. A row may match none of these
 // (e.g. an unrecognized status), in which case all booleans are false.
 type Tags struct {
-	Todo    bool `json:"todo"`
-	Wip     bool `json:"wip"`
-	Blocked bool `json:"blocked"`
-	Done    bool `json:"done"`
+	Todo      bool `json:"todo"`
+	Wip       bool `json:"wip"`
+	Blocked   bool `json:"blocked"`
+	Done      bool `json:"done"`
+	Pending   bool `json:"pending"`
+	Confirmed bool `json:"confirmed"`
+}
+
+// TagCounts aggregates marker counts from parsed task rows (Status cell only).
+type TagCounts struct {
+	Todo      int
+	Wip       int
+	Blocked   int
+	Done      int
+	Pending   int
+	Confirmed int
+}
+
+// CountTags returns per-marker counts from parsed task rows.
+func CountTags(tasks []Task) TagCounts {
+	var c TagCounts
+	for _, t := range tasks {
+		switch {
+		case t.Tags.Todo:
+			c.Todo++
+		case t.Tags.Wip:
+			c.Wip++
+		case t.Tags.Blocked:
+			c.Blocked++
+		case t.Tags.Done:
+			c.Done++
+		case t.Tags.Pending:
+			c.Pending++
+		case t.Tags.Confirmed:
+			c.Confirmed++
+		}
+	}
+	return c
 }
 
 // Task is one parsed task row from Plans.md.
@@ -44,19 +78,23 @@ type Task struct {
 
 // Status marker matchers. Case-insensitive, optional surrounding backtick.
 var (
-	reTodo    = regexp.MustCompile("(?i)`?cc:TODO`?")
-	reWip     = regexp.MustCompile("(?i)`?cc:WIP`?|\\[in_progress\\]")
-	reBlocked = regexp.MustCompile("(?i)`?cc:blocked`?|\\[blocked\\]")
-	reDone    = regexp.MustCompile("(?i)`?cc:完了`?|`?cc:done`?")
+	reTodo      = regexp.MustCompile("(?i)`?cc:TODO`?")
+	reWip       = regexp.MustCompile("(?i)`?cc:WIP`?|\\[in_progress\\]")
+	reBlocked   = regexp.MustCompile("(?i)`?cc:blocked`?|\\[blocked\\]")
+	reDone      = regexp.MustCompile("(?i)`?cc:完了`?|`?cc:done`?")
+	rePending   = regexp.MustCompile("(?i)`?pm:(依頼中|requested|pending)`?|`?cursor:(依頼中|pending)`?")
+	reConfirmed = regexp.MustCompile("(?i)`?pm:(確認済|approved|confirmed)`?|`?cursor:(確認済|confirmed)`?")
 )
 
 // classifyStatus computes Tags from a Status cell string.
 func classifyStatus(status string) Tags {
 	return Tags{
-		Todo:    reTodo.MatchString(status),
-		Wip:     reWip.MatchString(status),
-		Blocked: reBlocked.MatchString(status),
-		Done:    reDone.MatchString(status),
+		Todo:      reTodo.MatchString(status),
+		Wip:       reWip.MatchString(status),
+		Blocked:   reBlocked.MatchString(status),
+		Done:      reDone.MatchString(status),
+		Pending:   rePending.MatchString(status),
+		Confirmed: reConfirmed.MatchString(status),
 	}
 }
 

@@ -1,13 +1,14 @@
 package event
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Chachamaru127/claude-code-harness/go/internal/plans"
 )
 
 // PostCompactHandler は PostCompact フックハンドラ。
@@ -197,25 +198,28 @@ func (h *PostCompactHandler) getWIPSummary(plansFile string) string {
 		return ""
 	}
 
-	f, err := os.Open(plansFile)
+	taskRows, err := plans.ParseFile(plansFile)
 	if err != nil {
 		return ""
 	}
-	defer f.Close()
 
 	var wipLines []string
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if strings.Contains(line, "cc:WIP") || strings.Contains(line, "cc:TODO") {
-			wipLines = append(wipLines, line)
-			if len(wipLines) >= 20 {
-				break
-			}
+	for _, task := range taskRows {
+		if !task.Tags.Wip && !task.Tags.Todo {
+			continue
+		}
+		wipLines = append(wipLines, formatPlanTaskRow(task))
+		if len(wipLines) >= 20 {
+			break
 		}
 	}
 
 	return strings.Join(wipLines, "\n")
+}
+
+func formatPlanTaskRow(task plans.Task) string {
+	return fmt.Sprintf("| %s | %s | %s | %s | %s |",
+		task.TaskID, task.Title, task.DoD, task.Depends, task.Status)
 }
 
 // buildSystemMessage はシステムメッセージを構築する。

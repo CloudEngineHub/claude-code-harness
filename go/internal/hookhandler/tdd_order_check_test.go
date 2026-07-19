@@ -107,7 +107,7 @@ func TestHandleTDDOrderCheck_NoWIPTask(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// Plans.md に cc:WIP がない場合はスキップ
-	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:TODO |\n"), 0o644); err != nil {
+	if err := os.WriteFile("Plans.md", []byte("| T1 | 実装 | DoD | - | cc:TODO |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -134,7 +134,7 @@ func TestHandleTDDOrderCheck_SkipTDDMarker(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// [skip:tdd] マーカーがある場合はスキップ
-	plansContent := "| Task | 実装 [skip:tdd] | DoD | - | cc:WIP |\n"
+	plansContent := "| T1 | 実装 [skip:tdd] | DoD | - | cc:WIP |\n"
 	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestHandleTDDOrderCheck_WarningEmitted(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// WIP タスクあり、テスト未編集、[skip:tdd] なし → 警告を出力
-	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+	if err := os.WriteFile("Plans.md", []byte("| T1 | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -245,7 +245,7 @@ func runTDDWarningForLocaleTest(t *testing.T, config string) tddOutput {
 			t.Fatal(err)
 		}
 	}
-	if err := os.WriteFile("Plans.md", []byte("| Task | Implement | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+	if err := os.WriteFile("Plans.md", []byte("| T1 | Implement | DoD | - | cc:WIP |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -269,7 +269,7 @@ func TestHandleTDDOrderCheck_TestAlreadyEdited(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// WIP タスクあり、テストファイルが session-changes.json に記録済み
-	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+	if err := os.WriteFile("Plans.md", []byte("| T1 | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
@@ -304,7 +304,7 @@ func TestHandleTDDOrderCheck_TestAlreadyInChangedFiles(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// WIP タスクあり、changed-files.jsonl にテストファイルの記録あり
-	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+	if err := os.WriteFile("Plans.md", []byte("| T1 | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {

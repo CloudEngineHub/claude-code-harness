@@ -147,7 +147,7 @@ func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
 	}
 
 	// Plans.md を作成
-	plans := "| task1 | cc:WIP |\n| task2 | pm:依頼中 |\n| task3 | cc:TODO |\n"
+	plans := "| task1 | work | dod | - | cc:WIP |\n| task2 | pm task | dod | - | pm:依頼中 |\n| task3 | todo | dod | - | cc:TODO |\n"
 	plansFile := filepath.Join(dir, "Plans.md")
 	if err := os.WriteFile(plansFile, []byte(plans), 0644); err != nil {
 		t.Fatal(err)

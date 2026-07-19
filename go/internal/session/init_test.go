@@ -77,12 +77,12 @@ func TestInitHandler_WithPlans(t *testing.T) {
 
 	// Plans.md を作成
 	content := `# Plans
-| Task | Status |
-|------|--------|
-| task1 | cc:WIP |
-| task2 | cc:TODO |
-| task3 | cc:TODO |
-| task4 | pm:依頼中 |
+| Task | 内容 | DoD | Depends | Status |
+|---|---|---|---|---|
+| task1 | A | d | - | cc:WIP |
+| task2 | B | d | - | cc:TODO |
+| task3 | C | d | - | cc:TODO |
+| task4 | D | d | - | pm:依頼中 |
 `
 	if err := os.WriteFile(plansFile, []byte(content), 0644); err != nil {
 		t.Fatal(err)
@@ -174,30 +174,17 @@ func TestInitHandler_EmptyInput(t *testing.T) {
 	}
 }
 
-func TestCountMatches(t *testing.T) {
+func TestBuildPlansInfo_StatusCellCounts(t *testing.T) {
 	dir := t.TempDir()
-	f := filepath.Join(dir, "test.md")
-	content := "line1 cc:WIP\nline2 cc:TODO\nline3 pm:依頼中\nline4 cursor:依頼中\nline5 cc:完了\n"
-	if err := os.WriteFile(f, []byte(content), 0644); err != nil {
+	plansFile := filepath.Join(dir, "Plans.md")
+	content := "| T1 | work | dod | - | cc:wip |\n| T2 | wait | dod | - | cc:todo |\n| T3 | pm | dod | - | pm:依頼中 |\n"
+	if err := os.WriteFile(plansFile, []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	tests := []struct {
-		patterns []string
-		want     int
-	}{
-		{[]string{"cc:WIP"}, 1},
-		{[]string{"cc:TODO"}, 1},
-		{[]string{"pm:依頼中", "cursor:依頼中"}, 2},
-		{[]string{"cc:WIP", "pm:依頼中", "cursor:依頼中"}, 3},
-		{[]string{"cc:完了"}, 1},
-		{[]string{"nonexistent"}, 0},
-	}
-
-	for _, tt := range tests {
-		got := countMatches(f, tt.patterns...)
-		if got != tt.want {
-			t.Errorf("countMatches(%v) = %d, want %d", tt.patterns, got, tt.want)
-		}
+	got := buildPlansInfo(plansFile)
+	want := "Plans.md: 進行中 2 / 未着手 1"
+	if got != want {
+		t.Errorf("buildPlansInfo() = %q, want %q", got, want)
 	}
 }
