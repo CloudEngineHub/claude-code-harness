@@ -489,6 +489,12 @@ else
     fail_test "test-wiring auditor contract に問題があります — 'bash tests/test-test-wiring-auditor.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-release-preflight-host-smoke.sh" >/dev/null 2>&1; then
+    pass_test "release preflight host workflow smoke contract が維持されています (test-release-preflight-host-smoke.sh)"
+else
+    fail_test "release preflight host workflow smoke contract に問題があります — 'bash tests/test-release-preflight-host-smoke.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then
     pass_test "Claude Code 2.1.80-2.1.86 の統合ポイントが配線されています"
 else
