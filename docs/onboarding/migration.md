@@ -28,9 +28,9 @@ OpenCode files, symlinks, project state, or harness-mem data.
 
 ## Compatibility Contract
 
-- Claude Code remains the only public `supported` route.
-- Codex CLI and OpenCode remain `internal-compatible`.
-- Codex app, Cursor, and GitHub Copilot CLI remain `candidate`.
+- Claude Code, Codex CLI, Cursor, and Grok are public `supported` routes (H8 pin).
+- OpenCode remains `internal-compatible`.
+- Codex app, Hermes Agent, and GitHub Copilot CLI remain `candidate`.
 - Antigravity CLI remains `future/unsupported`.
 - `not_observed != absent`: missing local evidence means the report could not
   observe a route, not that the capability is impossible.

@@ -6,6 +6,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Changed (Breaking-adjacent: public support claims)
+
+- **Codex CLI / Cursor / Grok を `supported`（正式対応）に昇格（Phase 111.3.3 / 111.4.4 / 111.5.4、H8 pin）**: H1–H8 が同一 claim path で green になったため、registry / README（EN+JA）/ onboarding / capability matrix / spec stance 表 / plugin manifest / claim-wording テストの全 public 面を `supported` に一斉更新。昇格は能力の同一性主張ではなく検証済み claim path の主張であり、各 host の caveat（Cursor: FS jail なし・封じ込めは harness 側、Grok: Claude-envelope PreToolUse floor、Codex CLI: 3cli Bash floor ≠ Codex app parity）は明記を維持。Cursor は昇格前提条件として `docs/CURSOR_INTEGRATION.md` に Containment disclosure 節を新設。Codex app / OpenCode / Hermes / Copilot CLI / Antigravity は非昇格のまま wording guard を維持
+
+### Fixed
+
+- **Dependabot critical 20 件解消（Phase 117.1）**: `benchmarks/breezing-bench/` 配下 20 fixture manifest の vitest を `^4.1.0` に一括更新（CVE-2026-47429）。`tests/test-breezing-fixture-deps.sh`（version floor、0-match fail-closed ガード付き）を validate-plugin に配線し wiring pin 15 件に。dependabot.yml へは fixture dir を追加しない方針（使い捨て fixture への update-PR ノイズ回避、検知は alerts + floor テストで担保）。low 1 件（`@ai-sdk/provider-utils`）は upstream 未修正のため据え置き
+
 ### Added
 
 - **release preflight の host workflow smoke 消費（H7 充足、Phase 111.7.6）**: `scripts/release-preflight.sh` が全 dist host（claude / codex / cursor / grok）の workflow smoke を `REQUIRED=1`（fail-closed）で実行する `check_host_workflow_smoke` を獲得。1 host でも FAIL なら release が止まる。standalone 実行は `scripts/release-preflight-host-smoke.sh`（registry SSOT の `host_registry_dist_hosts` を消費、テスト用 seam `HARNESS_PREFLIGHT_HOST_SMOKE_CMD` 付き）。multi-host `supported` bar H7（release-preflight consumes host gates fail-closed）の充足配線であり、Codex / Cursor / Grok の昇格残ゲートは H8（wording pin）のみになった。契約テスト `tests/test-release-preflight-host-smoke.sh` を validate-plugin に配線し、wiring pin は 14 件に増加

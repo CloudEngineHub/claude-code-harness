@@ -26,7 +26,7 @@
     {
       "id": "codex",
       "display_name": "Codex CLI",
-      "tier": "internal-compatible",
+      "tier": "supported",
       "setup_script": "scripts/setup-codex.sh",
       "dist_host": "codex",
       "routing_host": "codex",
@@ -34,10 +34,7 @@
       "floor_member": true,
       "manifest_source": ".codex-plugin/plugin.json",
       "bootstrap_route": "Codex AGENTS.md",
-      "blocked_public_phrases": [
-        "supported Codex adapter",
-        "\u6b63\u5f0f\u5bfe\u5fdc.*Codex"
-      ],
+      "blocked_public_phrases": [],
       "smoke": {
         "static": [
           "tests/test-codex-package.sh",
@@ -51,7 +48,7 @@
     {
       "id": "cursor",
       "display_name": "Cursor",
-      "tier": "internal-compatible",
+      "tier": "supported",
       "setup_script": "scripts/setup-cursor.sh",
       "dist_host": "cursor",
       "routing_host": "cursor",
@@ -59,10 +56,7 @@
       "floor_member": true,
       "manifest_source": ".cursor-plugin/plugin.json",
       "bootstrap_route": "Cursor AGENTS.md and Plugin Route",
-      "blocked_public_phrases": [
-        "supported Cursor adapter",
-        "\u6b63\u5f0f\u5bfe\u5fdc.*Cursor"
-      ],
+      "blocked_public_phrases": [],
       "smoke": {
         "static": [
           "tests/test-cursor-adapter-candidate.sh"
@@ -75,7 +69,7 @@
     {
       "id": "grok",
       "display_name": "Grok",
-      "tier": "internal-compatible",
+      "tier": "supported",
       "setup_script": "scripts/setup-grok.sh",
       "dist_host": "grok",
       "routing_host": "grok",
@@ -83,10 +77,7 @@
       "floor_member": true,
       "manifest_source": ".grok-plugin/plugin.json",
       "bootstrap_route": "Grok AGENTS.md and Plugin Route",
-      "blocked_public_phrases": [
-        "supported Grok adapter",
-        "\u6b63\u5f0f\u5bfe\u5fdc.*Grok"
-      ],
+      "blocked_public_phrases": [],
       "smoke": {
         "static": [
           "tests/test-grok-adapter-candidate.sh"

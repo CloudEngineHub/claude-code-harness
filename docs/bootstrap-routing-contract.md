@@ -36,11 +36,11 @@ current artifact set; it does not mean the capability is absent.
 | Host | Phase 73 bootstrap tier | Bootstrap claim boundary |
 |---|---|---|
 | Claude Code | `supported` | SessionStart, plugin instructions, skills, hooks, and release validation may be used as support evidence. |
-| Codex CLI | `internal-compatible` | `codex/AGENTS.md`, Codex skills, setup scripts, and companion checks are internal compatibility evidence until direct plugin install and runtime smoke pass together. |
+| Codex CLI | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed; `codex/AGENTS.md`, Codex skills, setup scripts, companion checks, and 3cli Bash PreToolUse floor — not Codex app parity. |
 | Codex app | `candidate` | App behavior must be verified separately from Codex CLI; no app support claim before app-specific smoke evidence exists. |
 | OpenCode | `internal-compatible` | `opencode/AGENTS.md` and mirror/package checks are compatibility evidence until runtime bootstrap smoke passes. |
-| Cursor | `internal-compatible` | `.cursor/AGENTS.md`, `.cursor-plugin/plugin.json`, `scripts/setup-cursor.sh`, rules/skills/agents, optional hooks/MCP config shape; static smoke via `tests/test-cursor-adapter-candidate.sh` and `scripts/setup-cursor.sh --check`; observed Desktop skill loading; PM handoff docs are not adapter support; no public supported claim. |
-| Grok | `internal-compatible` | `.grok/AGENTS.md`, `.grok-plugin/plugin.json`, `scripts/setup-grok.sh`, host dist build, `scripts/model-routing.sh --host grok`; static smoke via `tests/test-grok-adapter-candidate.sh` and `scripts/setup-grok.sh --check`; observed `grok plugin install` + `grok inspect` skill discovery; no Claude SessionStart / PreToolUse parity; no public supported claim. |
+| Cursor | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed; `.cursor/AGENTS.md`, plugin manifest, setup-cursor, workflow smoke; **no FS jail** — containment is harness-side. |
+| Grok | `supported` | Live H4 (2026-07-17) + H7 release-preflight fail-closed; setup-grok, workflow smoke, HostGrok Claude-envelope PreToolUse floor — not full Claude hook parity. |
 | GitHub Copilot CLI | `candidate` | Manual instruction or CLI profile research is allowed; no Harness support claim without Harness-specific bootstrap evidence. |
 | Antigravity CLI | `future/unsupported` | No setup docs, bootstrap route, or support claim until an official or verified adapter route is observed. |
 
@@ -101,8 +101,7 @@ Expected properties:
 - Bootstrap evidence is AGENTS.md + plugin manifest + setup-cursor install +
   static smoke + observed Desktop skill loading, not Claude SessionStart hook
   parity.
-- Cursor is `internal-compatible`; public `supported` claim waits for CI-gated
-  workflow smoke.
+- Cursor is `supported` with harness-side containment (no traditional FS jail).
 
 Required smoke (static minimum):
 
@@ -136,7 +135,7 @@ Expected properties:
 - Bootstrap evidence is AGENTS.md + plugin manifest + setup-grok install +
   static smoke + optional CLI install/inspect, not Claude SessionStart hook
   parity.
-- Grok is `internal-compatible`; public `supported` claim waits for CI-gated live workflow smoke (H1–H8).
+- Grok is `supported` with Claude-envelope PreToolUse floor — not full Claude hook parity.
 
 Required smoke (static minimum):
 
@@ -153,7 +152,8 @@ HARNESS_GROK_ADAPTER_SMOKE_REQUIRED=1 bash tests/test-grok-adapter-candidate.sh
 
 ### Candidate Host Routes
 
-Codex app and GitHub Copilot CLI are candidate hosts. Grok and Cursor are `internal-compatible`. Cursor was Phase 87; Grok Phase 111. Their routes may be researched, documented,
+Codex app and GitHub Copilot CLI are candidate hosts. Cursor and Grok are
+`supported` (H8 pin). Their routes may be researched, documented,
 and smoke-tested, but candidate hosts are not golden prompt success routes until
 host-specific bootstrap evidence exists.
 
@@ -200,8 +200,8 @@ that docs name the expected workflow for common user intent.
 
 ## Candidate And Unsupported Hosts
 
-Codex app and GitHub Copilot CLI are candidate hosts. Cursor is
-`internal-compatible`. Antigravity CLI is future/unsupported. They are not part
+Codex app and GitHub Copilot CLI are candidate hosts. Cursor and Grok are
+`supported` (H8 pin). Antigravity CLI is future/unsupported. They are not part
 of the golden prompt fixture and must not be counted as successful runtime
 routing until their own evidence exists.
 
@@ -220,8 +220,8 @@ The routing contract is valid only when all of the following stay true:
 - Each core workflow listed above has at least one prompt fixture.
 - Codex app and GitHub Copilot CLI remain candidate until host-specific bootstrap
   evidence exists.
-- Cursor remains `internal-compatible` until CI-gated workflow smoke supports a
-  public `supported` claim.
+- Cursor is `supported` with harness-side containment (H8 pin).
+- Grok is `supported` with Claude-envelope PreToolUse floor (H8 pin).
 - Antigravity CLI remains future/unsupported until an official or verified
   adapter route exists.
 - Cursor static adapter smoke must stay green when `.cursor-plugin/` or

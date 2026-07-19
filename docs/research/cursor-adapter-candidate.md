@@ -1,5 +1,10 @@
 # Cursor Adapter Candidate
 
+> **Promotion note (2026-07-19):** Cursor promoted to `supported` on 2026-07-19
+> (live H4 workflow smoke 2026-07-17 + H7 release-preflight fail-closed gate).
+> The tier statements below are historical evidence; public surfaces now pin
+> `supported` with harness-side containment (`docs/CURSOR_INTEGRATION.md`).
+
 Status: internal-compatible evidence boundary
 Checked at: 2026-05-28 JST
 Phase: `Plans.md` 81.1

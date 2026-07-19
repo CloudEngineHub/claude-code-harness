@@ -141,11 +141,11 @@ sponsor can judge without reading code:
 | Tool | Tier | Route |
 |---|---|---|
 | Claude Code | `supported` | Claude plugin marketplace, then `/harness-setup`. |
-| Codex CLI | `internal-compatible` | `scripts/setup-codex.sh --user`; direct plugin smoke is tracked separately. |
+| Codex CLI | `supported` | `scripts/setup-codex.sh --user`; live H4 workflow smoke (2026-07-17) + release-preflight fail-closed gate (H7, 2026-07-19); 3cli Bash PreToolUse floor — not Codex app parity. |
 | Codex app | `candidate` | Candidate smoke only; do not reuse Codex CLI proof. |
 | OpenCode | `internal-compatible` | `scripts/setup-opencode.sh`; runtime parity is not claimed. |
-| Cursor | `internal-compatible` | `scripts/setup-cursor.sh` real-directory local install; top support tier still gated on workflow smoke. |
-| Grok | `internal-compatible` | `scripts/setup-grok.sh` plugin package install/check; workflow smoke and Claude hook parity not claimed. |
+| Cursor | `supported` | `scripts/setup-cursor.sh` real-directory local install; workflow smoke + release-preflight fail-closed gate green; no FS jail — containment is harness-side, see [docs/CURSOR_INTEGRATION.md](docs/CURSOR_INTEGRATION.md). |
+| Grok | `supported` | `scripts/setup-grok.sh` plugin package install/check; live H4 (2026-07-17) + H7 preflight; Claude-envelope PreToolUse floor — not full Claude hook parity. |
 | Hermes Agent | `candidate` | Manual symlink research route only; dynamic slash discovery observed locally, runtime parity not claimed. |
 | GitHub Copilot CLI | `candidate` | Manual profile research only. |
 | Antigravity CLI | `future/unsupported` | No end-user install route in this phase. |
@@ -159,12 +159,13 @@ anything.
 
 ## Support Boundary
 
-**Four install routes ≠ four hosts at the public top tier.** Setup scripts mean
+**Four install routes ≠ four identical capability guarantees.** Setup scripts mean
 each tool has an **entry path**, not a shared product guarantee. Public
-**正式対応** maps only to EN tier `supported`. Today that tier is **Claude Code
-only**. Other rows in the install table stay at their listed tier
-(`internal-compatible` or `candidate`) until H1–H8 pass on one claim path
-(`docs/spec/planning-and-host-adapter.md`; Phase 111).
+**正式対応** maps to EN tier `supported`. **Claude Code, Codex CLI, Cursor, and
+Grok** passed H1–H8 on their verified claim paths (live H4 2026-07-17; H7
+release-preflight fail-closed wiring 2026-07-19). Other rows in the install
+table stay at their listed tier (`internal-compatible` or `candidate`) until
+their own H1–H8 pass (`docs/spec/planning-and-host-adapter.md`; Phase 111).
 
 | EN tier | JP public wording (safe) |
 |---|---|
@@ -210,7 +211,7 @@ Use these after the basic trigger path is visible.
 | [Skill trigger gate](docs/onboarding/skill-trigger-acceptance.md) | How install success is verified. |
 | [Capability matrix](docs/tool-capability-matrix.md) | Supported, internal-compatible, candidate, and unsupported host claims. |
 | [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Current Claude Code requirements and compatibility notes. |
-| [Cursor Integration](docs/CURSOR_INTEGRATION.md) | Cursor handoff boundary and internal-compatible adapter notes. |
+| [Cursor Integration](docs/CURSOR_INTEGRATION.md) | Cursor handoff boundary and supported adapter notes (harness-side containment). |
 | [Distribution Scope](docs/distribution-scope.md) | Included vs compatibility vs development-only paths. |
 | [Hardening parity](docs/hardening-parity.md) | Runtime safety differences between Claude hooks and Codex gates. |
 | [Work All Evidence Pack](docs/evidence/work-all.md) | Success/failure verification contract for full-plan execution. |

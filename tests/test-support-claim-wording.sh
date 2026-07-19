@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Blocks public surfaces from claiming non-Claude hosts as publicly
+# Blocks public surfaces from claiming non-public hosts as publicly
 # "supported" (or Japanese 正式対応 / 対応済み / サポート対象) near a
-# non-public host name. Claude Code is intentionally omitted (only public
-# supported host today); Codex CLI / Cursor / Grok stay internal-compatible
-# and must not receive a bare public "supported" claim.
+# non-public host name. Claude Code, Codex CLI, Cursor, and Grok are public
+# `supported` hosts (H8 pin); Codex app and other candidate/future hosts stay
+# non-public and must not receive a bare public "supported" claim.
 #
 # Detection model (neutralize-then-scan):
 #   1. Collect lines where a non-public host name and a support word appear
@@ -50,7 +50,7 @@ fail() {
 
 # Patterns are lowercase: matching happens case-insensitively (grep -i) and
 # on a lowercased copy of each candidate line.
-NON_PUBLIC_HOSTS='codex app|cursor|grok|hermes agent|hermes|github copilot cli|copilot cli|antigravity cli|antigravity'
+NON_PUBLIC_HOSTS='codex app|hermes agent|hermes|github copilot cli|copilot cli|antigravity cli|antigravity'
 SUPPORT_WORDS='[^[:alpha:]]supported([^[:alpha:]]|$)|サポート済み|サポート対象|対応済み|正式対応'
 PROXIMITY="(${NON_PUBLIC_HOSTS}).{0,100}(${SUPPORT_WORDS})|(${SUPPORT_WORDS}).{0,100}(${NON_PUBLIC_HOSTS})"
 
@@ -96,8 +96,8 @@ if [ "$violations" -gt 0 ]; then
   fail "${violations} public support overclaim(s): candidate/unsupported host appears supported"
 fi
 
-# Positive pins: public surfaces still name Claude as supported and the other
-# hosts at their release/v5.1.0 tiers (Grok / Cursor must not regress).
+# Positive pins: public surfaces name H8-supported hosts and keep non-promoted
+# hosts at their release tiers (Hermes must not regress).
 assert_contains() {
   local file="$1"
   local needle="$2"
@@ -105,10 +105,13 @@ assert_contains() {
 }
 
 assert_contains "${ROOT_DIR}/README.md" "| Claude Code | \`supported\` |"
-assert_contains "${ROOT_DIR}/README.md" "| Cursor | \`internal-compatible\` |"
-assert_contains "${ROOT_DIR}/README.md" "| Grok | \`internal-compatible\` |"
+assert_contains "${ROOT_DIR}/README.md" "| Codex CLI | \`supported\` |"
+assert_contains "${ROOT_DIR}/README.md" "| Cursor | \`supported\` |"
+assert_contains "${ROOT_DIR}/README.md" "| Grok | \`supported\` |"
 assert_contains "${ROOT_DIR}/README.md" "| Hermes Agent | \`candidate\` |"
-assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Grok | \`internal-compatible\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Codex CLI | \`supported\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Cursor | \`supported\` |"
+assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Grok | \`supported\` |"
 assert_contains "${ROOT_DIR}/docs/onboarding/index.md" "| Hermes Agent | \`candidate\` |"
 
 echo "test-support-claim-wording: ok"

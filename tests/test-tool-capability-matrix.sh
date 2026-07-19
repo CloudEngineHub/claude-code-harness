@@ -50,11 +50,11 @@ done
 
 tier_rows=(
   "| Claude Code | \`supported\` |"
-  "| Codex CLI | \`internal-compatible\` |"
+  "| Codex CLI | \`supported\` |"
   "| Codex app | \`candidate\` |"
   "| OpenCode | \`internal-compatible\` |"
-  "| Cursor | \`internal-compatible\` |"
-  "| Grok | \`internal-compatible\` |"
+  "| Cursor | \`supported\` |"
+  "| Grok | \`supported\` |"
   "| Hermes Agent | \`candidate\` |"
   "| GitHub Copilot CLI | \`candidate\` |"
   "| Antigravity CLI | \`future/unsupported\` |"

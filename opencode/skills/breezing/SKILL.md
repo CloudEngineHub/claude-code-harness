@@ -266,7 +266,7 @@ read mode でも保持必要: `.cursorignore` / egress allowlist (`*.cursor.sh`)
 
 #### Cursor adapter support claim
 
-Cursor は依然 `internal-compatible` tier（Phase 87 / PR #174 で promotion）。`supported` public claim は CI-gated workflow smoke 充足まで継続 gate。`--cursor` lean path は support tier を昇格させない。
+Cursor は `supported` tier（H8 pin: live H4 2026-07-17 + H7 release-preflight fail-closed）。FS jail なし — containment は harness-side（`docs/CURSOR_INTEGRATION.md`）。`--cursor` lean path 自体は tier を昇格させない。
 
 Bootstrap route: `.cursor/AGENTS.md` + `.cursor-plugin/plugin.json`。
 

@@ -495,6 +495,12 @@ else
     fail_test "release preflight host workflow smoke contract に問題があります — 'bash tests/test-release-preflight-host-smoke.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-breezing-fixture-deps.sh" >/dev/null 2>&1; then
+    pass_test "breezing fixture vitest version floor が維持されています (test-breezing-fixture-deps.sh)"
+else
+    fail_test "breezing fixture vitest version floor に問題があります — 'bash tests/test-breezing-fixture-deps.sh' で詳細確認"
+fi
+
 if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then
     pass_test "Claude Code 2.1.80-2.1.86 の統合ポイントが配線されています"
 else

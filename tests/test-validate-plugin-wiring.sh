@@ -29,6 +29,7 @@ REQUIRED_INVOCATIONS=(
   "tests/test-harness-review-governance.sh"
   "tests/test-phase-72-mirror-closeout.sh"
   "tests/test-release-preflight-host-smoke.sh"
+  "tests/test-breezing-fixture-deps.sh"
 )
 
 missing=0
