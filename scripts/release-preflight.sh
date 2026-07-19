@@ -814,6 +814,20 @@ check_release_mirror_drift() {
   rm -f "$output_file"
 }
 
+check_host_workflow_smoke() {
+  local output_file
+  output_file="$(mktemp)"
+
+  if bash "${SCRIPT_DIR}/release-preflight-host-smoke.sh" >"$output_file" 2>&1; then
+    pass "host workflow smoke"
+  else
+    fail "host workflow smoke"
+    sed 's/^/  /' "$output_file"
+  fi
+
+  rm -f "$output_file"
+}
+
 check_ci_status() {
   if [ -n "${HARNESS_RELEASE_CI_STATUS_CMD:-}" ]; then
     run_optional_command "CI status" "$HARNESS_RELEASE_CI_STATUS_CMD"
@@ -872,6 +886,7 @@ check_env_and_healthcheck
 check_runtime_residuals
 check_sprint_contract_schema
 check_release_mirror_drift
+check_host_workflow_smoke
 check_ci_status
 
 echo "----------------------------------------"
