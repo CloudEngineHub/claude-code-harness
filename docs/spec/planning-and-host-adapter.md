@@ -129,7 +129,7 @@ parallel guardrail.
 |------|---------------------|----------------|
 | Claude Code | `.claude-plugin/hooks.json` `PreToolUse` entry routing to `bin/harness hook pre-tool`, generated skill/agent surface, manifest version | A separate guardrail engine; that its hook config is hand-authored source |
 | Codex | generated `.codex/hooks.json` `PreToolUse` entry routing to `bin/harness hook pre-tool --host codex`, generated skill/agent surface | A divergent rule set; that the companion path is the enforcement boundary |
-| Cursor | generated `.cursor/hooks.json` `preToolUse` entry routing to `bin/harness hook pre-tool --host cursor`, generated skill/agent surface | A public `supported` claim; that file writes are confined by Cursor |
+| Cursor | generated `.cursor/hooks.json` `preToolUse` entry routing to `bin/harness hook pre-tool --host cursor`, generated skill/agent surface | That file writes are confined by Cursor (containment is harness-side, see `docs/CURSOR_INTEGRATION.md`); a divergent rule set |
 
 A generated host shim or support document is valid only when `harness gen`
 produces it from `hosts.toml` and the prompt pack, and `harness gen --check`,
