@@ -85,6 +85,16 @@ coordinate them to reduce file conflicts, but only under these rules.
   `git --git-common-dir`, never under a worktree-local `.claude/`, so parallel
   worktree Workers share a single lease space. Lease keys are the sha256 of the
   repo-relative path, never an absolute path.
+- The live-session set used by lease staleness is the union of (a) the shared
+  presence directory `<git-common-dir parent>/.claude/sessions/live-sessions/`
+  and (b) the worktree-local `active.json` roster. Presence files are
+  session-owned: a session creates/refreshes only its own file on SessionStart
+  and deletes only its own file on Stop; entries older than 24h are pruned
+  during register. Presence files are mode 0600 inside a 0700 directory (the
+  same floor as the lease store). A missing presence directory is
+  `not-configured` and silent — behavior falls back to the local-only roster
+  (the pre-presence behavior). A nil local roster removes only the local half
+  of the union; a fresh presence file still keeps its holder alive.
 - Lease acquisition is atomic (`O_CREAT|O_EXCL`). Staleness requires both TTL
   expiry and the holder session id being absent from the live-session set; pid
   liveness is only an auxiliary signal.
