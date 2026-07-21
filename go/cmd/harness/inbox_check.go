@@ -32,10 +32,11 @@ func resolveInboxDBPath() string {
 }
 
 type inboxCheckOutput struct {
-	Team     string                   `json:"team"`
-	Agent    string                   `json:"agent"`
-	Unread   int                      `json:"unread"`
-	Messages []inboxCheckMessageEntry `json:"messages"`
+	Team          string                   `json:"team"`
+	Agent         string                   `json:"agent"`
+	Unread        int                      `json:"unread"`
+	Messages      []inboxCheckMessageEntry `json:"messages"`
+	InjectContext string                   `json:"inject_context,omitempty"`
 }
 
 type inboxCheckMessageEntry struct {
@@ -142,9 +143,10 @@ func executeInboxCheck(opts inboxCheckOpts) (inboxCheckOutput, error) {
 		return empty, nil
 	}
 
+	locale := resolveInboxLocale()
 	entries := make([]inboxCheckMessageEntry, 0, len(messages))
 	for _, msg := range messages {
-		entries = append(entries, inboxCheckMessageEntry{
+		entry := inboxCheckMessageEntry{
 			ID:        msg.ID,
 			Team:      msg.Team,
 			FromAgent: msg.FromAgent,
@@ -152,16 +154,18 @@ func executeInboxCheck(opts inboxCheckOpts) (inboxCheckOutput, error) {
 			Subject:   msg.Subject,
 			Body:      msg.Body,
 			CreatedAt: msg.CreatedAt.UTC().Format(time.RFC3339Nano),
-		})
+		}
+		entries = append(entries, sanitizeInboxCheckEntry(entry))
 		if err := store.MarkRead(ctx, opts.Team, msg.ID, opts.Agent); err != nil {
 			return empty, nil
 		}
 	}
 
 	return inboxCheckOutput{
-		Team:     opts.Team,
-		Agent:    opts.Agent,
-		Unread:   len(entries),
-		Messages: entries,
+		Team:          opts.Team,
+		Agent:         opts.Agent,
+		Unread:        len(entries),
+		Messages:      entries,
+		InjectContext: buildLivemsgInjectContext(entries, locale),
 	}, nil
 }
