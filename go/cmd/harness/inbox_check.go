@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/deliveryidentity"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/livemsg"
 )
 
@@ -79,8 +80,11 @@ func runInboxCheckCommand(args []string, stdout, stderr io.Writer) int {
 
 func parseInboxCheckArgs(args []string) (inboxCheckOpts, error) {
 	var opts inboxCheckOpts
+	fromEnv := false
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
+		case "--from-env":
+			fromEnv = true
 		case "--team":
 			if i+1 >= len(args) {
 				return opts, fmt.Errorf("--team requires a value")
@@ -103,11 +107,19 @@ func parseInboxCheckArgs(args []string) (inboxCheckOpts, error) {
 			return opts, fmt.Errorf("unknown flag %q", args[i])
 		}
 	}
+	if fromEnv {
+		team, agent, err := deliveryidentity.Resolve()
+		if err != nil {
+			return opts, err
+		}
+		opts.Team = team
+		opts.Agent = agent
+	}
 	if opts.Team == "" {
-		return opts, fmt.Errorf("--team is required")
+		return opts, fmt.Errorf("--team is required (or pass --from-env)")
 	}
 	if opts.Agent == "" {
-		return opts, fmt.Errorf("--agent is required")
+		return opts, fmt.Errorf("--agent is required (or pass --from-env)")
 	}
 	if opts.DB == "" {
 		// Generated Mode-2 delivery hooks (Phase 105.9) omit --db; resolve the

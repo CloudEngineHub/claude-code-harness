@@ -77,9 +77,11 @@ func TestInboxCheck_EmptyDB(t *testing.T) {
 func TestInboxCheck_GeneratedDeliveryCommandForm(t *testing.T) {
 	// Point the default resolver at an empty temp project so no real db exists.
 	t.Setenv("CLAUDE_PLUGIN_DATA", t.TempDir())
+	t.Setenv("HARNESS_LIVEMSG_TEAM", "team-a")
+	t.Setenv("HARNESS_LIVEMSG_AGENT", "agent-1")
 
 	var stdout, stderr bytes.Buffer
-	code := runInboxCheckCommand([]string{"--team", "team-a", "--agent", "agent-1"}, &stdout, &stderr)
+	code := runInboxCheckCommand([]string{"--from-env"}, &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("generated command form should exit 0, got %d; stderr=%q", code, stderr.String())
 	}
@@ -92,6 +94,29 @@ func TestInboxCheck_GeneratedDeliveryCommandForm(t *testing.T) {
 	}
 	if result.Team != "team-a" || result.Agent != "agent-1" || result.Unread != 0 {
 		t.Errorf("unexpected result: %+v", result)
+	}
+}
+
+func TestInboxCheck_FromEnvReadsLivemsgInbox(t *testing.T) {
+	team := "team-smoke"
+	agent := "agent-smoke"
+	dbPath := seedInboxDB(t, team, "peer", agent, 1)
+	t.Setenv("HARNESS_LIVEMSG_TEAM", team)
+	t.Setenv("HARNESS_LIVEMSG_AGENT", agent)
+
+	out, code := runInboxCheckCapture([]string{"--from-env", "--db", dbPath})
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0", code)
+	}
+	var result inboxCheckOutput
+	if err := json.Unmarshal([]byte(out), &result); err != nil {
+		t.Fatalf("JSON: %v", err)
+	}
+	if result.Team != team || result.Agent != agent {
+		t.Fatalf("identity not resolved: %+v", result)
+	}
+	if result.Unread != 1 {
+		t.Fatalf("unread = %d, want 1", result.Unread)
 	}
 }
 
