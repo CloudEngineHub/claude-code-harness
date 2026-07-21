@@ -1021,5 +1021,5 @@ Purpose: agmsg (github.com/fujibee/agmsg, README 調査 2026-07-21) の「人間
 - 事項: external-send — `git push origin <branch>` / `gh pr create` / `gh pr merge --merge` (PR closeout)
   理由: 121.5 DoD (d) の PR closeout に必要
   scope: Phase 121 / Task 121.5
-  承認: 未 (実行 run 開始時に一括確認する)
+  承認: ユーザー承認 (2026-07-21)「完全自動で merge まで」— push / PR / CI green 後 merge まで無停止 (121.6 含む)
 - secret-read / destructive: なし
