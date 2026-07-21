@@ -425,6 +425,7 @@ backend=`cursor` / `codex` の場合は native Worker spawn を使わず、task 
    - 確認は plan 承認時 1 回のみ。work 中の宣言済み事項起因 `AskUserQuestion` はゼロにする。
    - 記録に無い未計画の secret-read / 外部送信 / 破壊的操作は従来どおり runtime floor / ask で停止する。未宣言を黙って allowlist に追加しない。
 2. タスクを `cc:WIP` に更新
+   - 直後に `bin/harness session declare --task <task-id>` で共有 presence に作業宣言（完了時は `bin/harness session declare --clear`）
 3. **TDD フェーズ**（`[skip:tdd]` なし & テストFW存在時）:
    a. テストファイルを先に作成（Red）
    b. 失敗を確認
@@ -450,6 +451,7 @@ backend=`cursor` / `codex` の場合は native Worker spawn を使わず、task 
 10. `bash "${HARNESS_PLUGIN_ROOT}/scripts/write-review-result.sh"` で review artifact を正規化して保存（browser profile は `--browser-result` を渡し、`browser_verdict == PENDING_BROWSER` の時は static verdict を採用）
 11. `git commit` で自動コミット（`--no-commit` で省略可）
 12. タスクを `cc:完了` に更新（commit hash 付与）
+   - 更新後 `bin/harness session declare --clear` で presence の task 宣言を解除
    - `git log --oneline -1` で直近の commit hash（短縮形 7 文字）を取得
    - Plans.md の Status を `cc:完了 [a1b2c3d]` 形式で更新
    - commit がない場合（`--no-commit` 時）は hash なしで `cc:完了` のみ

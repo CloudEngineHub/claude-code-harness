@@ -78,7 +78,9 @@ const presenceDirMode os.FileMode = 0o700
 
 // refreshSharedPresence creates or refreshes the caller's presence file under
 // the shared live-sessions tree. All errors are swallowed (fail-open).
-func refreshSharedPresence(projectRoot, sessionID string) {
+// label is written only when creating a new file; existing content is preserved
+// (mtime refresh only) so declare/task metadata survives register heartbeats.
+func refreshSharedPresence(projectRoot, sessionID, label string) {
 	if !validPresenceSessionID(sessionID) {
 		return
 	}
@@ -95,9 +97,11 @@ func refreshSharedPresence(projectRoot, sessionID string) {
 		_ = os.Chtimes(path, now, now)
 		return
 	}
-	if err := os.WriteFile(path, nil, presenceFileMode); err != nil {
+	body := presenceBodyForNewFile(label)
+	if err := os.WriteFile(path, body, presenceFileMode); err != nil {
 		return
 	}
+	_ = os.Chtimes(path, now, now)
 }
 
 // pruneStaleSharedPresence removes presence files (other than the current
