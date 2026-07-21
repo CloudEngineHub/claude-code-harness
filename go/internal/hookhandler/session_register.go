@@ -82,6 +82,10 @@ func HandleSessionRegister(in io.Reader, _ io.Writer) error {
 	}
 
 	_ = writeActiveJSON(activeFile, sessions)
+
+	projectRoot := resolveProjectRoot()
+	refreshSharedPresence(projectRoot, inp.SessionID)
+	pruneStaleSharedPresence(projectRoot, inp.SessionID)
 	return nil
 }
 
@@ -115,6 +119,7 @@ func HandleSessionUnregister(in io.Reader, _ io.Writer) error {
 	}
 	delete(sessions, inp.SessionID)
 	_ = writeActiveJSON(activeFile, sessions)
+	removeSharedPresence(resolveProjectRoot(), inp.SessionID)
 	return nil
 }
 

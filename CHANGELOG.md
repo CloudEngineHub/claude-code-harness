@@ -6,6 +6,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed
+
+#### セッション協調: 別 worktree で作業中のセッションの lease が横取りされる問題 (Phase 120)
+
+**今まで**: ファイル編集の貸出札 (lease) は全 worktree 共有なのに、持ち主の生存確認は自分の worktree の名簿 (`active.json`) しか見ていませんでした。別 worktree で生存中のセッションが持つ札は、60 分の TTL が切れると「死んだセッションの札」と誤判定され、横取り可能になっていました (spec の「TTL 満了 AND 名簿不在」契約が実質 TTL-only に縮退)。
+
+**今後**: 各セッションが共有側 (`git --git-common-dir` 親) の `.claude/sessions/live-sessions/<session_id>` に presence ファイルを持ち、生存判定は「共有 presence ∪ ローカル名簿」の union になります。別 worktree の生存保持者の lease は TTL 後も保護されます。presence dir 不在時は従来挙動に fallback (not-configured, silent)。ローカル名簿・bash 版 script のスキーマは非接触です。
+
 ## [5.3.1] - 2026-07-20
 
 ### テーマ: Plans.md marker 集計の正確化
