@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/deliveryidentity"
@@ -56,16 +58,31 @@ type inboxCheckOpts struct {
 	DB    string
 }
 
+type inboxCheckStdinHint struct {
+	SessionID string `json:"session_id"`
+}
+
 func runInboxCheckCommand(args []string, stdout, stderr io.Writer) int {
 	opts, err := parseInboxCheckArgs(args)
 	if err != nil {
 		fmt.Fprintf(stderr, "harness inbox check: %v\n", err)
 		return 0
 	}
+	if opts.Agent == "" {
+		opts.Agent = resolveInboxAgentFromStdin()
+	}
+	if opts.Agent == "" {
+		// Fail-open: no identity → treat as no delivery (silent Stop hook).
+		return 0
+	}
 
 	out, err := executeInboxCheck(opts)
 	if err != nil {
 		fmt.Fprintf(stderr, "harness inbox check: %v\n", err)
+		return 0
+	}
+
+	if out.Unread == 0 {
 		return 0
 	}
 
@@ -116,10 +133,13 @@ func parseInboxCheckArgs(args []string) (inboxCheckOpts, error) {
 		opts.Agent = agent
 	}
 	if opts.Team == "" {
-		return opts, fmt.Errorf("--team is required (or pass --from-env)")
+		opts.Team = strings.TrimSpace(os.Getenv("HARNESS_LIVEMSG_TEAM"))
+	}
+	if opts.Team == "" {
+		opts.Team = "default"
 	}
 	if opts.Agent == "" {
-		return opts, fmt.Errorf("--agent is required (or pass --from-env)")
+		opts.Agent = strings.TrimSpace(os.Getenv("HARNESS_LIVEMSG_AGENT"))
 	}
 	if opts.DB == "" {
 		// Generated Mode-2 delivery hooks (Phase 105.9) omit --db; resolve the
@@ -180,4 +200,20 @@ func executeInboxCheck(opts inboxCheckOpts) (inboxCheckOutput, error) {
 		Messages:      entries,
 		InjectContext: buildLivemsgInjectContext(entries, locale),
 	}, nil
+}
+
+func resolveInboxAgentFromStdin() string {
+	stat, err := os.Stdin.Stat()
+	if err != nil || (stat.Mode()&os.ModeCharDevice) != 0 {
+		return ""
+	}
+	data, err := io.ReadAll(os.Stdin)
+	if err != nil || len(bytes.TrimSpace(data)) == 0 {
+		return ""
+	}
+	var hint inboxCheckStdinHint
+	if err := json.Unmarshal(data, &hint); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(hint.SessionID)
 }
