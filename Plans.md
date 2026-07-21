@@ -13,7 +13,7 @@
 - **L2 ツール非依存（tool-agnostic）**: 同一 Harness（R01-R13 guardrails + plan/work/review/release）が Claude / Codex / Cursor の「どれからでも」効く。1 つの policy engine が 3 host を native hook 経由で adjudicate する（複製でなく routing）。2 つの向きを対等にサポート — #1 harness が駆動（Lead が他ツールを engine として spawn）/ #2 host から使う（Codex/Cursor「から」harness を使う）（`spec.md` Execution Backend Contract / Host Adapter）。
 - **L3 協調（collaboration, 将来の本丸）**: 複数ツールが同一プロジェクトを、人間をコピペ係にせず協調する。Mode 1 = 完全自律オーケストレーション（v1 は Lead=Claude 固定、Codex/Cursor は外向き spawn API 無し）。Mode 2 = 人間在席の peer co-drive（live notice messaging）。フル peer-Lead 協調は段階導入で後回し（Phase 92 Purpose / `spec.md` Mode 1/Mode 2）。
 
-> 既知 follow-up（未スケジュール・メモのみ、新規 cc:todo は作らない）: **delivery hook gen 未配線** — `go/internal/hostgen` の `GenerateDeliveryHooksJSON` は実装 + unit test 済みだが harness gen に未接続で、生成される Codex/Cursor の hooks.json に inbox-check（Mode 2 turn 境界 delivery）が入らない。配線すれば Mode 2 の郵便配達が Codex/Cursor にも届く（turn-based、live ではない。live monitor は Claude 専用）= L3 協調の実体化の一歩。Lead が後で正式 task 化を判断する。
+> ~~既知 follow-up: delivery hook gen 未配線~~ **解消済み (2026-07-21 訂正)**: `GenerateDeliveryHooksJSON` は Phase 105.9 [b82143fe] で `harness gen` に配線済みだった（このメモ自体が stale だった）。identity placeholder no-op は Phase 121.2（`--from-env` runtime 解決）で解消、Claude host の Stop 配線は Phase 121.3 で追加。Mode 2 turn 境界 delivery は 3 host に配達される（live monitor は opt-in・既定 OFF）。
 
 ---
 

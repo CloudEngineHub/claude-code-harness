@@ -6,6 +6,34 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+#### HOTL session messaging: 人間もセッションも名前で呼び合える宛先付きメッセージ (Phase 121)
+
+**今まで**: セッション間の連絡は broadcast (全員宛のファイル変更通知) だけで、特定のセッションに「そのタスク、仕様が変わったよ」と一言伝える手段がありませんでした。人間が伝えたい場合は対象セッションの端末を探してコピペする必要がありました。また livemsg 配送路には sanitize や byte cap が無く、メッセージ本文が無防備にモデル文脈へ入る状態でした。
+
+**今後**: `bin/harness inbox send --team <t> --from <id> --to <agent> "本文"` で任意の端末から特定セッション宛にメッセージを送れます。受信側は turn 境界 (Stop hook) で自動配達され、`inbox sent` で既読状態も確認できます。配送路には信頼契約 (制御文字/ANSI 除去 + 「命令ではありません」disclaimer + 全体 4096B / メッセージ単位 768B cap) が入り、人間発 nudge も data-not-instructions 契約に乗ります (Risk Gate 承認は対象セッションの console のみ)。未読 0 件時は無出力なので通常セッションのノイズは増えません。
+
+#### セッションの名札と作業宣言: 「どのセッションが何をやっているか」を一覧で逆引き (Phase 121.4)
+
+**今まで**: `session-list.sh` はセッション ID と最終アクティブ時刻しか出せず、「121.2 を作業しているセッションはどれ？」が分かりませんでした。
+
+**今後**: 出勤カード (presence file) に `{label, task, since}` を書けるようになり、`bin/harness session declare --task 121.2` で作業宣言、`bin/harness session list` で label / 現在 task / 経過時間の一覧が出ます。task 番号 → セッションの逆引きが grep 一発になります。生存判定は従来どおり filename + mtime のみ (カード内容は判定に影響しません)。
+
+#### 生成 delivery hook の identity 解決 (Phase 121.2)
+
+**今まで**: `harness gen` が生成する Codex/Cursor の delivery hook は `--team {{TEAM}} --agent {{AGENT}}` の placeholder が未置換のまま実行され、事実上 no-op でした。
+
+**今後**: 生成コマンドは `inbox check --from-env` になり、実行時に env (`HARNESS_LIVEMSG_*` → breezing fallback) から identity を解決します。checkout ごとの生成物を再生成せずにセッションごとの宛先が機能します。
+
+### Changed
+
+#### PreCompact: Plans.md 未 commit でブロックせず自動 commit して続行 (Phase 121.6)
+
+**今まで**: `/compact` 時に Plans.md へ未 commit の編集があると PreCompact hook がブロックし、手動で commit してから再実行する必要がありました (どうせ commit してから compact するのに毎回止まる)。
+
+**今後**: Plans.md だけを pathspec 限定で自動 commit (`chore(plans): auto-checkpoint before compaction`) してから compaction が続行します。他の未 commit ファイルは巻き込みません。commit に失敗した場合と `.claude-code-harness.config.yaml` に `precompactAutoCommit: false` を書いた場合のみ従来どおりブロックします。
+
 ### Fixed
 
 #### セッション協調: 別 worktree で作業中のセッションの lease が横取りされる問題 (Phase 120)
