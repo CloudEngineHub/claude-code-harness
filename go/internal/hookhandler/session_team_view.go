@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -163,35 +164,64 @@ func SessionDeclareClear(projectRoot, sessionID string) error {
 }
 
 // FormatSessionTeamList renders a tab-separated team view (grep-friendly task column).
+// Live rows are the union of shared presence files and the worktree-local
+// active.json roster (same survival set as lease isStale), with presence winning
+// on duplicates.
 func FormatSessionTeamList(projectRoot string, now time.Time) string {
-	dir := sharedLiveSessionsDirFromRoot(projectRoot)
-	if dir == "" {
-		return "session_id\tlabel\ttask\tsince\telapsed\n"
+	if projectRoot == "" {
+		projectRoot = resolveProjectRoot()
 	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return "session_id\tlabel\ttask\tsince\telapsed\n"
-	}
-	cutoff := now.Add(-registerStaleCutoff)
 	var b strings.Builder
 	b.WriteString("session_id\tlabel\ttask\tsince\telapsed\n")
-	for _, ent := range entries {
-		if ent.IsDir() {
+	seen := make(map[string]struct{})
+	cutoff := now.Add(-registerStaleCutoff)
+
+	dir := sharedLiveSessionsDirFromRoot(projectRoot)
+	if dir != "" {
+		entries, err := os.ReadDir(dir)
+		if err == nil {
+			for _, ent := range entries {
+				if ent.IsDir() {
+					continue
+				}
+				name := ent.Name()
+				if !validPresenceSessionID(name) {
+					continue
+				}
+				info, err := ent.Info()
+				if err != nil || info.ModTime().Before(cutoff) {
+					continue
+				}
+				seen[name] = struct{}{}
+				data, _ := os.ReadFile(filepath.Join(dir, name))
+				card := ParsePresenceCardBody(data)
+				label := displayLabel(card, name)
+				elapsed := formatElapsedSince(card.Since, now)
+				fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\n", name, label, card.Task, card.Since, elapsed)
+			}
+		}
+	}
+
+	activePath := filepath.Join(projectRoot, ".claude", "sessions", "active.json")
+	sessions := readActiveJSON(activePath)
+	lastSeenCutoff := now.Unix() - int64(registerStaleCutoff.Seconds())
+	var rosterOnly []string
+	for id, s := range sessions {
+		if _, listed := seen[id]; listed {
 			continue
 		}
-		name := ent.Name()
-		if !validPresenceSessionID(name) {
+		if !validPresenceSessionID(id) {
 			continue
 		}
-		info, err := ent.Info()
-		if err != nil || info.ModTime().Before(cutoff) {
+		if s.LastSeen < lastSeenCutoff {
 			continue
 		}
-		data, _ := os.ReadFile(filepath.Join(dir, name))
-		card := ParsePresenceCardBody(data)
-		label := displayLabel(card, name)
-		elapsed := formatElapsedSince(card.Since, now)
-		fmt.Fprintf(&b, "%s\t%s\t%s\t%s\t%s\n", name, label, card.Task, card.Since, elapsed)
+		rosterOnly = append(rosterOnly, id)
+	}
+	sort.Strings(rosterOnly)
+	for _, id := range rosterOnly {
+		label := sessionShortID(id)
+		fmt.Fprintf(&b, "%s\t%s\t\t\t\n", id, label)
 	}
 	return b.String()
 }

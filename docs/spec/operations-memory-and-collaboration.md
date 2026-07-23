@@ -142,7 +142,9 @@ coordinate them to reduce file conflicts, but only under these rules.
   liveness inputs — and garbage content is tolerated fail-open. Declarations
   are session-owned (a session rewrites only its own card). The team view
   lists label (short-id fallback), current task, and elapsed time so a task
-  number can be reverse-looked-up to its session.
+  number can be reverse-looked-up to its session. The team list uses the same
+  live-session union as lease staleness: shared presence plus the worktree-local
+  active.json roster.
 
 ## Worktree Root Discipline
 
