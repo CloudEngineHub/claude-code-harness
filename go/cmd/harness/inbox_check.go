@@ -53,9 +53,10 @@ type inboxCheckMessageEntry struct {
 }
 
 type inboxCheckOpts struct {
-	Team  string
-	Agent string
-	DB    string
+	Team    string
+	Agent   string
+	DB      string
+	FromEnv bool
 }
 
 type inboxCheckStdinHint struct {
@@ -72,6 +73,9 @@ func runInboxCheckCommand(args []string, stdout, stderr io.Writer) int {
 		opts.Agent = resolveInboxAgentFromStdin()
 	}
 	if opts.Agent == "" {
+		if opts.FromEnv {
+			fmt.Fprintf(stderr, "livemsg: identity unresolved (set HARNESS_LIVEMSG_TEAM/AGENT or run under breezing)\n")
+		}
 		// Fail-open: no identity → treat as no delivery (silent Stop hook).
 		return 0
 	}
@@ -125,12 +129,12 @@ func parseInboxCheckArgs(args []string) (inboxCheckOpts, error) {
 		}
 	}
 	if fromEnv {
+		opts.FromEnv = true
 		team, agent, err := deliveryidentity.Resolve()
-		if err != nil {
-			return opts, err
+		if err == nil {
+			opts.Team = team
+			opts.Agent = agent
 		}
-		opts.Team = team
-		opts.Agent = agent
 	}
 	if opts.Team == "" {
 		opts.Team = strings.TrimSpace(os.Getenv("HARNESS_LIVEMSG_TEAM"))

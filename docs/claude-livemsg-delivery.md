@@ -21,6 +21,15 @@ When there are **zero unread** messages, the command produces **no stdout**
 (silent hook). Trust contract (sanitize, non-instruction disclaimer, 4096B cap)
 is applied in `go/cmd/harness/inbox_check.go` before any inject payload is emitted.
 
+### Host identity fallback chains
+
+| Host | Invocation | Team resolution (first match) | Agent resolution (first match) | Unresolved |
+|------|------------|-------------------------------|--------------------------------|------------|
+| Claude | `inbox check` (Stop hook; `--team` from env default) | `--team` flag → `HARNESS_LIVEMSG_TEAM` → `default` | `--agent` flag → `HARNESS_LIVEMSG_AGENT` → Stop stdin `session_id` | silent exit 0 (no stdout) |
+| Codex / Cursor | `inbox check --from-env` (generated turn hook) | `deliveryidentity.Resolve()` (`HARNESS_LIVEMSG_*` both set, else breezing `BREEZING_SESSION_ID` / role) → `HARNESS_LIVEMSG_TEAM` → `default` | same Resolve agent → `HARNESS_LIVEMSG_AGENT` → hook stdin `session_id` | stderr `livemsg: identity unresolved (...)` then exit 0 |
+
+Codex and Cursor hooks use `--from-env` so one generated `hooks.json` works across sessions; stdin `session_id` covers standalone sessions when livemsg/breezing env is absent (Phase 122.2).
+
 ## Live monitor (~5s poll) — opt-in, default OFF
 
 `bin/harness inbox monitor` is **not** wired in the tracked Claude hooks.

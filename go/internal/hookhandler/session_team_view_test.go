@@ -3,6 +3,7 @@ package hookhandler
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -25,6 +26,29 @@ func writeSessionJSON(t *testing.T, projectRoot, sessionID string) {
 	}
 }
 
+func writeActiveJSONOnly(t *testing.T, projectRoot, sessionID string, lastSeen time.Time) {
+	t.Helper()
+	sessionsDir := filepath.Join(projectRoot, ".claude", "sessions")
+	if err := os.MkdirAll(sessionsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	short := sessionID
+	if len(short) > 12 {
+		short = short[:12]
+	}
+	sessions := map[string]ActiveSession{
+		sessionID: {
+			ShortID:  short,
+			LastSeen: lastSeen.Unix(),
+			PID:      strconv.Itoa(os.Getpid()),
+			Status:   "active",
+		},
+	}
+	if err := writeActiveJSON(filepath.Join(sessionsDir, "active.json"), sessions); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func touchFreshPresence(t *testing.T, projectRoot, sessionID string, body []byte) {
 	t.Helper()
 	dir := sharedLiveSessionsDirFromRoot(projectRoot)
@@ -38,6 +62,27 @@ func touchFreshPresence(t *testing.T, projectRoot, sessionID string, body []byte
 	now := time.Now()
 	if err := os.Chtimes(path, now, now); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestSessionTeamView_ListIncludesActiveJSONOnlySession expects roster-only
+// sessions (no shared presence file) in team list — same union as lease isStale.
+func TestSessionTeamView_ListIncludesActiveJSONOnlySession(t *testing.T) {
+	dir := seedGitRepoTeamView(t)
+	const sessionID = "sess-active-json-only"
+	now := time.Now()
+	writeActiveJSONOnly(t, dir, sessionID, now)
+
+	out := FormatSessionTeamList(dir, now)
+	if !strings.Contains(out, sessionID) {
+		t.Fatalf("list must include active.json-only session %q:\n%s", sessionID, out)
+	}
+	short := sessionID
+	if len(short) > 12 {
+		short = short[:12]
+	}
+	if !strings.Contains(out, short) {
+		t.Fatalf("label must use short_id fallback %q:\n%s", short, out)
 	}
 }
 

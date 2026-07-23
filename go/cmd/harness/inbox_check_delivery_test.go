@@ -82,6 +82,40 @@ func TestInboxCheck_StopTurnDeliveryE2E(t *testing.T) {
 	}
 }
 
+// TestInboxCheck_FromEnvStdinSessionIDFallback covers codex/cursor generated hooks:
+// `inbox check --from-env` with no livemsg/breezing env, stdin carries session_id.
+func TestInboxCheck_FromEnvStdinSessionIDFallback(t *testing.T) {
+	t.Setenv("HARNESS_LIVEMSG_TEAM", "")
+	t.Setenv("HARNESS_LIVEMSG_AGENT", "")
+	t.Setenv("BREEZING_SESSION_ID", "")
+	t.Setenv("BREEZING_ROLE", "")
+
+	team := "default"
+	sessionID := "standalone-session-122-2"
+	dbPath := seedInboxDB(t, team, "peer", sessionID, 1)
+
+	var stdout, stderr bytes.Buffer
+	stdin := strings.NewReader(`{"session_id":"` + sessionID + `"}`)
+	code := runInboxCheckCommandWithStdin([]string{"--from-env", "--db", dbPath}, stdin, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d stderr=%q", code, stderr.String())
+	}
+	raw := strings.TrimSpace(stdout.String())
+	if raw == "" {
+		t.Fatalf("expected delivery JSON when unread > 0; stderr=%q", stderr.String())
+	}
+	var result inboxCheckOutput
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		t.Fatalf("JSON: %v raw=%q", err, raw)
+	}
+	if result.Team != team || result.Agent != sessionID {
+		t.Fatalf("identity: team=%q agent=%q, want team=%q agent=%q", result.Team, result.Agent, team, sessionID)
+	}
+	if result.Unread != 1 {
+		t.Fatalf("unread = %d, want 1", result.Unread)
+	}
+}
+
 func runInboxCheckCommandWithStdin(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	oldStdin := os.Stdin
 	r, w, err := os.Pipe()
