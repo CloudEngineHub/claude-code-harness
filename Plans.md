@@ -132,3 +132,22 @@ Purpose: agmsg (github.com/fujibee/agmsg, README 調査 2026-07-21) の「人間
   scope: Phase 121 / Task 121.5
   承認: ユーザー承認 (2026-07-21)「完全自動で merge まで」— push / PR / CI green 後 merge まで無停止 (121.6 含む)
 - secret-read / destructive: なし
+
+---
+
+## Phase 122: Phase 121 残余 edge 解消 — session list union + inbox fallback 診断性 (Explore 精査 2026-07-23) [P2]
+
+Purpose: Phase 121 closeout で記録した非 blocking 残余 edge 2 件を、Explore 精査 (2026-07-23) で「修正必要性: 中 / 規模: 小」と確定したため解消する。(1) `bin/harness session list` (`FormatSessionTeamList`) は共有 presence dir のみを参照し、非 git 環境や Phase 120 導入前から生存する旧セッション (active.json のみ登録) が一覧から漏れる。lease 生存判定 (`session_lease.go:504-531 isStale`) は既に「shared presence ∪ active.json」の union を明文コメント付きで実装しており、list だけが非一貫。(2) codex/cursor 生成 hook の `inbox check --from-env` は `deliveryidentity.Resolve()` 失敗時に stderr + return 0 で silent skip し、claude host が持つ stdin session_id fallback (`resolveInboxAgentFromStdin`) に到達しない。standalone セッションで配達が沈黙し診断できない。Spec delta: `docs/spec/operations-memory-and-collaboration.md` Session Coordination Contract の presence card 契約に「team list は shared presence ∪ ローカル active.json の union (lease 生存判定と同一集合)」を 1 行追記 (122.1 DoD 内)。122.2 は host 別 identity 解決の記録正本 `docs/claude-livemsg-delivery.md` へ fallback チェーン追記で足りるため spec delta 不要 (Spec skip reason: 配達可否の契約は不変、解決順序の内部強化)。team_validation_mode: subagent (Explore 読み取り精査で実装箇所・既存 union パターン・呼出経路を確認済み)。unknown_data: なし。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 122.1 | `[lane:gate]` `[tdd:required]` `FormatSessionTeamList` (`go/internal/hookhandler/session_team_view.go:166-197`) を lease 判定と同じ union へ: shared presence 一覧に `LoadLiveSessionsFromActiveJSON` 由来のみのセッションを追記 (label=short id, task/since 空)。liveness 判定は filename+mtime (presence 側) / active.json last_seen (roster 側) の既存規則を変えない | (a) RED: 「active.json のみのセッションが list に出る」を期待するテストが現実装で fail する実測を記録, (b) presence + active.json 両方に居るセッションの重複表示なし, (c) 既存 session_team_view / Phase 120 presence テスト非退行, (d) spec の presence card 契約に union 1 行追記, (e) `cd go && go test ./internal/hookhandler/... -count=1` PASS + gofmt clean | - | cc:todo |
+| 122.2 | `[lane:gate]` `[tdd:required]` `inbox check --from-env` (`go/cmd/harness/inbox_check.go:127-131`) の Resolve 失敗時に stdin session_id fallback を追加し claude 経路 (`resolveInboxAgentFromStdin`) と揃える。team は `HARNESS_LIVEMSG_TEAM` → "default"。fallback 到達も不能なら stderr に理由 1 行 (`livemsg: identity unresolved (set HARNESS_LIVEMSG_TEAM/AGENT or run under breezing)`) を出して return 0 (fail-open 非退行) | (a) RED: 「env 無し + stdin session_id あり → agent=session_id で配達」を期待するテストが現実装で fail する実測を記録, (b) env あり時は env 優先 (既存テスト非退行), (c) stdin も無い時の stderr 理由 1 行 + exit 0, (d) `docs/claude-livemsg-delivery.md` に fallback チェーン表を追記, (e) `cd go && go test ./cmd/... -count=1` PASS + gofmt clean | - | cc:todo |
+| 122.3 | `[lane:gate]` `[tdd:skip:docs-closeout]` closeout: CHANGELOG [Unreleased] 追記 (今まで/今後形式)、binary 4 平台再ビルド (`bin/harness` shim 非接触)、gates (`tests/validate-plugin.sh` / `scripts/ci/check-consistency.sh`)、PR | (a) validate 0 failed, (b) consistency PASS, (c) PR CI green 後 merge commit で main へ | 122.1, 122.2 | cc:todo |
+
+事前確認 (plan-time pre-approval):
+- 事項: external-send — `git push origin <branch>` / `gh pr create` / `gh pr merge --merge` (PR closeout)
+  理由: 122.3 DoD (c) の PR closeout に必要
+  scope: Phase 122 / Task 122.3
+  承認: 未承認 (実装完了後にユーザーへ確認)
+- secret-read / destructive: なし
