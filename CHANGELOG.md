@@ -26,6 +26,12 @@ Change history for claude-code-harness.
 
 **今後**: 生成コマンドは `inbox check --from-env` になり、実行時に env (`HARNESS_LIVEMSG_*` → breezing fallback) から identity を解決します。checkout ごとの生成物を再生成せずにセッションごとの宛先が機能します。
 
+#### セッション一覧と standalone 配達の取りこぼし解消 (Phase 122)
+
+**今まで**: `bin/harness session list` は共有 presence file を持つセッションしか表示せず、非 git 環境や presence 機構導入前から生き続けるセッション (ローカル `active.json` のみ登録) が一覧から漏れていました。lease の生存判定は「presence ∪ active.json」の union なのに、一覧だけが片側しか見ない非一貫でした。また breezing 外で直接起動した Codex/Cursor セッションでは、`inbox check --from-env` が identity を解決できず理由の表示もなくメッセージ配達を沈黙スキップしていました。
+
+**今後**: `session list` は lease 判定と同一の生存集合 (presence ∪ active.json) を表示します (roster のみのセッションは短縮 ID label で追記)。`--from-env` は env で解決できない場合に hook stdin の `session_id` へ fallback し (claude host と同じ経路)、それでも不明なら `livemsg: identity unresolved (...)` を stderr に 1 行出して従来どおり fail-open します。host 別の解決順は `docs/claude-livemsg-delivery.md` の fallback チェーン表が正本です。
+
 ### Changed
 
 #### PreCompact: Plans.md 未 commit でブロックせず自動 commit して続行 (Phase 121.6)
